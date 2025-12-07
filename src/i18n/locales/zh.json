@@ -1,0 +1,108 @@
+{
+  "app": {
+    "title": "互动礼物制作器",
+    "myGifts": "我的礼物",
+    "createNewGift": "创建新礼物",
+    "importProject": "导入项目",
+    "exportProject": "导出项目",
+    "edit": "编辑",
+    "delete": "删除",
+    "privacy": {
+      "title": "隐私和本地存储",
+      "description": "您的所有数据都存储在您的设备本地。不会向任何服务器发送任何内容。分享项目的唯一方法是将它们导出为HTML或JSON文件。"
+    }
+  },
+  "editor": {
+    "steps": {
+      "template": "模板",
+      "giftDetails": "礼物详情",
+      "screenTexts": "屏幕文本",
+      "images": "图片",
+      "music": "音乐",
+      "overlay": "覆盖层",
+      "preview": "预览",
+      "export": "导出"
+    },
+    "status": {
+      "notStarted": "未开始",
+      "inProgress": "进行中",
+      "complete": "完成"
+    },
+    "template": {
+      "selectTemplate": "选择模板",
+      "romantic": "浪漫/情侣",
+      "adultBirthday": "成人生日",
+      "kidsBirthday": "儿童生日",
+      "newBaby": "新生儿/出生",
+      "barMitzvah": "成人礼",
+      "wedding": "婚礼/保存日期",
+      "singleScreen": "单屏"
+    },
+    "giftDetails": {
+      "recipientName": "收件人姓名",
+      "senderName": "发件人姓名",
+      "eventTitle": "活动标题",
+      "mainGreeting": "主要问候语",
+      "language": "项目语言"
+    },
+    "images": {
+      "uploadImages": "上传图片",
+      "dragDrop": "拖放图片到此处，或点击选择",
+      "recommendedSize": "推荐：图片将被压缩到约100-200KB",
+      "maxDimension": "最大尺寸：1600px",
+      "reorder": "重新排序",
+      "delete": "删除",
+      "fileSize": "文件大小",
+      "warning": "大图片可能影响分享"
+    },
+    "music": {
+      "uploadMusic": "上传音乐",
+      "globalMusic": "全局音乐（全程播放）",
+      "screenMusic": "屏幕音乐",
+      "recommended": "推荐：上传前压缩音频文件",
+      "warningSize": "大于3MB的文件可能影响分享",
+      "fileSize": "文件大小"
+    },
+    "overlay": {
+      "customizeOverlay": "自定义覆盖层",
+      "overlayType": "覆盖层类型",
+      "mainText": "主文本",
+      "subText": "副文本",
+      "buttonText": "按钮文本"
+    },
+    "preview": {
+      "previewGift": "预览您的礼物",
+      "mobileView": "移动视图",
+      "desktopView": "桌面视图",
+      "tapToBegin": "点击开始",
+      "next": "下一步",
+      "previous": "上一步"
+    },
+    "export": {
+      "createGift": "创建礼物",
+      "validating": "验证中...",
+      "generating": "生成HTML...",
+      "downloadReady": "您的礼物已准备好！",
+      "download": "下载HTML文件"
+    }
+  },
+  "validation": {
+    "requiredField": "此字段为必填项",
+    "missingImages": "缺少必需的图片",
+    "fileTooLarge": "文件太大",
+    "invalidImport": "无效的项目文件"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "back": "返回",
+    "next": "下一步",
+    "close": "关闭",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功"
+  }
+}
+
+
+

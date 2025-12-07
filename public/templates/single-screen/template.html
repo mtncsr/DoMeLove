@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Single Screen Gift</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Arial', sans-serif; background: {{theme_bgColor}}; color: #333; }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; }
+    .overlay h1 { color: white; font-size: 3rem; margin-bottom: 1rem; }
+    .overlay button { padding: 1rem 2rem; font-size: 1.2rem; background: white; color: #6366f1; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
+    .screen { min-height: 100vh; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .screen h2 { font-size: 2.5rem; margin-bottom: 2rem; color: {{theme_accentColor}}; }
+    .screen p { font-size: 1.2rem; line-height: 1.8; max-width: 800px; margin-bottom: 2rem; }
+    .screen img { max-width: 100%; height: auto; border-radius: 10px; margin: 2rem 0; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlay">
+    <h1>{{overlayMainText}}</h1>
+    <p>{{overlaySubText}}</p>
+    <button onclick="startExperience()">{{overlayButtonText}}</button>
+  </div>
+  <div class="screen hidden" id="single">
+    <h2>{{single_title}}</h2>
+    <img src="{{single_image1}}" alt="Main image" />
+    <p>{{single_text}}</p>
+  </div>
+  <script>
+    function startExperience() {
+      document.getElementById('overlay').classList.add('hidden');
+      document.getElementById('single').classList.remove('hidden');
+      if (typeof AudioManager !== 'undefined') {
+        var audio = document.querySelector('audio[data-screen="single"]');
+        if (audio) {
+          AudioManager.playScreenAudio('single', audio.src);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
+
+
+

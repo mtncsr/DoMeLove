@@ -1,0 +1,66 @@
+{
+  "templateId": "wedding",
+  "templateName": "Wedding / Save the Date",
+  "overlayType": "save_the_date",
+  "screens": [
+    {
+      "screenId": "saveDate",
+      "type": "event-details",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "story",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 2,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "eventDetails",
+      "type": "event-details",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 3,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "coupleGallery",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 4,
+      "galleryImageCount": 6,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "closing",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 5,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "eventTitle", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#fdf2f8"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#ec4899"
+    }
+  ]
+}
+
+
+

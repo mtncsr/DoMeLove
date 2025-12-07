@@ -1,0 +1,75 @@
+{
+  "templateId": "kids-birthday",
+  "templateName": "Kids Birthday",
+  "overlayType": "birthday",
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "growth",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 2,
+      "galleryImageCount": 6,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "hobbies",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 3,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "funnyMoments",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 4,
+      "galleryImageCount": 4,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "blessings",
+      "type": "blessings",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 5,
+      "blessingCount": 3
+    },
+    {
+      "screenId": "wish",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 6,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#fef3c7"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#fbbf24"
+    }
+  ]
+}
+
+
+

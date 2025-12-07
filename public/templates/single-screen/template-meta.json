@@ -1,0 +1,33 @@
+{
+  "templateId": "single-screen",
+  "templateName": "Single Screen",
+  "overlayType": "custom",
+  "screens": [
+    {
+      "screenId": "single",
+      "type": "single",
+      "placeholders": ["title", "text", "image1"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#6366f1"
+    }
+  ]
+}
+
+
+

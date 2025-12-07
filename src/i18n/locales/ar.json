@@ -1,0 +1,108 @@
+{
+  "app": {
+    "title": "منشئ الهدايا التفاعلية",
+    "myGifts": "هداياي",
+    "createNewGift": "إنشاء هدية جديدة",
+    "importProject": "استيراد مشروع",
+    "exportProject": "تصدير مشروع",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "privacy": {
+      "title": "الخصوصية والتخزين المحلي",
+      "description": "يتم تخزين جميع بياناتك محليًا على جهازك. لا يتم إرسال أي شيء إلى أي خادم. الطريقة الوحيدة لمشاركة مشاريعك هي تصديرها كملفات HTML أو JSON."
+    }
+  },
+  "editor": {
+    "steps": {
+      "template": "قالب",
+      "giftDetails": "تفاصيل الهدية",
+      "screenTexts": "نصوص الشاشة",
+      "images": "الصور",
+      "music": "الموسيقى",
+      "overlay": "التراكب",
+      "preview": "معاينة",
+      "export": "تصدير"
+    },
+    "status": {
+      "notStarted": "لم يبدأ",
+      "inProgress": "قيد التنفيذ",
+      "complete": "مكتمل"
+    },
+    "template": {
+      "selectTemplate": "اختر قالبًا",
+      "romantic": "رومانسي / زوج",
+      "adultBirthday": "عيد ميلاد بالغ",
+      "kidsBirthday": "عيد ميلاد أطفال",
+      "newBaby": "طفل جديد / ولادة",
+      "barMitzvah": "بار/بات ميتزفه",
+      "wedding": "زفاف / احفظ التاريخ",
+      "singleScreen": "شاشة واحدة"
+    },
+    "giftDetails": {
+      "recipientName": "اسم المستلم",
+      "senderName": "اسم المرسل",
+      "eventTitle": "عنوان الحدث",
+      "mainGreeting": "التحية الرئيسية",
+      "language": "لغة المشروع"
+    },
+    "images": {
+      "uploadImages": "رفع الصور",
+      "dragDrop": "اسحب وأفلت الصور هنا، أو انقر للاختيار",
+      "recommendedSize": "موصى به: سيتم ضغط الصور إلى ~100-200KB لكل منها",
+      "maxDimension": "البعد الأقصى: 1600px",
+      "reorder": "إعادة الترتيب",
+      "delete": "حذف",
+      "fileSize": "حجم الملف",
+      "warning": "الصور الكبيرة قد تؤثر على المشاركة"
+    },
+    "music": {
+      "uploadMusic": "رفع الموسيقى",
+      "globalMusic": "موسيقى عامة (تعمل طوال الوقت)",
+      "screenMusic": "موسيقى الشاشة",
+      "recommended": "موصى به: ضغط ملفات الصوت قبل الرفع",
+      "warningSize": "الملفات الأكبر من 3MB قد تؤثر على المشاركة",
+      "fileSize": "حجم الملف"
+    },
+    "overlay": {
+      "customizeOverlay": "تخصيص التراكب",
+      "overlayType": "نوع التراكب",
+      "mainText": "النص الرئيسي",
+      "subText": "النص الثانوي",
+      "buttonText": "نص الزر"
+    },
+    "preview": {
+      "previewGift": "معاينة هديتك",
+      "mobileView": "عرض الجوال",
+      "desktopView": "عرض سطح المكتب",
+      "tapToBegin": "اضغط للبدء",
+      "next": "التالي",
+      "previous": "السابق"
+    },
+    "export": {
+      "createGift": "إنشاء هدية",
+      "validating": "التحقق...",
+      "generating": "إنشاء HTML...",
+      "downloadReady": "هديتك جاهزة!",
+      "download": "تحميل ملف HTML"
+    }
+  },
+  "validation": {
+    "requiredField": "هذا الحقل مطلوب",
+    "missingImages": "الصور المطلوبة مفقودة",
+    "fileTooLarge": "الملف كبير جدًا",
+    "invalidImport": "ملف مشروع غير صالح"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "back": "رجوع",
+    "next": "التالي",
+    "close": "إغلاق",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجاح"
+  }
+}
+
+
+

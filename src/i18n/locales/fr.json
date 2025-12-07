@@ -1,0 +1,108 @@
+{
+  "app": {
+    "title": "Créateur de Cadeaux Interactifs",
+    "myGifts": "Mes Cadeaux",
+    "createNewGift": "Créer un Nouveau Cadeau",
+    "importProject": "Importer un Projet",
+    "exportProject": "Exporter le Projet",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "privacy": {
+      "title": "Confidentialité et Stockage Local",
+      "description": "Toutes vos données sont stockées localement sur votre appareil. Rien n'est envoyé à aucun serveur. La seule façon de partager vos projets est de les exporter sous forme de fichiers HTML ou JSON."
+    }
+  },
+  "editor": {
+    "steps": {
+      "template": "Modèle",
+      "giftDetails": "Détails du Cadeau",
+      "screenTexts": "Textes",
+      "images": "Images",
+      "music": "Musique",
+      "overlay": "Superposition",
+      "preview": "Aperçu",
+      "export": "Exporter"
+    },
+    "status": {
+      "notStarted": "Non Commencé",
+      "inProgress": "En Cours",
+      "complete": "Terminé"
+    },
+    "template": {
+      "selectTemplate": "Sélectionner un Modèle",
+      "romantic": "Romantique / Couple",
+      "adultBirthday": "Anniversaire Adulte",
+      "kidsBirthday": "Anniversaire Enfant",
+      "newBaby": "Nouveau Bébé / Naissance",
+      "barMitzvah": "Bar/Bat Mitzvah",
+      "wedding": "Mariage / Réservez la Date",
+      "singleScreen": "Écran Unique"
+    },
+    "giftDetails": {
+      "recipientName": "Nom du Destinataire",
+      "senderName": "Nom de l'Expéditeur",
+      "eventTitle": "Titre de l'Événement",
+      "mainGreeting": "Salutation Principale",
+      "language": "Langue du Projet"
+    },
+    "images": {
+      "uploadImages": "Télécharger des Images",
+      "dragDrop": "Glissez-déposez des images ici, ou cliquez pour sélectionner",
+      "recommendedSize": "Recommandé: Les images seront compressées à ~100-200KB chacune",
+      "maxDimension": "Dimension maximale: 1600px",
+      "reorder": "Réorganiser",
+      "delete": "Supprimer",
+      "fileSize": "Taille du Fichier",
+      "warning": "Les grandes images peuvent affecter le partage"
+    },
+    "music": {
+      "uploadMusic": "Télécharger de la Musique",
+      "globalMusic": "Musique Globale (joue tout au long)",
+      "screenMusic": "Musique d'Écran",
+      "recommended": "Recommandé: Compressez les fichiers audio avant de les télécharger",
+      "warningSize": "Les fichiers de plus de 3MB peuvent affecter le partage",
+      "fileSize": "Taille du Fichier"
+    },
+    "overlay": {
+      "customizeOverlay": "Personnaliser la Superposition",
+      "overlayType": "Type de Superposition",
+      "mainText": "Texte Principal",
+      "subText": "Texte Secondaire",
+      "buttonText": "Texte du Bouton"
+    },
+    "preview": {
+      "previewGift": "Aperçu de Votre Cadeau",
+      "mobileView": "Vue Mobile",
+      "desktopView": "Vue Bureau",
+      "tapToBegin": "Appuyez pour Commencer",
+      "next": "Suivant",
+      "previous": "Précédent"
+    },
+    "export": {
+      "createGift": "Créer le Cadeau",
+      "validating": "Validation...",
+      "generating": "Génération du HTML...",
+      "downloadReady": "Votre cadeau est prêt!",
+      "download": "Télécharger le Fichier HTML"
+    }
+  },
+  "validation": {
+    "requiredField": "Ce champ est obligatoire",
+    "missingImages": "Des images requises manquent",
+    "fileTooLarge": "Le fichier est trop volumineux",
+    "invalidImport": "Fichier de projet invalide"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "back": "Retour",
+    "next": "Suivant",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès"
+  }
+}
+
+
+

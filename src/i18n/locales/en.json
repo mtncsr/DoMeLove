@@ -1,0 +1,108 @@
+{
+  "app": {
+    "title": "Interactive Gift Creator",
+    "myGifts": "My Gifts",
+    "createNewGift": "Create New Gift",
+    "importProject": "Import Project",
+    "exportProject": "Export Project",
+    "edit": "Edit",
+    "delete": "Delete",
+    "privacy": {
+      "title": "Privacy & Local Storage",
+      "description": "All your data is stored locally on your device. Nothing is sent to any server. The only way to share your projects is by exporting them as HTML or JSON files."
+    }
+  },
+  "editor": {
+    "steps": {
+      "template": "Template",
+      "giftDetails": "Gift Details",
+      "screenTexts": "Screen Texts",
+      "images": "Images",
+      "music": "Music",
+      "overlay": "Overlay",
+      "preview": "Preview",
+      "export": "Export"
+    },
+    "status": {
+      "notStarted": "Not Started",
+      "inProgress": "In Progress",
+      "complete": "Complete"
+    },
+    "template": {
+      "selectTemplate": "Select a Template",
+      "romantic": "Romantic / Couple",
+      "adultBirthday": "Adult Birthday",
+      "kidsBirthday": "Kids Birthday",
+      "newBaby": "New Baby / Birth",
+      "barMitzvah": "Bar/Bat Mitzvah",
+      "wedding": "Wedding / Save the Date",
+      "singleScreen": "Single Screen"
+    },
+    "giftDetails": {
+      "recipientName": "Recipient Name",
+      "senderName": "Sender Name",
+      "eventTitle": "Event Title",
+      "mainGreeting": "Main Greeting",
+      "language": "Project Language"
+    },
+    "images": {
+      "uploadImages": "Upload Images",
+      "dragDrop": "Drag and drop images here, or click to select",
+      "recommendedSize": "Recommended: Images will be compressed to ~100-200KB each",
+      "maxDimension": "Maximum dimension: 1600px",
+      "reorder": "Reorder",
+      "delete": "Delete",
+      "fileSize": "File Size",
+      "warning": "Large images may affect sharing"
+    },
+    "music": {
+      "uploadMusic": "Upload Music",
+      "globalMusic": "Global Music (plays throughout)",
+      "screenMusic": "Screen Music",
+      "recommended": "Recommended: Compress audio files before uploading",
+      "warningSize": "Files larger than 3MB may affect sharing",
+      "fileSize": "File Size"
+    },
+    "overlay": {
+      "customizeOverlay": "Customize Overlay",
+      "overlayType": "Overlay Type",
+      "mainText": "Main Text",
+      "subText": "Sub Text",
+      "buttonText": "Button Text"
+    },
+    "preview": {
+      "previewGift": "Preview Your Gift",
+      "mobileView": "Mobile View",
+      "desktopView": "Desktop View",
+      "tapToBegin": "Tap to Begin",
+      "next": "Next",
+      "previous": "Previous"
+    },
+    "export": {
+      "createGift": "Create Gift",
+      "validating": "Validating...",
+      "generating": "Generating HTML...",
+      "downloadReady": "Your gift is ready!",
+      "download": "Download HTML File"
+    }
+  },
+  "validation": {
+    "requiredField": "This field is required",
+    "missingImages": "Required images are missing",
+    "fileTooLarge": "File is too large",
+    "invalidImport": "Invalid project file"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  }
+}
+
+
+

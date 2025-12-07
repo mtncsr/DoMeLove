@@ -1,0 +1,108 @@
+{
+  "app": {
+    "title": "יוצר מתנות אינטראקטיבי",
+    "myGifts": "המתנות שלי",
+    "createNewGift": "צור מתנה חדשה",
+    "importProject": "ייבא פרויקט",
+    "exportProject": "ייצא פרויקט",
+    "edit": "ערוך",
+    "delete": "מחק",
+    "privacy": {
+      "title": "פרטיות ואחסון מקומי",
+      "description": "כל הנתונים שלך נשמרים מקומית במכשיר שלך. שום דבר לא נשלח לשרת. הדרך היחידה לשתף את הפרויקטים שלך היא על ידי ייצוא אותם כקבצי HTML או JSON."
+    }
+  },
+  "editor": {
+    "steps": {
+      "template": "תבנית",
+      "giftDetails": "פרטי מתנה",
+      "screenTexts": "טקסטים",
+      "images": "תמונות",
+      "music": "מוזיקה",
+      "overlay": "מסך פתיחה",
+      "preview": "תצוגה מקדימה",
+      "export": "ייצוא"
+    },
+    "status": {
+      "notStarted": "לא התחיל",
+      "inProgress": "בתהליך",
+      "complete": "הושלם"
+    },
+    "template": {
+      "selectTemplate": "בחר תבנית",
+      "romantic": "רומנטי / זוג",
+      "adultBirthday": "יום הולדת למבוגר",
+      "kidsBirthday": "יום הולדת לילדים",
+      "newBaby": "תינוק חדש / לידה",
+      "barMitzvah": "בר/בת מצווה",
+      "wedding": "חתונה / שמור את התאריך",
+      "singleScreen": "מסך יחיד"
+    },
+    "giftDetails": {
+      "recipientName": "שם המקבל",
+      "senderName": "שם השולח",
+      "eventTitle": "כותרת האירוע",
+      "mainGreeting": "ברכה ראשית",
+      "language": "שפת הפרויקט"
+    },
+    "images": {
+      "uploadImages": "העלה תמונות",
+      "dragDrop": "גרור ושחרר תמונות כאן, או לחץ לבחירה",
+      "recommendedSize": "מומלץ: תמונות יידחסו ל-~100-200KB כל אחת",
+      "maxDimension": "ממד מקסימלי: 1600px",
+      "reorder": "סדר מחדש",
+      "delete": "מחק",
+      "fileSize": "גודל קובץ",
+      "warning": "תמונות גדולות עלולות להשפיע על השיתוף"
+    },
+    "music": {
+      "uploadMusic": "העלה מוזיקה",
+      "globalMusic": "מוזיקה גלובלית (מתנגנת לאורך כל המתנה)",
+      "screenMusic": "מוזיקה למסך",
+      "recommended": "מומלץ: דחוס קבצי אודיו לפני העלאה",
+      "warningSize": "קבצים גדולים מ-3MB עלולים להשפיע על השיתוף",
+      "fileSize": "גודל קובץ"
+    },
+    "overlay": {
+      "customizeOverlay": "התאם אישית מסך פתיחה",
+      "overlayType": "סוג מסך פתיחה",
+      "mainText": "טקסט ראשי",
+      "subText": "טקסט משני",
+      "buttonText": "טקסט כפתור"
+    },
+    "preview": {
+      "previewGift": "תצוגה מקדימה של המתנה שלך",
+      "mobileView": "תצוגת מובייל",
+      "desktopView": "תצוגת שולחן עבודה",
+      "tapToBegin": "הקש כדי להתחיל",
+      "next": "הבא",
+      "previous": "הקודם"
+    },
+    "export": {
+      "createGift": "צור מתנה",
+      "validating": "בודק...",
+      "generating": "מייצר HTML...",
+      "downloadReady": "המתנה שלך מוכנה!",
+      "download": "הורד קובץ HTML"
+    }
+  },
+  "validation": {
+    "requiredField": "שדה זה נדרש",
+    "missingImages": "תמונות נדרשות חסרות",
+    "fileTooLarge": "הקובץ גדול מדי",
+    "invalidImport": "קובץ פרויקט לא תקין"
+  },
+  "common": {
+    "save": "שמור",
+    "cancel": "ביטול",
+    "back": "חזור",
+    "next": "הבא",
+    "close": "סגור",
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "success": "הצלחה"
+  }
+}
+
+
+

@@ -1,0 +1,83 @@
+{
+  "templateId": "romantic",
+  "templateName": "Romantic / Couple",
+  "overlayType": "heart",
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "story",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 2,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "gallery",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 3,
+      "galleryImageCount": 4,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "highlights",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 4,
+      "galleryImageCount": 6,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "appreciation",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 5,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "blessings",
+      "type": "blessings",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 6,
+      "blessingCount": 3
+    },
+    {
+      "screenId": "closing",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 7,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#ec4899"
+    }
+  ]
+}
+
+
+

@@ -6,19 +6,37 @@
   <title>Birthday Gift</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
     body { font-family: 'Arial', sans-serif; background: {{theme_bgColor}}; color: #333; }
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; }
-    .overlay h1 { color: white; font-size: 3rem; margin-bottom: 1rem; animation: bounce 1s infinite; }
-    .overlay button { padding: 1rem 2rem; font-size: 1.2rem; background: white; color: #f59e0b; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
+    .overlay h1 { color: white; font-size: 2rem; margin-bottom: 0.5rem; animation: bounce 1s infinite; }
+    .overlay p { font-size: 1rem; margin-bottom: 1rem; }
+    .overlay button { padding: 0.75rem 1.5rem; font-size: 1rem; background: white; color: #f59e0b; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
+    @media (min-width: 768px) {
+      .overlay h1 { font-size: 3rem; margin-bottom: 1rem; }
+      .overlay p { font-size: 1.2rem; margin-bottom: 1.5rem; }
+      .overlay button { padding: 1rem 2rem; font-size: 1.2rem; }
+    }
     @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-    .screen { min-height: 100vh; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-    .screen h2 { font-size: 2.5rem; margin-bottom: 2rem; color: {{theme_accentColor}}; }
-    .screen p { font-size: 1.2rem; line-height: 1.8; max-width: 800px; margin-bottom: 2rem; }
+    .screen { min-height: 100vh; padding: 2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+    @media (min-width: 768px) {
+      .screen { padding: 4rem 2rem; }
+    }
+    .screen h2 { font-size: 1.5rem; margin-bottom: 1rem; color: {{theme_accentColor}}; }
+    .screen p { font-size: 1rem; line-height: 1.6; max-width: 90%; margin-bottom: 1rem; }
+    @media (min-width: 768px) {
+      .screen h2 { font-size: 2.5rem; margin-bottom: 2rem; }
+      .screen p { font-size: 1.2rem; line-height: 1.8; max-width: 800px; margin-bottom: 2rem; }
+    }
     .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 1200px; margin: 2rem 0; }
     .gallery img { width: 100%; height: 200px; object-fit: cover; border-radius: 10px; }
     .blessing-card { background: #f9fafb; padding: 2rem; border-radius: 10px; margin: 1rem 0; max-width: 600px; }
-    .navigation { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1rem; }
-    .nav-button { padding: 0.75rem 1.5rem; background: {{theme_accentColor}}; color: white; border: none; border-radius: 25px; cursor: pointer; }
+    .navigation { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; z-index: 100; }
+    .nav-button { padding: 0.5rem 1rem; background: {{theme_accentColor}}; color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 0.9rem; }
+    @media (min-width: 768px) {
+      .navigation { bottom: 2rem; gap: 1rem; }
+      .nav-button { padding: 0.75rem 1.5rem; font-size: 1rem; }
+    }
     .hidden { display: none; }
   </style>
 </head>
@@ -28,12 +46,12 @@
     <p>{{overlaySubText}}</p>
     <button onclick="startExperience()">{{overlayButtonText}}</button>
   </div>
-  <div class="screen hidden" id="intro"><h2>{{intro_title}}</h2><p>{{intro_text}}</p></div>
+  <div class="screen hidden" id="intro"><h2>{{intro_title}}</h2><p>{{intro_text}}</p>{{intro_images}}</div>
   <div class="screen hidden" id="throughYears"><h2>{{throughYears_title}}</h2><div class="gallery">{{throughYears_gallery}}</div></div>
-  <div class="screen hidden" id="appreciation"><h2>{{appreciation_title}}</h2><p>{{appreciation_text}}</p></div>
-  <div class="screen hidden" id="highlights"><h2>{{highlights_title}}</h2><div class="gallery">{{highlights_gallery}}</div></div>
-  <div class="screen hidden" id="blessings"><h2>{{blessings_title}}</h2><div>{{blessings_blessings}}</div></div>
-  <div class="screen hidden" id="lookingAhead"><h2>{{lookingAhead_title}}</h2><p>{{lookingAhead_text}}</p></div>
+  <div class="screen hidden" id="appreciation"><h2>{{appreciation_title}}</h2><p>{{appreciation_text}}</p>{{appreciation_images}}</div>
+  <div class="screen hidden" id="highlights"><h2>{{highlights_title}}</h2>{{highlights_images}}</div>
+  <div class="screen hidden" id="blessings"><h2>{{blessings_title}}</h2><div>{{blessings_blessings}}</div>{{blessings_images}}</div>
+  <div class="screen hidden" id="lookingAhead"><h2>{{lookingAhead_title}}</h2><p>{{lookingAhead_text}}</p>{{lookingAhead_images}}</div>
   <div class="navigation hidden" id="navigation">
     <button class="nav-button" onclick="previousScreen()">Previous</button>
     <button class="nav-button" onclick="nextScreen()">Next</button>

@@ -242,10 +242,10 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
         </div>
       )}
 
-      <div className={`bg-white rounded-lg border border-gray-200 ${isMobileView ? 'max-w-sm mx-auto' : 'w-full'}`}>
+      <div className={`bg-white rounded-lg border border-gray-200 ${isMobileView ? 'w-[375px] h-[667px] mx-auto overflow-hidden' : 'w-full max-w-[1920px] h-[1080px] mx-auto overflow-hidden'}`} style={isMobileView ? { maxHeight: '667px' } : { maxHeight: '1080px' }}>
         {overlayVisible ? (
           <div
-            className="h-96 flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-red-500 text-white cursor-pointer"
+            className={`flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-red-500 text-white cursor-pointer ${isMobileView ? 'h-full' : 'h-full'}`}
             onClick={handleOverlayClick}
           >
             <h3 className="text-3xl font-bold mb-2">
@@ -259,7 +259,7 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             </button>
           </div>
         ) : (
-          <div className="p-8">
+          <div className={`${isMobileView ? 'p-4 h-full overflow-y-auto' : 'p-8 h-full overflow-y-auto'}`} style={{ maxHeight: isMobileView ? '667px' : '1080px' }}>
             <h3 className="text-2xl font-bold mb-4">
               {currentProject.data.screens[currentScreen.screenId]?.title || currentScreen.screenId}
             </h3>

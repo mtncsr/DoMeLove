@@ -90,7 +90,8 @@ const AUDIO_MANAGER_JS = `
       stopAll: stopAll,
       toggleMute: toggleMute,
       getMuteState: getMuteState,
-      get globalAudioData() { return globalAudioData; }
+      get globalAudioData() { return globalAudioData; },
+      get currentScreenId() { return currentScreenId; }
     };
   })();
 
@@ -111,6 +112,9 @@ export async function buildExportHTML(project: Project, templateMeta: TemplateMe
 
   // Handle repeating structures (galleries, blessings) based on template-meta
   html = injectRepeatingStructures(html, project, templateMeta);
+
+  // Inject image carousel CSS and scripts
+  html = injectImageCarouselScripts(html);
 
   // Inject navigation and audio handling scripts
   html = injectNavigationScripts(html, project, templateMeta);
@@ -135,20 +139,56 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
     html = html.replace(new RegExp(`\\{\\{${screen.screenId}_title\\}\\}`, 'g'), screenData.title || '');
     html = html.replace(new RegExp(`\\{\\{${screen.screenId}_text\\}\\}`, 'g'), screenData.text || '');
 
-    // Replace image placeholders (screen1_image1, screen1_image2, etc.)
-    if (screenData.images) {
+    // Replace image carousel placeholder if images are assigned to this screen
+    if (screenData.images && screenData.images.length > 0) {
       const imageMap = new Map<string, ImageData>();
       for (const img of project.data.images) {
         imageMap.set(img.id, img);
       }
 
-      screenData.images.forEach((imageId: string, index: number) => {
-        const image = imageMap.get(imageId);
-        if (image) {
+      const screenImages = screenData.images
+        .map((imageId: string) => imageMap.get(imageId))
+        .filter((img): img is ImageData => img !== undefined);
+
+      if (screenImages.length > 0) {
+        const carouselHTML = generateImageCarouselHTML(screen.screenId, screenImages);
+        
+        // Replace image carousel placeholder if it exists
+        const carouselPlaceholder = `{{${screen.screenId}_images}}`;
+        if (html.includes(carouselPlaceholder)) {
+          html = html.replace(carouselPlaceholder, carouselHTML);
+        } else {
+          // If placeholder doesn't exist, inject after the text placeholder
+          // Try to find the screen div and inject after the text
+          const screenTextPlaceholder = `{{${screen.screenId}_text}}`;
+          if (html.includes(screenTextPlaceholder)) {
+            // Inject after the closing </p> tag that follows the text
+            html = html.replace(
+              new RegExp(`(\\{\\{${screen.screenId}_text\\}\\}[^<]*</p>)`, 'g'),
+              `$1${carouselHTML}`
+            );
+          } else {
+            // If no text placeholder, inject after title
+            const screenTitlePlaceholder = `{{${screen.screenId}_title}}`;
+            if (html.includes(screenTitlePlaceholder)) {
+              html = html.replace(
+                new RegExp(`(\\{\\{${screen.screenId}_title\\}\\}[^<]*</h2>)`, 'g'),
+                `$1${carouselHTML}`
+              );
+            }
+          }
+        }
+
+        // Also replace old-style image placeholders for backward compatibility
+        screenImages.forEach((image, index: number) => {
           const placeholder = `{{${screen.screenId}_image${index + 1}}}`;
           html = html.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), image.data);
-        }
-      });
+        });
+      } else {
+        // If no images, replace placeholder with empty string
+        const carouselPlaceholder = `{{${screen.screenId}_images}}`;
+        html = html.replace(new RegExp(carouselPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
+      }
     }
 
     // Replace audio placeholder
@@ -179,14 +219,64 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
   return html;
 }
 
+function generateImageCarouselHTML(screenId: string, images: ImageData[]): string {
+  const carouselId = `carousel-${screenId}`;
+  const carouselHTML = `
+    <div class="image-carousel-container" id="${carouselId}">
+      <div class="image-carousel-main">
+        <img 
+          src="${images[0].data}" 
+          alt="${escapeHtmlForExport(images[0].filename)}" 
+          class="carousel-main-image"
+          onclick="zoomImage('${images[0].data}')"
+        />
+        ${images.length > 1 ? `
+        <button class="carousel-nav-btn carousel-nav-prev" onclick="carouselPrev('${carouselId}')">‹</button>
+        <button class="carousel-nav-btn carousel-nav-next" onclick="carouselNext('${carouselId}')">›</button>
+        <div class="carousel-counter">1 / ${images.length}</div>
+        ` : ''}
+      </div>
+      ${images.length > 1 ? `
+      <div class="carousel-thumbnails">
+        ${images.map((img, index) => `
+          <img 
+            src="${img.data}" 
+            alt="${escapeHtmlForExport(img.filename)}" 
+            class="carousel-thumbnail ${index === 0 ? 'active' : ''}"
+            onclick="carouselGoTo('${carouselId}', ${index})"
+          />
+        `).join('')}
+      </div>
+      ` : ''}
+    </div>
+    <script>
+      (function() {
+        var carouselData = window.carouselData || {};
+        carouselData['${carouselId}'] = {
+          images: ${JSON.stringify(images.map(img => img.data))},
+          currentIndex: 0
+        };
+        window.carouselData = carouselData;
+      })();
+    </script>
+  `;
+  return carouselHTML;
+}
+
 function injectRepeatingStructures(html: string, project: Project, templateMeta: TemplateMeta): string {
   const data = project.data;
 
   for (const screen of templateMeta.screens) {
-    // Handle gallery screens
+    // Handle gallery screens - only if images are NOT assigned to this screen (use carousel instead)
     if (screen.type === 'gallery' && screen.galleryImageCount) {
       const screenData = data.screens[screen.screenId];
-      if (screenData?.images) {
+      // Only show gallery if no images are assigned (images use carousel instead)
+      if (screenData?.images && screenData.images.length === 0) {
+        // Remove gallery placeholder if images are assigned elsewhere
+        const galleryPlaceholder = `{{${screen.screenId}_gallery}}`;
+        html = html.replace(new RegExp(galleryPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
+      } else if (!screenData?.images || screenData.images.length === 0) {
+        // Only show gallery if no images assigned at all
         const imageMap = new Map<string, ImageData>();
         for (const img of project.data.images) {
           imageMap.set(img.id, img);
@@ -195,16 +285,13 @@ function injectRepeatingStructures(html: string, project: Project, templateMeta:
         // Find gallery container placeholder (e.g., {{screen1_gallery}})
         const galleryPlaceholder = `{{${screen.screenId}_gallery}}`;
         if (html.includes(galleryPlaceholder)) {
-          const galleryHTML = screenData.images
-            .map((imageId: string) => {
-              const image = imageMap.get(imageId);
-              if (!image) return '';
-              return `<img src="${image.data}" alt="Gallery image" style="max-width: 100%; height: auto;" />`;
-            })
-            .join('\n');
-          
-          html = html.replace(galleryPlaceholder, galleryHTML);
+          // If there are images assigned, remove gallery placeholder (carousel will show instead)
+          html = html.replace(new RegExp(galleryPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
         }
+      } else {
+        // Images are assigned, remove gallery placeholder
+        const galleryPlaceholder = `{{${screen.screenId}_gallery}}`;
+        html = html.replace(new RegExp(galleryPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
       }
     }
 
@@ -237,6 +324,179 @@ function escapeHtmlForExport(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function injectImageCarouselScripts(html: string): string {
+  const carouselScript = `
+<script>
+  function carouselPrev(carouselId) {
+    var data = window.carouselData && window.carouselData[carouselId];
+    if (!data) return;
+    var newIndex = data.currentIndex > 0 ? data.currentIndex - 1 : data.images.length - 1;
+    carouselGoTo(carouselId, newIndex);
+  }
+
+  function carouselNext(carouselId) {
+    var data = window.carouselData && window.carouselData[carouselId];
+    if (!data) return;
+    var newIndex = data.currentIndex < data.images.length - 1 ? data.currentIndex + 1 : 0;
+    carouselGoTo(carouselId, newIndex);
+  }
+
+  function carouselGoTo(carouselId, index) {
+    var data = window.carouselData && window.carouselData[carouselId];
+    if (!data || index < 0 || index >= data.images.length) return;
+    
+    data.currentIndex = index;
+    var container = document.getElementById(carouselId);
+    if (!container) return;
+    
+    var mainImg = container.querySelector('.carousel-main-image');
+    var counter = container.querySelector('.carousel-counter');
+    var thumbnails = container.querySelectorAll('.carousel-thumbnail');
+    
+    if (mainImg) {
+      mainImg.src = data.images[index];
+      mainImg.onclick = function() { zoomImage(data.images[index]); };
+    }
+    
+    if (counter) {
+      counter.textContent = (index + 1) + ' / ' + data.images.length;
+    }
+    
+    thumbnails.forEach(function(thumb, i) {
+      if (i === index) {
+        thumb.classList.add('active');
+      } else {
+        thumb.classList.remove('active');
+      }
+    });
+  }
+
+  function zoomImage(imageSrc) {
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
+    modal.onclick = function() { document.body.removeChild(modal); };
+    
+    var img = document.createElement('img');
+    img.src = imageSrc;
+    img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
+    img.onclick = function(e) { e.stopPropagation(); };
+    
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.style.cssText = 'position: absolute; top: 20px; right: 20px; color: white; font-size: 40px; background: none; border: none; cursor: pointer; z-index: 10000;';
+    closeBtn.onclick = function() { document.body.removeChild(modal); };
+    
+    modal.appendChild(img);
+    modal.appendChild(closeBtn);
+    document.body.appendChild(modal);
+  }
+</script>
+<style>
+  .image-carousel-container {
+    margin: 1rem 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  .image-carousel-main {
+    position: relative;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    max-height: 50vh;
+  }
+  .carousel-main-image {
+    width: 100%;
+    max-height: 50vh;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #f3f4f6;
+    cursor: pointer;
+  }
+  @media (min-width: 768px) {
+    .image-carousel-container {
+      margin: 2rem 0;
+    }
+    .image-carousel-main {
+      margin-bottom: 1rem;
+      max-height: 60vh;
+    }
+    .carousel-main-image {
+      max-height: 60vh;
+      height: 400px;
+    }
+  }
+  .carousel-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .carousel-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  .carousel-nav-prev {
+    left: 10px;
+  }
+  .carousel-nav-next {
+    right: 10px;
+  }
+  .carousel-counter {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .carousel-thumbnails {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    justify-content: center;
+    max-width: 100%;
+  }
+  .carousel-thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+    flex-shrink: 0;
+  }
+  @media (min-width: 768px) {
+    .carousel-thumbnail {
+      width: 80px;
+      height: 80px;
+    }
+  }
+  .carousel-thumbnail:hover {
+    border-color: #9ca3af;
+  }
+  .carousel-thumbnail.active {
+    border-color: #3b82f6;
+  }
+</style>
+`;
+  return injectScript(html, carouselScript);
 }
 
 function injectNavigationScripts(html: string, project: Project, templateMeta: TemplateMeta): string {
@@ -306,74 +566,88 @@ function injectNavigationScripts(html: string, project: Project, templateMeta: T
       };
     }
 
-    // Enhance nextScreen to handle audio
-    if (typeof nextScreen !== 'undefined') {
-      var originalNextScreen = nextScreen;
-      window.nextScreen = function() {
-        var currentIndex = typeof currentScreenIndex !== 'undefined' ? currentScreenIndex : 0;
-        var screens = ${JSON.stringify(screens)};
-        var screenAudioMap = ${JSON.stringify(screenAudioMap)};
+    // Override nextScreen completely to handle audio properly
+    window.nextScreen = function() {
+      var currentIndex = typeof currentScreenIndex !== 'undefined' ? currentScreenIndex : 0;
+      var screens = ${JSON.stringify(screens)};
+      var screenAudioMap = ${JSON.stringify(screenAudioMap)};
+      
+      if (currentIndex < screens.length - 1) {
+        var currentScreenId = screens[currentIndex];
+        var nextScreenId = screens[currentIndex + 1];
+        var currentScreenData = screenAudioMap[currentScreenId];
         
-        if (currentIndex < screens.length - 1) {
-          var currentScreenId = screens[currentIndex];
-          var nextScreenId = screens[currentIndex + 1];
-          var currentScreenData = screenAudioMap[currentScreenId];
-          
-          // Only stop audio if not extending music and no global audio
-          if (typeof AudioManager !== 'undefined') {
-            if (!currentScreenData || !currentScreenData.extendMusic) {
-              if (!globalAudioData) {
-                AudioManager.stopAll();
-              }
-            }
-          }
-          
-          originalNextScreen();
-          
-          // Play next screen audio if available
-          setTimeout(function() {
-            if (typeof AudioManager !== 'undefined') {
-              var nextScreenData = screenAudioMap[nextScreenId];
-              if (nextScreenData && !globalAudioData) {
-                AudioManager.playScreenAudio(nextScreenId, nextScreenData.data, false);
-              }
-            }
-          }, 100);
-        }
-      };
-    }
-
-    // Enhance previousScreen to handle audio
-    if (typeof previousScreen !== 'undefined') {
-      var originalPreviousScreen = previousScreen;
-      window.previousScreen = function() {
-        var currentIndex = typeof currentScreenIndex !== 'undefined' ? currentScreenIndex : 0;
-        var screens = ${JSON.stringify(screens)};
-        var screenAudioMap = ${JSON.stringify(screenAudioMap)};
-        
-        if (currentIndex > 0) {
-          var prevScreenId = screens[currentIndex - 1];
-          
-          if (typeof AudioManager !== 'undefined') {
+        // Only stop audio if not extending music and no global audio
+        if (typeof AudioManager !== 'undefined') {
+          // If global audio is playing, don't stop it
+          if (globalAudioData && AudioManager.currentScreenId === 'global') {
+            // Global audio continues, don't stop
+          } else if (!currentScreenData || !currentScreenData.extendMusic) {
             if (!globalAudioData) {
               AudioManager.stopAll();
             }
           }
-          
-          originalPreviousScreen();
-          
-          // Play previous screen audio if available
-          setTimeout(function() {
-            if (typeof AudioManager !== 'undefined') {
+        }
+        
+        // Show next screen
+        if (typeof showScreen === 'function') {
+          showScreen(currentIndex + 1);
+        }
+        
+        // Play next screen audio if available (only if no global audio)
+        setTimeout(function() {
+          if (typeof AudioManager !== 'undefined') {
+            if (globalAudioData) {
+              // Global audio continues playing, do nothing
+            } else {
+              var nextScreenData = screenAudioMap[nextScreenId];
+              if (nextScreenData) {
+                AudioManager.playScreenAudio(nextScreenId, nextScreenData.data, false);
+              }
+            }
+          }
+        }, 100);
+      }
+    };
+
+    // Override previousScreen completely to handle audio properly
+    window.previousScreen = function() {
+      var currentIndex = typeof currentScreenIndex !== 'undefined' ? currentScreenIndex : 0;
+      var screens = ${JSON.stringify(screens)};
+      var screenAudioMap = ${JSON.stringify(screenAudioMap)};
+      
+      if (currentIndex > 0) {
+        var prevScreenId = screens[currentIndex - 1];
+        
+        if (typeof AudioManager !== 'undefined') {
+          // If global audio is playing, don't stop it
+          if (globalAudioData && AudioManager.currentScreenId === 'global') {
+            // Global audio continues, don't stop
+          } else if (!globalAudioData) {
+            AudioManager.stopAll();
+          }
+        }
+        
+        // Show previous screen
+        if (typeof showScreen === 'function') {
+          showScreen(currentIndex - 1);
+        }
+        
+        // Play previous screen audio if available (only if no global audio)
+        setTimeout(function() {
+          if (typeof AudioManager !== 'undefined') {
+            if (globalAudioData) {
+              // Global audio continues playing, do nothing
+            } else {
               var prevScreenData = screenAudioMap[prevScreenId];
-              if (prevScreenData && !globalAudioData) {
+              if (prevScreenData) {
                 AudioManager.playScreenAudio(prevScreenId, prevScreenData.data, false);
               }
             }
-          }, 100);
-        }
-      };
-    }
+          }
+        }, 100);
+      }
+    };
   })();
 </script>`;
 

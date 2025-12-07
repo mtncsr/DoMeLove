@@ -38,6 +38,7 @@ export interface ScreenData {
   text?: string;
   images?: string[]; // Array of image IDs
   audioId?: string;
+  extendMusicToNext?: boolean; // If true, this screen's music continues to next screen
 }
 
 export interface ImageData {

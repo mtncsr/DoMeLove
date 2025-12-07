@@ -42,8 +42,7 @@
       "type": "blessings",
       "placeholders": ["title"],
       "required": ["title"],
-      "order": 5,
-      "blessingCount": 3
+      "order": 5
     },
     {
       "screenId": "lookingAhead",

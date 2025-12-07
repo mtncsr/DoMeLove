@@ -4,7 +4,7 @@ class AudioManager {
   private currentScreenId: string | null = null;
   private isMuted: boolean = false;
 
-  playScreenAudio(screenId: string, audioData: string): void {
+  playScreenAudio(screenId: string, audioData: string, loop: boolean = false): void {
     // Stop current audio if playing
     this.stopAll();
 
@@ -15,14 +15,48 @@ class AudioManager {
     try {
       const audio = new Audio(audioData);
       audio.volume = 1.0;
-      audio.play().catch(error => {
-        console.error('Error playing audio:', error);
-      });
+      audio.preload = 'auto';
+      audio.loop = loop;
+      
+      // Add error handlers
+      audio.onerror = (e) => {
+        console.error('Audio element error:', e);
+        console.error('Audio data length:', audioData.length);
+        console.error('Audio data preview:', audioData.substring(0, 100));
+      };
 
-      this.currentAudio = audio;
-      this.currentScreenId = screenId;
+      audio.oncanplaythrough = () => {
+        console.log('Audio can play through');
+      };
+
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('Audio playing successfully');
+            this.currentAudio = audio;
+            this.currentScreenId = screenId;
+          })
+          .catch(error => {
+            console.error('Error playing audio:', error);
+            console.error('Audio play promise rejected:', error.name, error.message);
+            // Try to provide helpful error message
+            if (error.name === 'NotAllowedError') {
+              console.error('Autoplay was blocked. User interaction required.');
+            } else if (error.name === 'NotSupportedError') {
+              console.error('Audio format not supported.');
+            }
+            throw error;
+          });
+      } else {
+        // Fallback for older browsers
+        this.currentAudio = audio;
+        this.currentScreenId = screenId;
+      }
     } catch (error) {
       console.error('Error creating audio element:', error);
+      throw error;
     }
   }
 

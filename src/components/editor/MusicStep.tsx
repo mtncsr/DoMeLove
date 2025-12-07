@@ -111,29 +111,64 @@ export function MusicStep({ templateMeta }: MusicStepProps) {
           )}
         </div>
 
-        {templateMeta?.screens.filter(s => s.supportsMusic).map((screen) => (
-          <div key={screen.screenId}>
-            <h3 className="text-lg font-semibold mb-4">Screen: {screen.screenId}</h3>
-            {currentProject.data.audio.screens[screen.screenId] ? (
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600 mb-2">
-                  {currentProject.data.audio.screens[screen.screenId].filename}
-                </p>
-                <p className="text-xs text-gray-500 mb-4">
-                  {formatFileSize(currentProject.data.audio.screens[screen.screenId].size)}
-                </p>
-                <Button variant="danger" onClick={() => handleDeleteScreenAudio(screen.screenId)}>
-                  Remove
-                </Button>
-              </div>
-            ) : (
-              <AudioUpload
-                onUpload={(audio) => handleScreenAudioUpload(screen.screenId, audio)}
-                label={t('editor.music.screenMusic')}
-              />
-            )}
-          </div>
-        ))}
+        {templateMeta?.screens.filter(s => s.supportsMusic).map((screen, index) => {
+          const screenData = currentProject.data.screens[screen.screenId] || {};
+          const hasAudio = !!currentProject.data.audio.screens[screen.screenId];
+          const isLastScreen = index === templateMeta.screens.filter(s => s.supportsMusic).length - 1;
+          
+          return (
+            <div key={screen.screenId}>
+              <h3 className="text-lg font-semibold mb-4">Screen: {screen.screenId}</h3>
+              {hasAudio ? (
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600 mb-2">
+                    {currentProject.data.audio.screens[screen.screenId].filename}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-4">
+                    {formatFileSize(currentProject.data.audio.screens[screen.screenId].size)}
+                  </p>
+                  <div className="flex gap-2">
+                    {!isLastScreen && (
+                      <Button
+                        variant={screenData.extendMusicToNext ? 'primary' : 'secondary'}
+                        onClick={() => {
+                          updateProject({
+                            ...currentProject,
+                            data: {
+                              ...currentProject.data,
+                              screens: {
+                                ...currentProject.data.screens,
+                                [screen.screenId]: {
+                                  ...screenData,
+                                  extendMusicToNext: !screenData.extendMusicToNext,
+                                },
+                              },
+                            },
+                          });
+                        }}
+                      >
+                        {screenData.extendMusicToNext ? '✓ Extends to Next' : 'Extend to Next Screen'}
+                      </Button>
+                    )}
+                    <Button variant="danger" onClick={() => handleDeleteScreenAudio(screen.screenId)}>
+                      Remove
+                    </Button>
+                  </div>
+                  {screenData.extendMusicToNext && !isLastScreen && (
+                    <p className="text-xs text-blue-600 mt-2">
+                      This music will continue playing on the next screen
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <AudioUpload
+                  onUpload={(audio) => handleScreenAudioUpload(screen.screenId, audio)}
+                  label={t('editor.music.screenMusic')}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

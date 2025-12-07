@@ -2,6 +2,7 @@
 export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
+  warnings: ValidationError[]; // Non-blocking recommendations
 }
 
 export interface ValidationError {

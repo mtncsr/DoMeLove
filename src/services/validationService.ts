@@ -6,8 +6,9 @@ import { MediaConfig } from '../config/mediaConfig';
 class ValidationService {
   validateProject(project: Project, templateMeta: TemplateMeta): ValidationResult {
     const errors: ValidationError[] = [];
+    const warnings: ValidationError[] = [];
 
-    // Check required global placeholders
+    // Check required global placeholders (ERRORS - blocking)
     for (const placeholder of templateMeta.globalPlaceholders) {
       const isRequired = this.isPlaceholderRequired(placeholder, templateMeta);
       if (isRequired && !this.hasPlaceholderValue(project.data, placeholder)) {
@@ -19,7 +20,7 @@ class ValidationService {
       }
     }
 
-    // Check required screen fields
+    // Check required screen fields (ERRORS - blocking)
     for (const screen of templateMeta.screens) {
       for (const placeholder of screen.required) {
         if (!this.hasScreenPlaceholderValue(project.data, screen.screenId, placeholder)) {
@@ -31,35 +32,36 @@ class ValidationService {
         }
       }
 
-      // Check image count for gallery screens
+      // Check image count for gallery screens (WARNINGS - non-blocking)
       if (screen.galleryImageCount) {
         const imageCount = this.getScreenImageCount(project.data, screen.screenId);
         if (imageCount < screen.galleryImageCount) {
-          errors.push({
+          warnings.push({
             field: `${screen.screenId}.images`,
-            message: `Screen "${screen.screenId}" requires at least ${screen.galleryImageCount} images`,
+            message: `Screen "${screen.screenId}" recommends at least ${screen.galleryImageCount} images`,
             section: 'images',
           });
         }
       }
 
-      // Check blessing count
-      if (screen.blessingCount && project.data.blessings) {
-        if (project.data.blessings.length < screen.blessingCount) {
-          errors.push({
+      // Check blessing count (WARNINGS - non-blocking)
+      if (screen.blessingCount) {
+        const blessingCount = project.data.blessings?.length || 0;
+        if (blessingCount < screen.blessingCount) {
+          warnings.push({
             field: `${screen.screenId}.blessings`,
-            message: `Screen "${screen.screenId}" requires at least ${screen.blessingCount} blessings`,
+            message: `Screen "${screen.screenId}" recommends at least ${screen.blessingCount} blessings`,
             section: 'screen-texts',
           });
         }
       }
     }
 
-    // Check image file sizes
+    // Check image file sizes (WARNINGS - non-blocking)
     for (const image of project.data.images) {
       const sizeKB = image.size / 1024;
       if (sizeKB > MediaConfig.IMAGE_TARGET_SIZE_KB.max * 2) {
-        errors.push({
+        warnings.push({
           field: `image.${image.id}`,
           message: `Image "${image.filename}" is very large (${sizeKB.toFixed(0)}KB). Consider compressing it.`,
           section: 'images',
@@ -67,11 +69,11 @@ class ValidationService {
       }
     }
 
-    // Check audio file sizes
+    // Check audio file sizes (WARNINGS - non-blocking)
     if (project.data.audio.global) {
       const sizeMB = project.data.audio.global.size / (1024 * 1024);
       if (sizeMB > MediaConfig.AUDIO_WARNING_SIZE_MB) {
-        errors.push({
+        warnings.push({
           field: 'audio.global',
           message: `Global audio file is large (${sizeMB.toFixed(1)}MB). This may affect sharing.`,
           section: 'music',
@@ -79,13 +81,26 @@ class ValidationService {
       }
     }
 
+    // Check screen audio file sizes (WARNINGS - non-blocking)
+    for (const [screenId, audio] of Object.entries(project.data.audio.screens)) {
+      const sizeMB = audio.size / (1024 * 1024);
+      if (sizeMB > MediaConfig.AUDIO_WARNING_SIZE_MB) {
+        warnings.push({
+          field: `audio.screen.${screenId}`,
+          message: `Audio file for screen "${screenId}" is large (${sizeMB.toFixed(1)}MB). This may affect sharing.`,
+          section: 'music',
+        });
+      }
+    }
+
     return {
-      isValid: errors.length === 0,
+      isValid: errors.length === 0, // Only errors block export
       errors,
+      warnings,
     };
   }
 
-  validateImport(jsonData: unknown): { isValid: boolean; project?: Project; errors: ValidationError[] } {
+  validateImport(jsonData: unknown): { isValid: boolean; project?: Project; errors: ValidationError[]; warnings: ValidationError[] } {
     const errors: ValidationError[] = [];
 
     try {
@@ -94,7 +109,7 @@ class ValidationService {
           field: 'root',
           message: 'Invalid JSON structure',
         });
-        return { isValid: false, errors };
+        return { isValid: false, errors, warnings: [] };
       }
 
       const project = jsonData as Project;
@@ -114,16 +129,16 @@ class ValidationService {
       }
 
       if (errors.length > 0) {
-        return { isValid: false, errors };
+        return { isValid: false, errors, warnings: [] };
       }
 
-      return { isValid: true, project, errors: [] };
+      return { isValid: true, project, errors: [], warnings: [] };
     } catch (error) {
       errors.push({
         field: 'root',
         message: `Error parsing import data: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
-      return { isValid: false, errors };
+      return { isValid: false, errors, warnings: [] };
     }
   }
 

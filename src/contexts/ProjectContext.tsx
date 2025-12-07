@@ -24,8 +24,14 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
   // Load projects on mount
   useEffect(() => {
-    const loaded = storageService.loadProjects();
-    setProjects(loaded);
+    try {
+      const loaded = storageService.loadProjects();
+      setProjects(loaded);
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+      // Continue with empty array if loading fails
+      setProjects([]);
+    }
   }, []);
 
   // Auto-save current project
@@ -36,6 +42,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       }, 1000); // Debounce auto-save
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProject]);
 
   // Switch language when project changes

@@ -16,18 +16,25 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
   const { currentProject } = useProject();
   const [isGenerating, setIsGenerating] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Array<{ field: string; message: string; section?: string }>>([]);
+  const [validationWarnings, setValidationWarnings] = useState<Array<{ field: string; message: string; section?: string }>>([]);
+  const [showWarnings, setShowWarnings] = useState(true);
 
   if (!currentProject || !templateMeta) return null;
 
   const handleExport = async () => {
     // Validate first
     const validation = validationService.validateProject(currentProject, templateMeta);
+    
+    // Show errors (blocking) and warnings (non-blocking)
+    setValidationErrors(validation.errors || []);
+    setValidationWarnings(validation.warnings || []);
+    
+    // Only block if there are actual errors (not warnings)
     if (!validation.isValid) {
-      setValidationErrors(validation.errors);
       return;
     }
 
-    setValidationErrors([]);
+    // Warnings don't block export - proceed with generation
     setIsGenerating(true);
 
     try {
@@ -57,7 +64,39 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
       <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.steps.export')}</h2>
       
       {validationErrors.length > 0 && (
-        <ErrorDisplay errors={validationErrors} />
+        <div className="mb-4">
+          <ErrorDisplay errors={validationErrors} />
+          <p className="text-red-700 text-sm mt-2">
+            Please fix these errors before exporting.
+          </p>
+        </div>
+      )}
+
+      {validationWarnings.length > 0 && showWarnings && (
+        <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-yellow-800 font-semibold">Recommendations</h3>
+            <button
+              onClick={() => setShowWarnings(false)}
+              className="text-yellow-600 hover:text-yellow-800"
+            >
+              ×
+            </button>
+          </div>
+          <ul className="list-disc list-inside space-y-1">
+            {validationWarnings.map((warning, index) => (
+              <li key={index} className="text-yellow-700 text-sm">
+                {warning.message}
+                {warning.section && (
+                  <span className="text-yellow-600 ml-2">({warning.section})</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="text-yellow-800 text-sm mt-3 font-medium">
+            You can still export, but these recommendations may improve the experience.
+          </p>
+        </div>
       )}
 
       <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -66,11 +105,16 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
         </p>
         <Button
           onClick={handleExport}
-          disabled={isGenerating}
+          disabled={isGenerating || validationErrors.length > 0}
           className="w-full"
         >
           {isGenerating ? t('editor.export.generating') : t('editor.export.download')}
         </Button>
+        {validationErrors.length === 0 && validationWarnings.length > 0 && (
+          <p className="text-sm text-gray-500 mt-2 text-center">
+            Export is available despite recommendations above
+          </p>
+        )}
       </div>
     </div>
   );

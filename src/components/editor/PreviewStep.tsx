@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
@@ -17,6 +17,10 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
   const [overlayVisible, setOverlayVisible] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+  const timeoutRefs = useRef<NodeJS.Timeout[]>([]);
 
   if (!currentProject || !templateMeta) return null;
 
@@ -24,71 +28,199 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
   const currentScreen = screens[currentScreenIndex];
 
   useEffect(() => {
-    // Cleanup audio on unmount
+    isMountedRef.current = true;
+    // Cleanup audio and timeouts on unmount
     return () => {
+      isMountedRef.current = false;
       audioManager.stopAll();
+      // Clear all pending timeouts
+      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+      timeoutRefs.current = [];
     };
   }, []);
 
   const handleOverlayClick = () => {
     setOverlayVisible(false);
-    // Start audio if available
-    if (currentScreen?.supportsMusic) {
-      const screenData = currentProject.data.screens[currentScreen.screenId];
-      if (screenData?.audioId) {
-        const audio = currentProject.data.audio.screens[currentScreen.screenId];
-        if (audio) {
-          audioManager.playScreenAudio(currentScreen.screenId, audio.data);
+    setAudioError(null);
+    // Start audio if available - prioritize screen audio, fallback to global
+    const timeout = setTimeout(() => {
+      if (!isMountedRef.current) return;
+      
+      let audioPlayed = false;
+      
+      // Check for global audio first (if exists, it plays across all screens)
+      if (currentProject.data.audio.global) {
+        try {
+          audioManager.playScreenAudio('global', currentProject.data.audio.global.data, true); // Loop global audio
+          audioPlayed = true;
+        } catch (error) {
+          if (isMountedRef.current) {
+            setAudioError('Failed to play audio. Please check your browser settings.');
+          }
+          console.error('Audio playback error:', error);
         }
       }
-    } else if (currentProject.data.audio.global) {
-      audioManager.playScreenAudio('global', currentProject.data.audio.global.data);
-    }
+      
+      // If no global audio, check for screen-specific audio
+      if (!audioPlayed && currentScreen?.supportsMusic) {
+        const screenData = currentProject.data.screens[currentScreen.screenId];
+        if (screenData?.audioId) {
+          const audio = currentProject.data.audio.screens[currentScreen.screenId];
+          if (audio) {
+            try {
+              // Check if previous screen extended music to this one
+              const shouldExtend = currentScreenIndex > 0 && 
+                currentProject.data.screens[screens[currentScreenIndex - 1].screenId]?.extendMusicToNext;
+              
+              if (!shouldExtend) {
+                audioManager.playScreenAudio(currentScreen.screenId, audio.data, false);
+                audioPlayed = true;
+              }
+            } catch (error) {
+              if (isMountedRef.current) {
+                setAudioError('Failed to play audio. Please check your browser settings.');
+              }
+              console.error('Audio playback error:', error);
+            }
+          }
+        }
+      }
+    }, 100);
+    timeoutRefs.current.push(timeout);
+  };
+
+  const handleToggleMute = () => {
+    audioManager.toggleMute();
+    setIsMuted(audioManager.getMuteState());
   };
 
   const handleNext = () => {
-    audioManager.stopAll();
+    setAudioError(null);
     if (currentScreenIndex < screens.length - 1) {
+      const currentScreenData = currentProject.data.screens[currentScreen.screenId];
+      const shouldExtendMusic = currentScreenData?.extendMusicToNext;
+      
+      // Only stop audio if not extending to next screen and no global audio
+      if (!shouldExtendMusic && !currentProject.data.audio.global) {
+        audioManager.stopAll();
+      }
+      
       const nextIndex = currentScreenIndex + 1;
       setCurrentScreenIndex(nextIndex);
       setCurrentImageIndex(0); // Reset image index when changing screens
       const nextScreen = screens[nextIndex];
-      if (nextScreen?.supportsMusic) {
-        const screenData = currentProject.data.screens[nextScreen.screenId];
-        if (screenData?.audioId) {
-          const audio = currentProject.data.audio.screens[nextScreen.screenId];
-          if (audio) {
-            audioManager.playScreenAudio(nextScreen.screenId, audio.data);
+      
+      const timeout = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        
+        // If global audio exists, it continues playing (already looping)
+        if (currentProject.data.audio.global) {
+          // Global audio is already playing and looping, no need to restart
+          return;
+        }
+        
+        // Check if previous screen extended music to this one
+        if (shouldExtendMusic) {
+          // Music continues from previous screen, don't change it
+          return;
+        }
+        
+        // Play next screen's audio
+        if (nextScreen?.supportsMusic) {
+          const screenData = currentProject.data.screens[nextScreen.screenId];
+          if (screenData?.audioId) {
+            const audio = currentProject.data.audio.screens[nextScreen.screenId];
+            if (audio) {
+              try {
+                audioManager.playScreenAudio(nextScreen.screenId, audio.data, false);
+              } catch (error) {
+                if (isMountedRef.current) {
+                  setAudioError('Failed to play audio');
+                }
+                console.error('Audio playback error:', error);
+              }
+            }
           }
         }
-      }
+      }, 100);
+      timeoutRefs.current.push(timeout);
     }
   };
 
   const handlePrevious = () => {
-    audioManager.stopAll();
+    setAudioError(null);
     if (currentScreenIndex > 0) {
       const prevIndex = currentScreenIndex - 1;
+      const prevScreen = screens[prevIndex];
+      const prevScreenData = currentProject.data.screens[prevScreen.screenId];
+      const shouldExtendMusic = prevScreenData?.extendMusicToNext;
+      
+      // Only stop audio if not extending music and no global audio
+      if (!shouldExtendMusic && !currentProject.data.audio.global) {
+        audioManager.stopAll();
+      }
+      
       setCurrentScreenIndex(prevIndex);
       setCurrentImageIndex(0); // Reset image index when changing screens
-      const prevScreen = screens[prevIndex];
-      if (prevScreen?.supportsMusic) {
-        const screenData = currentProject.data.screens[prevScreen.screenId];
-        if (screenData?.audioId) {
-          const audio = currentProject.data.audio.screens[prevScreen.screenId];
-          if (audio) {
-            audioManager.playScreenAudio(prevScreen.screenId, audio.data);
+      
+      const timeout = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        
+        // If global audio exists, it continues playing (already looping)
+        if (currentProject.data.audio.global) {
+          // Global audio is already playing and looping, no need to restart
+          return;
+        }
+        
+        // Check if we should continue previous screen's music
+        if (shouldExtendMusic && prevScreenData?.audioId) {
+          // Music continues from previous screen, don't change it
+          return;
+        }
+        
+        // Play previous screen's audio
+        if (prevScreen?.supportsMusic) {
+          const screenData = currentProject.data.screens[prevScreen.screenId];
+          if (screenData?.audioId) {
+            const audio = currentProject.data.audio.screens[prevScreen.screenId];
+            if (audio) {
+              try {
+                audioManager.playScreenAudio(prevScreen.screenId, audio.data, false);
+              } catch (error) {
+                if (isMountedRef.current) {
+                  setAudioError('Failed to play audio');
+                }
+                console.error('Audio playback error:', error);
+              }
+            }
           }
         }
-      }
+      }, 100);
+      timeoutRefs.current.push(timeout);
     }
   };
+
+  // Update mute state when it changes
+  useEffect(() => {
+    setIsMuted(audioManager.getMuteState());
+  }, []);
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">{t('editor.steps.preview')}</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={handleToggleMute}
+            className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+              isMuted 
+                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+            title={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? '🔇' : '🔊'}
+          </button>
           <Button
             variant={isMobileView ? 'primary' : 'secondary'}
             onClick={() => setIsMobileView(true)}
@@ -103,6 +235,12 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
           </Button>
         </div>
       </div>
+
+      {audioError && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <p className="text-yellow-800 text-sm">{audioError}</p>
+        </div>
+      )}
 
       <div className={`bg-white rounded-lg border border-gray-200 ${isMobileView ? 'max-w-sm mx-auto' : 'w-full'}`}>
         {overlayVisible ? (

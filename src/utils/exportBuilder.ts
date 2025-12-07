@@ -11,21 +11,53 @@ const AUDIO_MANAGER_JS = `
     var currentAudio = null;
     var currentScreenId = null;
     var isMuted = false;
+    var globalAudioData = null;
 
-    function playScreenAudio(screenId, audioData) {
+    function setGlobalAudio(audioData) {
+      globalAudioData = audioData;
+    }
+
+    function playScreenAudio(screenId, audioData, loop) {
+      // If this is the same audio already playing and should loop, don't restart
+      if (currentAudio && currentScreenId === screenId && loop === currentAudio.loop) {
+        if (loop) return;
+      }
+      
       stopAll();
       if (isMuted) return;
       
       try {
         var audio = new Audio(audioData);
         audio.volume = 1.0;
-        audio.play().catch(function(error) {
-          console.error('Error playing audio:', error);
-        });
-        currentAudio = audio;
-        currentScreenId = screenId;
+        audio.loop = loop || false;
+        audio.preload = 'auto';
+        
+        audio.onerror = function(e) {
+          console.error('Audio element error:', e);
+        };
+        
+        var playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(function() {
+              currentAudio = audio;
+              currentScreenId = screenId;
+            })
+            .catch(function(error) {
+              console.error('Error playing audio:', error);
+            });
+        } else {
+          currentAudio = audio;
+          currentScreenId = screenId;
+        }
       } catch (error) {
         console.error('Error creating audio element:', error);
+      }
+    }
+
+    function playGlobalAudio() {
+      if (globalAudioData && !isMuted) {
+        playScreenAudio('global', globalAudioData, true);
       }
     }
 
@@ -42,6 +74,8 @@ const AUDIO_MANAGER_JS = `
       isMuted = !isMuted;
       if (isMuted) {
         stopAll();
+      } else if (globalAudioData) {
+        playGlobalAudio();
       }
     }
 
@@ -51,9 +85,12 @@ const AUDIO_MANAGER_JS = `
 
     return {
       playScreenAudio: playScreenAudio,
+      playGlobalAudio: playGlobalAudio,
+      setGlobalAudio: setGlobalAudio,
       stopAll: stopAll,
       toggleMute: toggleMute,
-      getMuteState: getMuteState
+      getMuteState: getMuteState,
+      get globalAudioData() { return globalAudioData; }
     };
   })();
 
@@ -66,14 +103,17 @@ export async function buildExportHTML(project: Project, templateMeta: TemplateMe
   // Load template HTML
   let html = await loadTemplateHTML(project.templateId);
 
+  // Inject AudioManager JavaScript first (before any scripts that use it)
+  html = injectScript(html, AUDIO_MANAGER_JS);
+
   // Replace simple flat placeholders
   html = replacePlaceholders(html, project, templateMeta);
 
   // Handle repeating structures (galleries, blessings) based on template-meta
   html = injectRepeatingStructures(html, project, templateMeta);
 
-  // Inject AudioManager JavaScript
-  html = injectScript(html, AUDIO_MANAGER_JS);
+  // Inject navigation and audio handling scripts
+  html = injectNavigationScripts(html, project, templateMeta);
 
   return html;
 }
@@ -132,6 +172,9 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
       html = html.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), variable.defaultValue);
     }
   }
+
+  // Inject global audio if present (will be set after AudioManager loads)
+  // We'll inject it in the navigation scripts function
 
   return html;
 }
@@ -194,6 +237,147 @@ function escapeHtmlForExport(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function injectNavigationScripts(html: string, project: Project, templateMeta: TemplateMeta): string {
+  const data = project.data;
+  const screens = templateMeta.screens.map(s => s.screenId);
+  
+  // Set global audio if present
+  const globalAudioData = data.audio.global ? data.audio.global.data : null;
+  
+  // Build audio data map for screens
+  const screenAudioMap: Record<string, { data: string; extendMusic?: boolean }> = {};
+  for (const screen of templateMeta.screens) {
+    if (screen.supportsMusic) {
+      const screenData = data.screens[screen.screenId];
+      if (screenData?.audioId) {
+        const audio = data.audio.screens[screen.screenId];
+        if (audio) {
+          screenAudioMap[screen.screenId] = {
+            data: audio.data,
+            extendMusic: screenData.extendMusic
+          };
+        }
+      }
+    }
+  }
+
+  // Create enhanced navigation script
+  const navigationScript = `
+<script>
+  (function() {
+    // Set global audio if available
+    var globalAudioData = ${globalAudioData ? JSON.stringify(globalAudioData) : 'null'};
+    if (globalAudioData && typeof AudioManager !== 'undefined') {
+      AudioManager.setGlobalAudio(globalAudioData);
+    }
+
+    // Override startExperience to handle audio
+    if (typeof startExperience !== 'undefined') {
+      var originalStartExperience = startExperience;
+      window.startExperience = function() {
+        originalStartExperience();
+        // Start global audio if available
+        if (typeof AudioManager !== 'undefined' && AudioManager.playGlobalAudio) {
+          AudioManager.playGlobalAudio();
+        } else if (globalAudioData && typeof AudioManager !== 'undefined') {
+          // Fallback: play global audio directly
+          AudioManager.playScreenAudio('global', globalAudioData, true);
+        }
+      };
+    } else {
+      // If template doesn't have startExperience, create it
+      window.startExperience = function() {
+        var overlay = document.getElementById('overlay');
+        if (overlay) overlay.classList.add('hidden');
+        var nav = document.getElementById('navigation');
+        if (nav) nav.classList.remove('hidden');
+        if (typeof showScreen === 'function') {
+          showScreen(0);
+        }
+        // Start global audio if available
+        if (typeof AudioManager !== 'undefined' && AudioManager.playGlobalAudio) {
+          AudioManager.playGlobalAudio();
+        } else if (globalAudioData && typeof AudioManager !== 'undefined') {
+          // Fallback: play global audio directly
+          AudioManager.playScreenAudio('global', globalAudioData, true);
+        }
+      };
+    }
+
+    // Enhance nextScreen to handle audio
+    if (typeof nextScreen !== 'undefined') {
+      var originalNextScreen = nextScreen;
+      window.nextScreen = function() {
+        var currentIndex = typeof currentScreenIndex !== 'undefined' ? currentScreenIndex : 0;
+        var screens = ${JSON.stringify(screens)};
+        var screenAudioMap = ${JSON.stringify(screenAudioMap)};
+        
+        if (currentIndex < screens.length - 1) {
+          var currentScreenId = screens[currentIndex];
+          var nextScreenId = screens[currentIndex + 1];
+          var currentScreenData = screenAudioMap[currentScreenId];
+          
+          // Only stop audio if not extending music and no global audio
+          if (typeof AudioManager !== 'undefined') {
+            if (!currentScreenData || !currentScreenData.extendMusic) {
+              if (!globalAudioData) {
+                AudioManager.stopAll();
+              }
+            }
+          }
+          
+          originalNextScreen();
+          
+          // Play next screen audio if available
+          setTimeout(function() {
+            if (typeof AudioManager !== 'undefined') {
+              var nextScreenData = screenAudioMap[nextScreenId];
+              if (nextScreenData && !globalAudioData) {
+                AudioManager.playScreenAudio(nextScreenId, nextScreenData.data, false);
+              }
+            }
+          }, 100);
+        }
+      };
+    }
+
+    // Enhance previousScreen to handle audio
+    if (typeof previousScreen !== 'undefined') {
+      var originalPreviousScreen = previousScreen;
+      window.previousScreen = function() {
+        var currentIndex = typeof currentScreenIndex !== 'undefined' ? currentScreenIndex : 0;
+        var screens = ${JSON.stringify(screens)};
+        var screenAudioMap = ${JSON.stringify(screenAudioMap)};
+        
+        if (currentIndex > 0) {
+          var prevScreenId = screens[currentIndex - 1];
+          
+          if (typeof AudioManager !== 'undefined') {
+            if (!globalAudioData) {
+              AudioManager.stopAll();
+            }
+          }
+          
+          originalPreviousScreen();
+          
+          // Play previous screen audio if available
+          setTimeout(function() {
+            if (typeof AudioManager !== 'undefined') {
+              var prevScreenData = screenAudioMap[prevScreenId];
+              if (prevScreenData && !globalAudioData) {
+                AudioManager.playScreenAudio(prevScreenId, prevScreenData.data, false);
+              }
+            }
+          }, 100);
+        }
+      };
+    }
+  })();
+</script>`;
+
+  return injectScript(html, navigationScript);
 }
 
 function injectScript(html: string, script: string): string {

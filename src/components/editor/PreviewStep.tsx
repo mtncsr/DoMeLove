@@ -15,6 +15,8 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
   const [currentScreenIndex, setCurrentScreenIndex] = useState(0);
   const [isMobileView, setIsMobileView] = useState(false);
   const [overlayVisible, setOverlayVisible] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   if (!currentProject || !templateMeta) return null;
 
@@ -49,6 +51,7 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
     if (currentScreenIndex < screens.length - 1) {
       const nextIndex = currentScreenIndex + 1;
       setCurrentScreenIndex(nextIndex);
+      setCurrentImageIndex(0); // Reset image index when changing screens
       const nextScreen = screens[nextIndex];
       if (nextScreen?.supportsMusic) {
         const screenData = currentProject.data.screens[nextScreen.screenId];
@@ -67,6 +70,7 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
     if (currentScreenIndex > 0) {
       const prevIndex = currentScreenIndex - 1;
       setCurrentScreenIndex(prevIndex);
+      setCurrentImageIndex(0); // Reset image index when changing screens
       const prevScreen = screens[prevIndex];
       if (prevScreen?.supportsMusic) {
         const screenData = currentProject.data.screens[prevScreen.screenId];
@@ -124,12 +128,86 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             <p className="text-gray-700 mb-4">
               {currentProject.data.screens[currentScreen.screenId]?.text || ''}
             </p>
-            {currentProject.data.screens[currentScreen.screenId]?.images?.map((imageId) => {
-              const image = currentProject.data.images.find(img => img.id === imageId);
-              return image ? (
-                <img key={imageId} src={image.data} alt="" className="w-full mb-4 rounded" />
-              ) : null;
-            })}
+            
+            {(() => {
+              const screenData = currentProject.data.screens[currentScreen.screenId];
+              const screenImages = (screenData?.images || [])
+                .map(id => currentProject.data.images.find(img => img.id === id))
+                .filter((img): img is typeof currentProject.data.images[0] => img !== undefined);
+
+              if (screenImages.length > 0) {
+                const currentImage = screenImages[currentImageIndex];
+                
+                return (
+                  <div className="mb-6">
+                    {/* Image Carousel */}
+                    <div className="relative mb-4">
+                      <img
+                        src={currentImage.data}
+                        alt={currentImage.filename}
+                        className="w-full h-64 md:h-96 object-contain rounded-lg cursor-pointer bg-gray-100"
+                        onClick={() => setZoomedImage(currentImage.data)}
+                      />
+                      
+                      {screenImages.length > 1 && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImageIndex((prev) => 
+                                prev > 0 ? prev - 1 : screenImages.length - 1
+                              );
+                            }}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImageIndex((prev) => 
+                                prev < screenImages.length - 1 ? prev + 1 : 0
+                              );
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70"
+                          >
+                            ›
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Image Thumbnails */}
+                    {screenImages.length > 1 && (
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {screenImages.map((image, index) => (
+                          <img
+                            key={image.id}
+                            src={image.data}
+                            alt={image.filename}
+                            className={`w-20 h-20 object-cover rounded cursor-pointer border-2 transition-colors ${
+                              index === currentImageIndex 
+                                ? 'border-blue-500' 
+                                : 'border-transparent hover:border-gray-300'
+                            }`}
+                            onClick={() => setCurrentImageIndex(index)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Image Counter */}
+                    {screenImages.length > 1 && (
+                      <p className="text-sm text-gray-500 text-center mt-2">
+                        {currentImageIndex + 1} / {screenImages.length}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             <div className="flex justify-between mt-6">
               <Button
                 onClick={handlePrevious}
@@ -147,6 +225,27 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                 {t('editor.preview.next')}
               </Button>
             </div>
+          </div>
+        )}
+        
+        {/* Zoomed Image Modal */}
+        {zoomedImage && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+            onClick={() => setZoomedImage(null)}
+          >
+            <img
+              src={zoomedImage}
+              alt="Zoomed"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setZoomedImage(null)}
+              className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300"
+            >
+              ×
+            </button>
           </div>
         )}
       </div>

@@ -53,7 +53,7 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Export error:', error);
-      alert('Failed to generate gift. Please try again.');
+      alert(t('editor.export.exportFailed'));
     } finally {
       setIsGenerating(false);
     }
@@ -67,7 +67,7 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
         <div className="mb-4">
           <ErrorDisplay errors={validationErrors} />
           <p className="text-red-700 text-sm mt-2">
-            Please fix these errors before exporting.
+            {t('editor.export.fixErrorsBeforeExport')}
           </p>
         </div>
       )}
@@ -75,7 +75,7 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
       {validationWarnings.length > 0 && showWarnings && (
         <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="text-yellow-800 font-semibold">Recommendations</h3>
+            <h3 className="text-yellow-800 font-semibold">{t('editor.export.recommendations')}</h3>
             <button
               onClick={() => setShowWarnings(false)}
               className="text-yellow-600 hover:text-yellow-800"
@@ -94,7 +94,7 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
             ))}
           </ul>
           <p className="text-yellow-800 text-sm mt-3 font-medium">
-            You can still export, but these recommendations may improve the experience.
+            {t('editor.export.recommendationsNote')}
           </p>
         </div>
       )}
@@ -112,13 +112,10 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
         </Button>
         {validationErrors.length === 0 && validationWarnings.length > 0 && (
           <p className="text-sm text-gray-500 mt-2 text-center">
-            Export is available despite recommendations above
+            {t('editor.export.exportAvailable')}
           </p>
         )}
       </div>
     </div>
   );
 }
-
-
-

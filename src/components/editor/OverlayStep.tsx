@@ -35,10 +35,10 @@ export function OverlayStep() {
             onChange={(e) => updateOverlay('type', e.target.value as any)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="heart">Heart</option>
-            <option value="birthday">Birthday</option>
-            <option value="save_the_date">Save the Date</option>
-            <option value="custom">Custom</option>
+            <option value="heart">{t('editor.overlay.types.heart')}</option>
+            <option value="birthday">{t('editor.overlay.types.birthday')}</option>
+            <option value="save_the_date">{t('editor.overlay.types.saveTheDate')}</option>
+            <option value="custom">{t('editor.overlay.types.custom')}</option>
           </select>
         </div>
         <Input
@@ -53,15 +53,11 @@ export function OverlayStep() {
         />
         <Input
           label={t('editor.overlay.buttonText')}
-          value={currentProject.data.overlay.buttonText || 'Tap to Begin'}
+          value={currentProject.data.overlay.buttonText || ''}
           onChange={(e) => updateOverlay('buttonText', e.target.value)}
+          placeholder={t('editor.overlay.buttonTextPlaceholder') || 'Leave empty for no text (button will pulse)'}
         />
       </div>
     </div>
   );
 }
-
-
-
-
-

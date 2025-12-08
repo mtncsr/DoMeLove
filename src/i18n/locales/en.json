@@ -33,7 +33,11 @@
       "newBaby": "New Baby / Birth",
       "barMitzvah": "Bar/Bat Mitzvah",
       "wedding": "Wedding / Save the Date",
-      "singleScreen": "Single Screen"
+      "singleScreen": "Single Screen",
+      "customTemplate": "Custom Template",
+      "customTemplateDescription": "Design your own template from scratch",
+      "customTemplateSelected": "Custom Template is selected",
+      "editCustomTemplate": "Edit Custom Template"
     },
     "giftDetails": {
       "recipientName": "Recipient Name",
@@ -65,7 +69,49 @@
       "overlayType": "Overlay Type",
       "mainText": "Main Text",
       "subText": "Sub Text",
-      "buttonText": "Button Text"
+      "buttonText": "Button Text",
+      "buttonTextPlaceholder": "Leave empty for no text (button will pulse)",
+      "types": {
+        "heart": "Heart",
+        "birthday": "Birthday",
+        "saveTheDate": "Save the Date",
+        "custom": "Custom"
+      },
+      "startButton": "Start Button"
+    },
+    "screens": {
+      "title": "Screens",
+      "giftDetails": "Gift Details",
+      "backgroundMusic": "Background Music",
+      "content": "Content",
+      "screenTitle": "Screen Title",
+      "screenText": "Screen Text",
+      "images": "Images",
+      "galleryLayout": "Gallery Layout",
+      "rename": "Rename",
+      "remove": "Remove",
+      "selectFromUploaded": "Select from uploaded files:",
+      "noMusicUploaded": "No music files uploaded. Upload music in the Content tab first.",
+      "defaultNames": {
+        "main": "Main",
+        "first": "First",
+        "second": "Second",
+        "third": "Third",
+        "fourth": "Fourth",
+        "fifth": "Fifth",
+        "sixth": "Sixth",
+        "seventh": "Seventh",
+        "eighth": "Eighth",
+        "ninth": "Ninth",
+        "tenth": "Tenth"
+      }
+    },
+    "screenTexts": {
+      "title": "Title",
+      "text": "Text",
+      "blessings": "Blessings",
+      "addBlessing": "Add Blessing",
+      "sender": "Sender"
     },
     "preview": {
       "previewGift": "Preview Your Gift",
@@ -73,14 +119,36 @@
       "desktopView": "Desktop View",
       "tapToBegin": "Tap to Begin",
       "next": "Next",
-      "previous": "Previous"
+      "previous": "Previous",
+      "preview": "Preview",
+      "export": "Export"
+    },
+    "content": {
+      "title": "Content",
+      "images": "Images",
+      "music": "Music",
+      "uploadImages": "Upload Images",
+      "allUploadedImages": "All Uploaded Images",
+      "noImagesUploaded": "No images uploaded yet.",
+      "uploadMusic": "Upload Music",
+      "allUploadedMusic": "All Uploaded Music",
+      "noMusicUploaded": "No music files uploaded yet.",
+      "usedInScreen": "Used in at least one screen",
+      "globalPlaysOnStart": "Global (plays on start)",
+      "unassignedAssignInScreens": "Unassigned - assign in Screens tab",
+      "assignedTo": "Assigned to"
     },
     "export": {
       "createGift": "Create Gift",
       "validating": "Validating...",
       "generating": "Generating HTML...",
       "downloadReady": "Your gift is ready!",
-      "download": "Download HTML File"
+      "download": "Download HTML File",
+      "fixErrorsBeforeExport": "Please fix these errors before exporting.",
+      "recommendations": "Recommendations",
+      "recommendationsNote": "You can still export, but these recommendations may improve the experience.",
+      "exportAvailable": "Export is available despite recommendations above",
+      "exportFailed": "Failed to generate gift. Please try again."
     }
   },
   "validation": {
@@ -97,10 +165,7 @@
     "close": "Close",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "remove": "Remove"
   }
 }
-
-
-
-

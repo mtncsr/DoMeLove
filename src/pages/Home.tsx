@@ -4,15 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { LanguageSelector } from '../components/ui/LanguageSelector';
 import { format } from 'date-fns';
 
 export function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { projects, createProject, deleteProject, setCurrentProject, importProject } = useProject();
   const [importError, setImportError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
 
   const handleCreateNew = () => {
     setShowCreateModal(true);
@@ -78,9 +83,18 @@ export function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('app.title')}</h1>
-          <h2 className="text-3xl font-semibold text-gray-700">{t('app.subtitle')}</h2>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">DoMeLove</h1>
+            <h2 className="text-3xl font-semibold text-gray-700">{t('app.subtitle')}</h2>
+          </div>
+          <div className="pt-1">
+            <LanguageSelector
+              value={i18n.language}
+              onChange={handleLanguageChange}
+              subtle={true}
+            />
+          </div>
         </div>
 
         <div className="flex gap-4 mb-8">
@@ -178,4 +192,3 @@ export function Home() {
     </div>
   );
 }
-

@@ -6,14 +6,14 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { PREDEFINED_THEMES, getDefaultTheme } from '../../utils/themes';
 
-const templates = [
-  { id: 'romantic', name: 'Romantic / Couple' },
-  { id: 'adult-birthday', name: 'Adult Birthday' },
-  { id: 'kids-birthday', name: 'Kids Birthday' },
-  { id: 'new-baby', name: 'New Baby / Birth' },
-  { id: 'bar-mitzvah', name: 'Bar/Bat Mitzvah' },
-  { id: 'wedding', name: 'Wedding / Save the Date' },
-  { id: 'single-screen', name: 'Single Screen' },
+const getTemplates = (t: (key: string) => string) => [
+  { id: 'romantic', name: t('editor.template.romantic') },
+  { id: 'adult-birthday', name: t('editor.template.adultBirthday') },
+  { id: 'kids-birthday', name: t('editor.template.kidsBirthday') },
+  { id: 'new-baby', name: t('editor.template.newBaby') },
+  { id: 'bar-mitzvah', name: t('editor.template.barMitzvah') },
+  { id: 'wedding', name: t('editor.template.wedding') },
+  { id: 'single-screen', name: t('editor.template.singleScreen') },
 ];
 
 const GALLERY_LAYOUTS = [
@@ -89,6 +89,8 @@ export function TemplateStep() {
     return <CustomTemplateBuilder project={currentProject} onUpdate={updateProject} onBack={() => setShowCustomBuilder(false)} />;
   }
 
+  const templates = getTemplates(t);
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.template.selectTemplate')}</h2>
@@ -114,16 +116,16 @@ export function TemplateStep() {
           }`}
           onClick={() => handleSelectTemplate('custom')}
         >
-          <h3 className="text-lg font-semibold text-gray-900">Custom Template</h3>
-          <p className="text-sm text-gray-600 mt-2">Design your own template from scratch</p>
+          <h3 className="text-lg font-semibold text-gray-900">{t('editor.template.customTemplate')}</h3>
+          <p className="text-sm text-gray-600 mt-2">{t('editor.template.customTemplateDescription')}</p>
         </div>
       </div>
       
       {isCustomTemplate && !showCustomBuilder && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-blue-800 mb-2">Custom Template is selected</p>
+          <p className="text-blue-800 mb-2">{t('editor.template.customTemplateSelected')}</p>
           <Button onClick={() => setShowCustomBuilder(true)} variant="primary">
-            Edit Custom Template
+            {t('editor.template.editCustomTemplate')}
           </Button>
         </div>
       )}
@@ -448,7 +450,3 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
     </div>
   );
 }
-
-
-
-

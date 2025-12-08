@@ -343,7 +343,8 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
   // Replace overlay placeholders
   html = html.replace(/\{\{overlayMainText\}\}/g, data.overlay.mainText || '');
   html = html.replace(/\{\{overlaySubText\}\}/g, data.overlay.subText || '');
-  html = html.replace(/\{\{overlayButtonText\}\}/g, data.overlay.buttonText || 'Tap to Begin');
+  // Allow empty button text - if empty, button will show with just animation
+  html = html.replace(/\{\{overlayButtonText\}\}/g, data.overlay.buttonText || '');
 
   // Replace design variables if present
   if (templateMeta.designVariables) {
@@ -638,7 +639,17 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
   html = html.replace(/<style>[\s\S]*?<\/style>/gi, '');
   
   // Build styles section with theme support
-  const allStyles = `${existingStyles.trim()}\n${getGalleryStyles()}`;
+  // Add pulse animation for overlay buttons (hint for press when text is empty)
+  const pulseAnimationStyles = `
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+    .overlay button {
+      animation: pulse 2s infinite;
+    }
+  `;
+  const allStyles = `${existingStyles.trim()}\n${getGalleryStyles()}\n${pulseAnimationStyles}`;
   const themedStyles = applyThemeStyles(allStyles, project);
   const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
   

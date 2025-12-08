@@ -253,9 +253,22 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             <p className="text-xl mb-4">
               {currentProject.data.overlay.subText || 'To your special gift'}
             </p>
-            <button className="px-6 py-3 bg-white text-pink-600 rounded-lg font-semibold hover:bg-gray-100">
-              {currentProject.data.overlay.buttonText || 'Tap to Begin'}
+            <button 
+              className="px-6 py-3 bg-white text-pink-600 rounded-lg font-semibold hover:bg-gray-100"
+              style={{ 
+                animation: 'pulse 2s infinite',
+                minWidth: '120px',
+                minHeight: '48px'
+              }}
+            >
+              {currentProject.data.overlay.buttonText || ''}
             </button>
+            <style>{`
+              @keyframes pulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.05); opacity: 0.9; }
+              }
+            `}</style>
           </div>
         ) : (
           <div className={`${isMobileView ? 'p-4 h-full overflow-y-auto' : 'p-8 h-full overflow-y-auto'}`}>
@@ -389,6 +402,3 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
     </div>
   );
 }
-
-
-

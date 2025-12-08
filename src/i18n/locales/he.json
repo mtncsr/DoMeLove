@@ -15,6 +15,9 @@
   "editor": {
     "steps": {
       "template": "תבנית",
+      "screens": "מסכים",
+      "content": "תוכן",
+      "previewExport": "תצוגה מקדימה וייצוא",
       "giftDetails": "פרטי מתנה",
       "screenTexts": "טקסטים",
       "images": "תמונות",
@@ -36,7 +39,11 @@
       "newBaby": "תינוק חדש / לידה",
       "barMitzvah": "בר/בת מצווה",
       "wedding": "חתונה / שמור את התאריך",
-      "singleScreen": "מסך יחיד"
+      "singleScreen": "מסך יחיד",
+      "customTemplate": "תבנית מותאמת אישית",
+      "customTemplateDescription": "עצב תבנית משלך מאפס",
+      "customTemplateSelected": "תבנית מותאמת אישית נבחרה",
+      "editCustomTemplate": "ערוך תבנית מותאמת אישית"
     },
     "giftDetails": {
       "recipientName": "שם המקבל",
@@ -68,7 +75,49 @@
       "overlayType": "סוג מסך פתיחה",
       "mainText": "טקסט ראשי",
       "subText": "טקסט משני",
-      "buttonText": "טקסט כפתור"
+      "buttonText": "טקסט כפתור",
+      "buttonTextPlaceholder": "השאר ריק ללא טקסט (הכפתור יפלס)",
+      "types": {
+        "heart": "לב",
+        "birthday": "יום הולדת",
+        "saveTheDate": "שמור את התאריך",
+        "custom": "מותאם אישית"
+      },
+      "startButton": "כפתור התחלה"
+    },
+    "screens": {
+      "title": "מסכים",
+      "giftDetails": "פרטי מתנה",
+      "backgroundMusic": "מוזיקת רקע",
+      "content": "תוכן",
+      "screenTitle": "כותרת מסך",
+      "screenText": "טקסט מסך",
+      "images": "תמונות",
+      "galleryLayout": "פריסת גלריה",
+      "rename": "שנה שם",
+      "remove": "הסר",
+      "selectFromUploaded": "בחר מקבצים שהועלו:",
+      "noMusicUploaded": "לא הועלו קבצי מוזיקה. העלה מוזיקה בלשונית תוכן תחילה.",
+      "defaultNames": {
+        "main": "ראשי",
+        "first": "ראשון",
+        "second": "שני",
+        "third": "שלישי",
+        "fourth": "רביעי",
+        "fifth": "חמישי",
+        "sixth": "שישי",
+        "seventh": "שביעי",
+        "eighth": "שמיני",
+        "ninth": "תשיעי",
+        "tenth": "עשירי"
+      }
+    },
+    "screenTexts": {
+      "title": "כותרת",
+      "text": "טקסט",
+      "blessings": "ברכות",
+      "addBlessing": "הוסף ברכה",
+      "sender": "שולח"
     },
     "preview": {
       "previewGift": "תצוגה מקדימה של המתנה שלך",
@@ -76,14 +125,36 @@
       "desktopView": "תצוגת שולחן עבודה",
       "tapToBegin": "הקש כדי להתחיל",
       "next": "הבא",
-      "previous": "הקודם"
+      "previous": "הקודם",
+      "preview": "תצוגה מקדימה",
+      "export": "ייצוא"
+    },
+    "content": {
+      "title": "תוכן",
+      "images": "תמונות",
+      "music": "מוזיקה",
+      "uploadImages": "העלה תמונות",
+      "allUploadedImages": "כל התמונות שהועלו",
+      "noImagesUploaded": "עדיין לא הועלו תמונות.",
+      "uploadMusic": "העלה מוזיקה",
+      "allUploadedMusic": "כל המוזיקה שהועלתה",
+      "noMusicUploaded": "עדיין לא הועלו קבצי מוזיקה.",
+      "usedInScreen": "משמש במסך אחד לפחות",
+      "globalPlaysOnStart": "גלובלי (מתנגן בהתחלה)",
+      "unassignedAssignInScreens": "לא מוקצה - הקצה בלשונית מסכים",
+      "assignedTo": "מוקצה ל"
     },
     "export": {
       "createGift": "צור מתנה",
       "validating": "בודק...",
       "generating": "מייצר HTML...",
       "downloadReady": "המתנה שלך מוכנה!",
-      "download": "הורד קובץ HTML"
+      "download": "הורד קובץ HTML",
+      "fixErrorsBeforeExport": "אנא תקן שגיאות אלה לפני ייצוא.",
+      "recommendations": "המלצות",
+      "recommendationsNote": "עדיין תוכל לייצא, אך המלצות אלה עשויות לשפר את החוויה.",
+      "exportAvailable": "ייצוא זמין למרות ההמלצות לעיל",
+      "exportFailed": "נכשל ביצירת המתנה. אנא נסה שוב."
     }
   },
   "validation": {
@@ -100,11 +171,7 @@
     "close": "סגור",
     "loading": "טוען...",
     "error": "שגיאה",
-    "success": "הצלחה"
+    "success": "הצלחה",
+    "remove": "הסר"
   }
 }
-
-
-
-
-

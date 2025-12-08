@@ -80,7 +80,7 @@ export function ScreenTextsStep({ templateMeta }: ScreenTextsStepProps) {
             
             {screen.placeholders.includes('title') && (
               <Input
-                label="Title"
+                label={t('editor.screenTexts.title')}
                 value={currentProject.data.screens[screen.screenId]?.title || ''}
                 onChange={(e) => updateScreenField(screen.screenId, 'title', e.target.value)}
                 className="mb-4"
@@ -89,7 +89,7 @@ export function ScreenTextsStep({ templateMeta }: ScreenTextsStepProps) {
 
             {screen.placeholders.includes('text') && (
               <Textarea
-                label="Text"
+                label={t('editor.screenTexts.text')}
                 value={currentProject.data.screens[screen.screenId]?.text || ''}
                 onChange={(e) => updateScreenField(screen.screenId, 'text', e.target.value)}
                 rows={4}
@@ -100,19 +100,19 @@ export function ScreenTextsStep({ templateMeta }: ScreenTextsStepProps) {
             {screen.type === 'blessings' && (
               <div className="mt-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-semibold">Blessings</h4>
-                  <Button onClick={addBlessing}>Add Blessing</Button>
+                  <h4 className="font-semibold">{t('editor.screenTexts.blessings')}</h4>
+                  <Button onClick={addBlessing}>{t('editor.screenTexts.addBlessing')}</Button>
                 </div>
                 {(currentProject.data.blessings || []).map((blessing, index) => (
                   <div key={index} className="mb-4 p-4 bg-gray-50 rounded-lg">
                     <Input
-                      label="Sender"
+                      label={t('editor.screenTexts.sender')}
                       value={blessing.sender}
                       onChange={(e) => updateBlessing(index, 'sender', e.target.value)}
                       className="mb-2"
                     />
                     <Textarea
-                      label="Text"
+                      label={t('editor.screenTexts.text')}
                       value={blessing.text}
                       onChange={(e) => updateBlessing(index, 'text', e.target.value)}
                       rows={2}
@@ -122,7 +122,7 @@ export function ScreenTextsStep({ templateMeta }: ScreenTextsStepProps) {
                       onClick={() => removeBlessing(index)}
                       className="mt-2"
                     >
-                      Remove
+                      {t('common.remove')}
                     </Button>
                   </div>
                 ))}
@@ -134,8 +134,3 @@ export function ScreenTextsStep({ templateMeta }: ScreenTextsStepProps) {
     </div>
   );
 }
-
-
-
-
-

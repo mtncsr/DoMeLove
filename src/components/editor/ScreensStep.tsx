@@ -4,7 +4,6 @@ import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
-import { LanguageSelector } from '../ui/LanguageSelector';
 import { ScreenImageSelector } from './ScreenImageSelector';
 import { ScreenMusicSelector } from './ScreenMusicSelector';
 import type { ImageData, AudioFile } from '../../types/project';
@@ -41,9 +40,20 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
       return displayNames[screenId];
     }
     // Default naming: first screen is "Main", rest are "First", "Second", etc.
-    if (index === 0) return 'Main';
-    const ordinals = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'];
-    return ordinals[index - 1] || `Screen ${index + 1}`;
+    if (index === 0) return t('editor.screens.defaultNames.main');
+    const ordinals = [
+      t('editor.screens.defaultNames.first'),
+      t('editor.screens.defaultNames.second'),
+      t('editor.screens.defaultNames.third'),
+      t('editor.screens.defaultNames.fourth'),
+      t('editor.screens.defaultNames.fifth'),
+      t('editor.screens.defaultNames.sixth'),
+      t('editor.screens.defaultNames.seventh'),
+      t('editor.screens.defaultNames.eighth'),
+      t('editor.screens.defaultNames.ninth'),
+      t('editor.screens.defaultNames.tenth')
+    ];
+    return ordinals[index - 1] || `${t('editor.screens.title')} ${index + 1}`;
   };
 
   const handleRenameScreen = (screenId: string, newName: string) => {
@@ -93,7 +103,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Screens</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.screens.title')}</h2>
 
       {/* Screen Tabs */}
       <div className="border-b border-gray-200 mb-6">
@@ -142,7 +152,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
                         startEditingTab(screen.screenId);
                       }}
                       className="text-gray-400 hover:text-gray-600 text-xs"
-                      title="Rename"
+                      title={t('editor.screens.rename')}
                     >
                       ✎
                     </button>
@@ -200,13 +210,6 @@ function MainScreenEditor({ project, updateProject, usedImageIds }: MainScreenEd
     });
   };
 
-  const updateLanguage = (language: string) => {
-    updateProject({
-      ...project,
-      language,
-    });
-  };
-
   const updateOverlay = (field: string, value: string | 'heart' | 'birthday' | 'save_the_date' | 'custom') => {
     updateProject({
       ...project,
@@ -250,7 +253,7 @@ function MainScreenEditor({ project, updateProject, usedImageIds }: MainScreenEd
     <div className="space-y-6">
       {/* Gift Details */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Gift Details</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('editor.screens.giftDetails')}</h3>
         <div className="space-y-4">
           <Input
             label={t('editor.giftDetails.recipientName')}
@@ -273,57 +276,53 @@ function MainScreenEditor({ project, updateProject, usedImageIds }: MainScreenEd
             onChange={(e) => updateField('mainGreeting', e.target.value)}
             rows={4}
           />
-          <LanguageSelector
-            label={t('editor.giftDetails.language')}
-            value={project.language}
-            onChange={updateLanguage}
-          />
         </div>
       </div>
 
       {/* Overlay Configuration */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Start Button</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('editor.overlay.startButton')}</h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Overlay Type
+              {t('editor.overlay.overlayType')}
             </label>
             <select
               value={project.data.overlay.type}
               onChange={(e) => updateOverlay('type', e.target.value as any)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="heart">Heart</option>
-              <option value="birthday">Birthday</option>
-              <option value="save_the_date">Save the Date</option>
-              <option value="custom">Custom</option>
+              <option value="heart">{t('editor.overlay.types.heart')}</option>
+              <option value="birthday">{t('editor.overlay.types.birthday')}</option>
+              <option value="save_the_date">{t('editor.overlay.types.saveTheDate')}</option>
+              <option value="custom">{t('editor.overlay.types.custom')}</option>
             </select>
           </div>
           <Input
             label={t('editor.overlay.buttonText')}
-            value={project.data.overlay.buttonText || 'Tap to Begin'}
+            value={project.data.overlay.buttonText || ''}
             onChange={(e) => updateOverlay('buttonText', e.target.value)}
+            placeholder={t('editor.overlay.buttonTextPlaceholder') || 'Leave empty for no text (button will pulse)'}
           />
         </div>
       </div>
 
       {/* Global Music */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Background Music</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('editor.screens.backgroundMusic')}</h3>
         {project.data.audio.global ? (
           <div>
             <p className="text-sm text-gray-600 mb-2">{project.data.audio.global.filename}</p>
             <p className="text-xs text-gray-500 mb-4">{formatFileSize(project.data.audio.global.size)}</p>
             <Button variant="danger" onClick={handleDeleteGlobalAudio}>
-              Remove
+              {t('editor.screens.remove')}
             </Button>
           </div>
         ) : (
           <div>
             {allAvailableAudioFiles.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-sm text-gray-600 mb-2">Select from uploaded files:</p>
+                <p className="text-sm text-gray-600 mb-2">{t('editor.screens.selectFromUploaded')}</p>
                 {allAvailableAudioFiles.map((music) => (
                   <div
                     key={music.id}
@@ -337,7 +336,7 @@ function MainScreenEditor({ project, updateProject, usedImageIds }: MainScreenEd
               </div>
             ) : (
               <p className="text-sm text-gray-500">
-                No music files uploaded. Upload music in the Content tab first.
+                {t('editor.screens.noMusicUploaded')}
               </p>
             )}
           </div>
@@ -357,6 +356,7 @@ interface ScreenEditorProps {
 }
 
 function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenAudioFiles, isLastScreen }: ScreenEditorProps) {
+  const { t } = useTranslation();
   const screenData = project.data.screens[screen.screenId] || {};
 
   const updateScreenField = (field: string, value: any) => {
@@ -462,15 +462,15 @@ function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenA
     <div className="space-y-6">
       {/* Title and Text */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Content</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('editor.screens.content')}</h3>
         <div className="space-y-4">
           <Input
-            label="Screen Title"
+            label={t('editor.screens.screenTitle')}
             value={screenData.title || ''}
             onChange={(e) => updateScreenField('title', e.target.value)}
           />
           <Textarea
-            label="Screen Text"
+            label={t('editor.screens.screenText')}
             value={screenData.text || ''}
             onChange={(e) => updateScreenField('text', e.target.value)}
             rows={4}
@@ -480,7 +480,7 @@ function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenA
 
       {/* Images */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Images</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('editor.screens.images')}</h3>
         <ScreenImageSelector
           allImages={project.data.images}
           selectedImageIds={screenData.images || []}
@@ -491,7 +491,7 @@ function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenA
         />
         {hasGalleryImages && (
           <div className="mt-4 pt-4 border-t">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Gallery Layout</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('editor.screens.galleryLayout')}</label>
             <select
               value={screenData.galleryLayout || 'carousel'}
               onChange={(e) => updateScreenField('galleryLayout', e.target.value)}
@@ -524,4 +524,3 @@ function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenA
     </div>
   );
 }
-

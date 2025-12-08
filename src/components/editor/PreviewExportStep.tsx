@@ -14,7 +14,7 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Preview & Export</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.steps.previewExport')}</h2>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
@@ -27,7 +27,7 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Preview
+            {t('editor.preview.preview')}
           </button>
           <button
             onClick={() => setActiveTab('export')}
@@ -37,7 +37,7 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Export
+            {t('editor.preview.export')}
           </button>
         </div>
       </div>
@@ -51,5 +51,3 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
     </div>
   );
 }
-
-

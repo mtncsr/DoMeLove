@@ -31,7 +31,7 @@ export function ContentStep() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Content</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.content.title')}</h2>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
@@ -44,7 +44,7 @@ export function ContentStep() {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Images
+            {t('editor.content.images')}
           </button>
           <button
             onClick={() => setActiveTab('music')}
@@ -54,7 +54,7 @@ export function ContentStep() {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Music
+            {t('editor.content.music')}
           </button>
         </div>
       </div>
@@ -127,7 +127,7 @@ function ImagesTab({ project, updateProject, usedImageIds }: ImagesTabProps) {
   return (
     <div>
       <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-4">Upload Images</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('editor.content.uploadImages')}</h3>
         <ImageUpload
           onUpload={handleImageUpload}
           onMultipleUpload={handleMultipleImageUpload}
@@ -137,10 +137,10 @@ function ImagesTab({ project, updateProject, usedImageIds }: ImagesTabProps) {
 
       <div>
         <h3 className="text-lg font-semibold mb-4">
-          All Uploaded Images ({project.data.images.length})
+          {t('editor.content.allUploadedImages')} ({project.data.images.length})
         </h3>
         {project.data.images.length === 0 ? (
-          <p className="text-gray-500">No images uploaded yet.</p>
+          <p className="text-gray-500">{t('editor.content.noImagesUploaded')}</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {project.data.images.map((image: ImageData) => {
@@ -148,7 +148,7 @@ function ImagesTab({ project, updateProject, usedImageIds }: ImagesTabProps) {
               return (
                 <div key={image.id} className="bg-white p-4 rounded-lg border border-gray-200 relative">
                   {isUsed && (
-                    <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1.5 z-10" title="Used in at least one screen">
+                    <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1.5 z-10" title={t('editor.content.usedInScreen')}>
                       <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
@@ -285,7 +285,7 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
   return (
     <div>
       <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-4">Upload Music</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('editor.content.uploadMusic')}</h3>
         <AudioUpload
           onUpload={handleUploadToLibrary}
         />
@@ -293,10 +293,10 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
 
       <div>
         <h3 className="text-lg font-semibold mb-4">
-          All Uploaded Music ({allAudioFiles.length})
+          {t('editor.content.allUploadedMusic')} ({allAudioFiles.length})
         </h3>
         {allAudioFiles.length === 0 ? (
-          <p className="text-gray-500">No music files uploaded yet.</p>
+          <p className="text-gray-500">{t('editor.content.noMusicUploaded')}</p>
         ) : (
           <div className="space-y-4">
             {allAudioFiles.map(({ id, file, type, screenId }) => (
@@ -307,10 +307,10 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
                     <p className="text-xs text-gray-500 mt-1">{formatFileSize(file.size)}</p>
                     <p className="text-xs text-blue-600 mt-1">
                       {type === 'global' 
-                        ? 'Global (plays on start)' 
+                        ? t('editor.content.globalPlaysOnStart')
                         : type === 'library'
-                        ? 'Unassigned - assign in Screens tab'
-                        : `Assigned to: ${screenId}`}
+                        ? t('editor.content.unassignedAssignInScreens')
+                        : `${t('editor.content.assignedTo')}: ${screenId}`}
                     </p>
                   </div>
                   <Button
@@ -325,7 +325,7 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
                       }
                     }}
                   >
-                    Remove
+                    {t('common.remove')}
                   </Button>
                 </div>
               </div>
@@ -336,4 +336,3 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
     </div>
   );
 }
-

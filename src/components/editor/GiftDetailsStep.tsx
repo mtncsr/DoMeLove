@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
-import { LanguageSelector } from '../ui/LanguageSelector';
 
 export function GiftDetailsStep() {
   const { t } = useTranslation();
@@ -18,13 +17,6 @@ export function GiftDetailsStep() {
         ...currentProject.data,
         [field]: value,
       },
-    });
-  };
-
-  const updateLanguage = (language: string) => {
-    updateProject({
-      ...currentProject,
-      language,
     });
   };
 
@@ -53,17 +45,7 @@ export function GiftDetailsStep() {
           onChange={(e) => updateField('mainGreeting', e.target.value)}
           rows={4}
         />
-        <LanguageSelector
-          label={t('editor.giftDetails.language')}
-          value={currentProject.language}
-          onChange={updateLanguage}
-        />
       </div>
     </div>
   );
 }
-
-
-
-
-

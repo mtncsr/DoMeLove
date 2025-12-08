@@ -17,9 +17,10 @@ interface LanguageSelectorProps {
   value: string;
   onChange: (lang: string) => void;
   label?: string;
+  subtle?: boolean;
 }
 
-export function LanguageSelector({ value, onChange, label }: LanguageSelectorProps) {
+export function LanguageSelector({ value, onChange, label, subtle = false }: LanguageSelectorProps) {
   const { i18n } = useTranslation();
 
   const handleChange = (lang: string) => {
@@ -29,6 +30,29 @@ export function LanguageSelector({ value, onChange, label }: LanguageSelectorPro
     document.documentElement.dir = direction;
     document.documentElement.lang = lang;
   };
+
+  if (subtle) {
+    return (
+      <div className="w-auto">
+        {label && (
+          <label className="block text-xs font-normal text-gray-500 mb-1">
+            {label}
+          </label>
+        )}
+        <select
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          className="text-sm text-gray-600 bg-transparent border-0 border-b border-gray-200 rounded-none px-1 py-1 focus:outline-none focus:border-gray-400 hover:border-gray-300 transition-colors cursor-pointer"
+        >
+          {languages.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {lang.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -51,8 +75,3 @@ export function LanguageSelector({ value, onChange, label }: LanguageSelectorPro
     </div>
   );
 }
-
-
-
-
-

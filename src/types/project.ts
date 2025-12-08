@@ -31,6 +31,43 @@ export interface ProjectData {
   
   // Blessings (for blessing screens)
   blessings?: Blessing[];
+  
+  // Custom template settings
+  customTemplate?: {
+    isCustom: boolean;
+    theme?: ThemeConfig;
+    customScreens?: CustomScreenConfig[];
+  };
+}
+
+export interface ThemeConfig {
+  name: string;
+  type: 'predefined' | 'custom';
+  colors: {
+    text?: string;
+    textSecondary?: string;
+    background?: string;
+    backgroundSecondary?: string;
+    accent?: string;
+    border?: string;
+    button?: string;
+    buttonText?: string;
+    overlay?: string;
+  };
+  fonts?: {
+    heading?: string;
+    body?: string;
+  };
+}
+
+export interface CustomScreenConfig {
+  id: string;
+  type: 'intro' | 'gallery' | 'text' | 'blessings' | 'single';
+  title?: string;
+  text?: string;
+  galleryLayout?: 'carousel' | 'gridWithZoom' | 'fullscreenSlideshow' | 'heroWithThumbnails' | 'timeline';
+  order: number;
+  supportsMusic?: boolean;
 }
 
 export interface ScreenData {
@@ -39,6 +76,7 @@ export interface ScreenData {
   images?: string[]; // Array of image IDs
   audioId?: string;
   extendMusicToNext?: boolean; // If true, this screen's music continues to next screen
+  galleryLayout?: 'carousel' | 'gridWithZoom' | 'fullscreenSlideshow' | 'heroWithThumbnails' | 'timeline'; // Gallery layout type for screens with images
 }
 
 export interface ImageData {

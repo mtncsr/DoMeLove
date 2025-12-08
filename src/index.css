@@ -10,3 +10,22 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Preview container styles */
+.preview-mobile {
+  width: 100%;
+  max-width: 450px;
+  aspect-ratio: 9 / 16;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+}
+
+.preview-desktop {
+  width: 100%;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+}

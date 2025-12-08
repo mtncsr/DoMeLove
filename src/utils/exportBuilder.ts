@@ -175,12 +175,33 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
         .filter((img): img is ImageData => img !== undefined);
 
       if (screenImages.length > 0) {
-        const carouselHTML = generateImageCarouselHTML(screen.screenId, screenImages);
+        // Check galleryLayout, default to 'carousel' if not set or unknown
+        const galleryLayout = screenData.galleryLayout || 'carousel';
+        
+        let galleryHTML: string;
+        switch (galleryLayout) {
+          case 'gridWithZoom':
+            galleryHTML = generateGridWithZoomHTML(screen.screenId, screenImages);
+            break;
+          case 'fullscreenSlideshow':
+            galleryHTML = generateFullscreenSlideshowHTML(screen.screenId, screenImages);
+            break;
+          case 'heroWithThumbnails':
+            galleryHTML = generateHeroWithThumbnailsHTML(screen.screenId, screenImages);
+            break;
+          case 'timeline':
+            galleryHTML = generateTimelineHTML(screen.screenId, screenImages);
+            break;
+          case 'carousel':
+          default:
+            galleryHTML = generateImageCarouselHTML(screen.screenId, screenImages);
+            break;
+        }
         
         // Replace image carousel placeholder if it exists
         const carouselPlaceholder = `{{${screen.screenId}_images}}`;
         if (html.includes(carouselPlaceholder)) {
-          html = html.replace(carouselPlaceholder, carouselHTML);
+          html = html.replace(carouselPlaceholder, galleryHTML);
         } else {
           // If placeholder doesn't exist, inject after the text placeholder
           // Try to find the screen div and inject after the text
@@ -189,7 +210,7 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
             // Inject after the closing </p> tag that follows the text
             html = html.replace(
               new RegExp(`(\\{\\{${screen.screenId}_text\\}\\}[^<]*</p>)`, 'g'),
-              `$1${carouselHTML}`
+              `$1${galleryHTML}`
             );
           } else {
             // If no text placeholder, inject after title
@@ -197,7 +218,7 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
             if (html.includes(screenTitlePlaceholder)) {
               html = html.replace(
                 new RegExp(`(\\{\\{${screen.screenId}_title\\}\\}[^<]*</h2>)`, 'g'),
-                `$1${carouselHTML}`
+                `$1${galleryHTML}`
               );
             }
           }
@@ -285,6 +306,146 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[]): strin
     </script>
   `;
   return carouselHTML;
+}
+
+function generateGridWithZoomHTML(screenId: string, images: ImageData[]): string {
+  const galleryId = `gallery-grid-${screenId}`;
+  const gridHTML = `
+    <div class="gallery-grid-container" id="${galleryId}">
+      <div class="gallery-grid">
+        ${images.map((img, index) => `
+          <div class="gallery-grid-item">
+            <img 
+              src="${img.data}" 
+              alt="${escapeHtmlForExport(img.filename)}" 
+              class="gallery-grid-image"
+            />
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <script>
+      // Initialize grid gallery data
+      (function() {
+        window._tempGalleryData = window._tempGalleryData || {};
+        window._tempGalleryData['${galleryId}'] = {
+          images: ${JSON.stringify(images.map(img => img.data))},
+          type: 'gridWithZoom'
+        };
+      })();
+    </script>
+  `;
+  return gridHTML;
+}
+
+function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[]): string {
+  const slideshowId = `slideshow-${screenId}`;
+  const slideshowHTML = `
+    <div class="fullscreen-slideshow-container" id="${slideshowId}">
+      <div class="slideshow-wrapper">
+        ${images.map((img, index) => `
+          <div class="slideshow-slide ${index === 0 ? 'active' : ''}">
+            <img 
+              src="${img.data}" 
+              alt="${escapeHtmlForExport(img.filename)}" 
+              class="slideshow-image"
+            />
+          </div>
+        `).join('')}
+      </div>
+      ${images.length > 1 ? `
+      <button class="slideshow-nav slideshow-prev" type="button">‹</button>
+      <button class="slideshow-nav slideshow-next" type="button">›</button>
+      <div class="slideshow-indicator">
+        <span class="slideshow-current">1</span> / <span class="slideshow-total">${images.length}</span>
+      </div>
+      ` : ''}
+    </div>
+    <script>
+      // Initialize slideshow data
+      (function() {
+        window._tempSlideshowData = window._tempSlideshowData || {};
+        window._tempSlideshowData['${slideshowId}'] = {
+          images: ${JSON.stringify(images.map(img => img.data))},
+          currentIndex: 0,
+          autoplayInterval: 4000,
+          type: 'fullscreenSlideshow'
+        };
+      })();
+    </script>
+  `;
+  return slideshowHTML;
+}
+
+function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[]): string {
+  const heroId = `hero-gallery-${screenId}`;
+  const heroHTML = `
+    <div class="hero-gallery-container" id="${heroId}">
+      <div class="hero-main-image">
+        <img 
+          src="${images[0].data}" 
+          alt="${escapeHtmlForExport(images[0].filename)}" 
+          class="hero-image"
+        />
+      </div>
+      ${images.length > 1 ? `
+      <div class="hero-thumbnails">
+        ${images.map((img, index) => `
+          <img 
+            src="${img.data}" 
+            alt="${escapeHtmlForExport(img.filename)}" 
+            class="hero-thumbnail ${index === 0 ? 'active' : ''}"
+          />
+        `).join('')}
+      </div>
+      ` : ''}
+    </div>
+    <script>
+      // Initialize hero gallery data
+      (function() {
+        window._tempHeroData = window._tempHeroData || {};
+        window._tempHeroData['${heroId}'] = {
+          images: ${JSON.stringify(images.map(img => img.data))},
+          currentIndex: 0,
+          type: 'heroWithThumbnails'
+        };
+      })();
+    </script>
+  `;
+  return heroHTML;
+}
+
+function generateTimelineHTML(screenId: string, images: ImageData[]): string {
+  const timelineId = `timeline-${screenId}`;
+  const timelineHTML = `
+    <div class="timeline-container" id="${timelineId}">
+      ${images.map((img, index) => `
+        <div class="timeline-card">
+          <div class="timeline-image-wrapper">
+            <img 
+              src="${img.data}" 
+              alt="${escapeHtmlForExport(img.filename)}" 
+              class="timeline-image"
+            />
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-index">${index + 1}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <script>
+      // Initialize timeline data
+      (function() {
+        window._tempTimelineData = window._tempTimelineData || {};
+        window._tempTimelineData['${timelineId}'] = {
+          images: ${JSON.stringify(images.map(img => img.data))},
+          type: 'timeline'
+        };
+      })();
+    </script>
+  `;
+  return timelineHTML;
 }
 
 function injectRepeatingStructures(html: string, project: Project, templateMeta: TemplateMeta): string {
@@ -382,7 +543,7 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
   html = html.replace(/<style>[\s\S]*?<\/style>/gi, '');
   
   // Build styles section
-  const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${existingStyles.trim()}\n${getCarouselStyles()}\n</style>`;
+  const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${existingStyles.trim()}\n${getGalleryStyles()}\n</style>`;
   
   // Build runtime logic section (GiftApp with integrated AudioManager)
   const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${buildGiftAppNamespace(project, templateMeta)}`;
@@ -411,8 +572,9 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
   return html;
 }
 
-function getCarouselStyles(): string {
+function getGalleryStyles(): string {
   return `
+  /* ========== Carousel Layout ========== */
   .image-carousel-container {
     margin: 1rem 0;
     width: 100%;
@@ -512,6 +674,240 @@ function getCarouselStyles(): string {
   }
   .carousel-thumbnail.active {
     border-color: #3b82f6;
+  }
+
+  /* ========== Grid with Zoom Layout ========== */
+  .gallery-grid-container {
+    margin: 1rem 0;
+    width: 100%;
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    padding: 0.5rem 0;
+  }
+  @media (min-width: 640px) {
+    .gallery-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .gallery-grid {
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+  }
+  .gallery-grid-item {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #f3f4f6;
+  }
+  .gallery-grid-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  .gallery-grid-item:hover .gallery-grid-image {
+    transform: scale(1.05);
+  }
+
+  /* ========== Fullscreen Slideshow Layout ========== */
+  .fullscreen-slideshow-container {
+    position: relative;
+    width: 100%;
+    height: 70vh;
+    min-height: 400px;
+    margin: 1rem 0;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  .slideshow-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  .slideshow-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+  }
+  .slideshow-slide.active {
+    opacity: 1;
+    z-index: 1;
+  }
+  .slideshow-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #f3f4f6;
+  }
+  .slideshow-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background 0.2s;
+  }
+  .slideshow-nav:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  .slideshow-prev {
+    left: 20px;
+  }
+  .slideshow-next {
+    right: 20px;
+  }
+  .slideshow-indicator {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 10;
+  }
+
+  /* ========== Hero with Thumbnails Layout ========== */
+  .hero-gallery-container {
+    margin: 1rem 0;
+    width: 100%;
+  }
+  .hero-main-image {
+    width: 100%;
+    margin-bottom: 1rem;
+    max-height: 60vh;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f3f4f6;
+  }
+  .hero-image {
+    width: 100%;
+    max-height: 60vh;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+  .hero-thumbnails {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0.5rem 0;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .hero-thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  @media (min-width: 768px) {
+    .hero-thumbnail {
+      width: 100px;
+      height: 100px;
+    }
+  }
+  .hero-thumbnail:hover {
+    border-color: #9ca3af;
+    transform: scale(1.05);
+  }
+  .hero-thumbnail.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  }
+
+  /* ========== Timeline Layout ========== */
+  .timeline-container {
+    margin: 2rem 0;
+    width: 100%;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .timeline-card {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    align-items: flex-start;
+    position: relative;
+  }
+  .timeline-card:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 80px;
+    bottom: -2rem;
+    width: 2px;
+    background: #e5e7eb;
+  }
+  .timeline-image-wrapper {
+    flex-shrink: 0;
+    width: 200px;
+    height: 200px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f3f4f6;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  @media (max-width: 640px) {
+    .timeline-image-wrapper {
+      width: 120px;
+      height: 120px;
+    }
+    .timeline-card {
+      gap: 1rem;
+    }
+  }
+  .timeline-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+  }
+  .timeline-content {
+    flex: 1;
+    padding-top: 0.5rem;
+  }
+  .timeline-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 0.5rem;
   }`;
 }
 
@@ -772,12 +1168,153 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
       document.body.appendChild(modal);
     }
     
-    // Migrate temporary carousel data if it exists
+    // Gallery data storage for different layout types
+    var gridGalleryData = {};
+    var slideshowData = {};
+    var heroGalleryData = {};
+    
+    // Migrate temporary gallery data if it exists
     if (window._tempCarouselData) {
       for (var key in window._tempCarouselData) {
         carouselData[key] = window._tempCarouselData[key];
       }
       delete window._tempCarouselData;
+    }
+    if (window._tempGalleryData) {
+      for (var key in window._tempGalleryData) {
+        gridGalleryData[key] = window._tempGalleryData[key];
+      }
+      delete window._tempGalleryData;
+    }
+    if (window._tempSlideshowData) {
+      for (var key in window._tempSlideshowData) {
+        slideshowData[key] = window._tempSlideshowData[key];
+      }
+      delete window._tempSlideshowData;
+    }
+    if (window._tempHeroData) {
+      for (var key in window._tempHeroData) {
+        heroGalleryData[key] = window._tempHeroData[key];
+      }
+      delete window._tempHeroData;
+    }
+    
+    // Grid with Zoom gallery functions
+    function initGridGallery(galleryId) {
+      var container = document.getElementById(galleryId);
+      if (!container) return;
+      var images = container.querySelectorAll('.gallery-grid-image');
+      images.forEach(function(img) {
+        img.addEventListener('click', function() {
+          zoomImage(img.src);
+        });
+      });
+    }
+    
+    // Fullscreen Slideshow functions
+    function initSlideshow(slideshowId) {
+      var container = document.getElementById(slideshowId);
+      if (!container) return;
+      var data = slideshowData[slideshowId];
+      if (!data || !data.images || data.images.length <= 1) return;
+      
+      var slides = container.querySelectorAll('.slideshow-slide');
+      var prevBtn = container.querySelector('.slideshow-prev');
+      var nextBtn = container.querySelector('.slideshow-next');
+      var currentSpan = container.querySelector('.slideshow-current');
+      var totalSpan = container.querySelector('.slideshow-total');
+      
+      function showSlide(index) {
+        slides.forEach(function(slide, i) {
+          if (i === index) {
+            slide.classList.add('active');
+          } else {
+            slide.classList.remove('active');
+          }
+        });
+        data.currentIndex = index;
+        if (currentSpan) {
+          currentSpan.textContent = index + 1;
+        }
+      }
+      
+      function nextSlide() {
+        var nextIndex = (data.currentIndex + 1) % data.images.length;
+        showSlide(nextIndex);
+      }
+      
+      function prevSlide() {
+        var prevIndex = (data.currentIndex - 1 + data.images.length) % data.images.length;
+        showSlide(prevIndex);
+      }
+      
+      if (prevBtn) {
+        prevBtn.addEventListener('click', prevSlide);
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', nextSlide);
+      }
+      
+      // Auto-play (3-5 seconds)
+      var autoplayInterval = data.autoplayInterval || 4000;
+      var autoplayTimer = setInterval(nextSlide, autoplayInterval);
+      
+      // Pause on hover
+      container.addEventListener('mouseenter', function() {
+        clearInterval(autoplayTimer);
+      });
+      container.addEventListener('mouseleave', function() {
+        autoplayTimer = setInterval(nextSlide, autoplayInterval);
+      });
+      
+      // Initialize with first slide
+      showSlide(0);
+    }
+    
+    // Hero with Thumbnails functions
+    function initHeroGallery(heroId) {
+      var container = document.getElementById(heroId);
+      if (!container) return;
+      var data = heroGalleryData[heroId];
+      if (!data || !data.images || data.images.length <= 1) return;
+      
+      var heroImg = container.querySelector('.hero-image');
+      var thumbnails = container.querySelectorAll('.hero-thumbnail');
+      
+      thumbnails.forEach(function(thumb, index) {
+        thumb.addEventListener('click', function() {
+          if (heroImg) {
+            heroImg.src = data.images[index];
+          }
+          thumbnails.forEach(function(t, i) {
+            if (i === index) {
+              t.classList.add('active');
+            } else {
+              t.classList.remove('active');
+            }
+          });
+          data.currentIndex = index;
+        });
+      });
+      
+      // Click hero image to zoom
+      if (heroImg) {
+        heroImg.addEventListener('click', function() {
+          zoomImage(heroImg.src);
+        });
+      }
+    }
+    
+    // Timeline functions
+    function initTimeline(timelineId) {
+      var container = document.getElementById(timelineId);
+      if (!container) return;
+      var images = container.querySelectorAll('.timeline-image');
+      images.forEach(function(img) {
+        img.addEventListener('click', function() {
+          zoomImage(img.src);
+        });
+      });
     }
     
     // Attach event listeners to core UI elements (replacing onclick attributes)
@@ -837,6 +1374,30 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
             zoomImage(mainImg.src);
           });
         }
+      });
+      
+      // Grid galleries
+      var gridGalleries = document.querySelectorAll('.gallery-grid-container');
+      gridGalleries.forEach(function(container) {
+        initGridGallery(container.id);
+      });
+      
+      // Fullscreen slideshows
+      var slideshows = document.querySelectorAll('.fullscreen-slideshow-container');
+      slideshows.forEach(function(container) {
+        initSlideshow(container.id);
+      });
+      
+      // Hero galleries
+      var heroGalleries = document.querySelectorAll('.hero-gallery-container');
+      heroGalleries.forEach(function(container) {
+        initHeroGallery(container.id);
+      });
+      
+      // Timelines
+      var timelines = document.querySelectorAll('.timeline-container');
+      timelines.forEach(function(container) {
+        initTimeline(container.id);
       });
     }
     

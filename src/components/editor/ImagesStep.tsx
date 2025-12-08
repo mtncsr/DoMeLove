@@ -114,6 +114,21 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
     }
   };
 
+  // Get all image IDs that are used in at least one screen
+  const getUsedImageIds = (): Set<string> => {
+    const usedIds = new Set<string>();
+    Object.values(currentProject.data.screens).forEach((screenData) => {
+      if (screenData.images) {
+        screenData.images.forEach((imageId) => {
+          usedIds.add(imageId);
+        });
+      }
+    });
+    return usedIds;
+  };
+
+  const usedImageIds = getUsedImageIds();
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.steps.images')}</h2>
@@ -172,22 +187,32 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                     {currentProject.data.images
                       .filter(img => !screenImages.find(si => si.id === img.id))
-                      .map((image) => (
-                        <div
-                          key={image.id}
-                          className="relative cursor-pointer group"
-                          onClick={() => handleAddToScreen(image.id, screen.screenId)}
-                        >
-                          <img
-                            src={image.data}
-                            alt={image.filename}
-                            className="w-full h-20 object-cover rounded border-2 border-transparent group-hover:border-blue-500 transition-colors"
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded flex items-center justify-center">
-                            <span className="text-white text-xs opacity-0 group-hover:opacity-100">Click to add</span>
+                      .map((image) => {
+                        const isUsed = usedImageIds.has(image.id);
+                        return (
+                          <div
+                            key={image.id}
+                            className="relative cursor-pointer group"
+                            onClick={() => handleAddToScreen(image.id, screen.screenId)}
+                          >
+                            <img
+                              src={image.data}
+                              alt={image.filename}
+                              className="w-full h-20 object-cover rounded border-2 border-transparent group-hover:border-blue-500 transition-colors"
+                            />
+                            {isUsed && (
+                              <div className="absolute top-1 left-1 bg-green-500 rounded-full p-1" title="Already used in another screen">
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded flex items-center justify-center">
+                              <span className="text-white text-xs opacity-0 group-hover:opacity-100">Click to add</span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </div>
               </div>
@@ -199,24 +224,34 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
       <div className="mt-8">
         <h3 className="text-lg font-semibold mb-4">All Uploaded Images ({currentProject.data.images.length})</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {currentProject.data.images.map((image) => (
-            <div key={image.id} className="bg-white p-4 rounded-lg border border-gray-200">
-              <img
-                src={image.data}
-                alt={image.filename}
-                className="w-full h-32 object-cover rounded mb-2"
-              />
-              <p className="text-sm text-gray-600 truncate mb-1">{image.filename}</p>
-              <p className="text-xs text-gray-500 mb-2">{formatFileSize(image.size)}</p>
-              <Button
-                variant="danger"
-                onClick={() => handleDeleteImage(image.id)}
-                className="w-full text-sm"
-              >
-                {t('editor.images.delete')}
-              </Button>
-            </div>
-          ))}
+          {currentProject.data.images.map((image) => {
+            const isUsed = usedImageIds.has(image.id);
+            return (
+              <div key={image.id} className="bg-white p-4 rounded-lg border border-gray-200 relative">
+                {isUsed && (
+                  <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1.5 z-10" title="Used in at least one screen">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+                <img
+                  src={image.data}
+                  alt={image.filename}
+                  className="w-full h-32 object-cover rounded mb-2"
+                />
+                <p className="text-sm text-gray-600 truncate mb-1">{image.filename}</p>
+                <p className="text-xs text-gray-500 mb-2">{formatFileSize(image.size)}</p>
+                <Button
+                  variant="danger"
+                  onClick={() => handleDeleteImage(image.id)}
+                  className="w-full text-sm"
+                >
+                  {t('editor.images.delete')}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

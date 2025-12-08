@@ -5,8 +5,13 @@ import { loadTemplateHTML } from './templateLoader';
 // AudioManager is now integrated into GiftApp - no separate global needed
 
 export async function buildExportHTML(project: Project, templateMeta: TemplateMeta): Promise<string> {
-  // Load template HTML
-  let html = await loadTemplateHTML(project.templateId);
+  // Load template HTML or generate for custom templates
+  let html: string;
+  if (project.templateId === 'custom' && project.data.customTemplate?.isCustom) {
+    html = generateCustomTemplateHTML(project, templateMeta);
+  } else {
+    html = await loadTemplateHTML(project.templateId);
+  }
 
   // Update template onclick handlers to use GiftApp namespace
   html = updateTemplateOnclickHandlers(html);
@@ -144,6 +149,96 @@ function validateExportSanity(html: string, project: Project): void {
   if (errors.length > 0) {
     throw new Error(`Export validation failed:\n${errors.join('\n')}`);
   }
+}
+
+function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta): string {
+  const screens = templateMeta.screens.sort((a, b) => a.order - b.order);
+  const screensHTML = screens.map((screen) => {
+    const screenData = project.data.screens[screen.screenId] || {};
+    const hasImages = screenData.images && screenData.images.length > 0;
+    const placeholder = hasImages ? `{{${screen.screenId}_images}}` : '';
+    
+    return `
+      <div class="screen hidden" id="screen-${screen.screenId}">
+        ${screenData.title ? `<h2>{{${screen.screenId}_title}}</h2>` : ''}
+        ${screenData.text ? `<p>{{${screen.screenId}_text}}</p>` : ''}
+        ${placeholder}
+      </div>
+    `;
+  }).join('\n');
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${project.data.eventTitle || 'Digital Gift'}</title>
+</head>
+<body>
+  <div id="overlay" class="overlay">
+    <h1>{{overlayMainText}}</h1>
+    <p>{{overlaySubText}}</p>
+    <button type="button">{{overlayButtonText}}</button>
+  </div>
+  
+  <div id="navigation" class="navigation hidden">
+    <button class="nav-button" type="button">Previous</button>
+    <button class="nav-button" type="button">Next</button>
+  </div>
+  
+  ${screensHTML}
+</body>
+</html>
+  `.trim();
+}
+
+function applyThemeStyles(styles: string, project: Project): string {
+  const theme = project.data.customTemplate?.theme;
+  if (!theme) return styles;
+
+  const themeVars = `
+    :root {
+      ${theme.colors?.text ? `--theme-text: ${theme.colors.text};` : ''}
+      ${theme.colors?.textSecondary ? `--theme-text-secondary: ${theme.colors.textSecondary};` : ''}
+      ${theme.colors?.background ? `--theme-background: ${theme.colors.background};` : ''}
+      ${theme.colors?.backgroundSecondary ? `--theme-background-secondary: ${theme.colors.backgroundSecondary};` : ''}
+      ${theme.colors?.accent ? `--theme-accent: ${theme.colors.accent};` : ''}
+      ${theme.colors?.border ? `--theme-border: ${theme.colors.border};` : ''}
+      ${theme.colors?.button ? `--theme-button: ${theme.colors.button};` : ''}
+      ${theme.colors?.buttonText ? `--theme-button-text: ${theme.colors.buttonText};` : ''}
+      ${theme.fonts?.heading ? `--theme-font-heading: ${theme.fonts.heading};` : ''}
+      ${theme.fonts?.body ? `--theme-font-body: ${theme.fonts.body};` : ''}
+    }
+    
+    body {
+      ${theme.colors?.background ? `background-color: ${theme.colors.background};` : ''}
+      ${theme.fonts?.body ? `font-family: ${theme.fonts.body};` : ''}
+      ${theme.colors?.text ? `color: ${theme.colors.text};` : ''}
+    }
+    
+    h1, h2, h3 {
+      ${theme.fonts?.heading ? `font-family: ${theme.fonts.heading};` : ''}
+      ${theme.colors?.text ? `color: ${theme.colors.text};` : ''}
+    }
+    
+    .overlay {
+      ${theme.colors?.overlay ? `background: ${theme.colors.overlay};` : ''}
+    }
+    
+    button, .nav-button {
+      ${theme.colors?.button ? `background-color: ${theme.colors.button};` : ''}
+      ${theme.colors?.buttonText ? `color: ${theme.colors.buttonText};` : ''}
+      ${theme.colors?.border ? `border-color: ${theme.colors.border};` : ''}
+    }
+    
+    .screen {
+      ${theme.colors?.background ? `background-color: ${theme.colors.background};` : ''}
+      ${theme.colors?.border ? `border-color: ${theme.colors.border};` : ''}
+    }
+  `;
+
+  return themeVars + '\n' + styles;
 }
 
 function replacePlaceholders(html: string, project: Project, templateMeta: TemplateMeta): string {
@@ -542,8 +637,10 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
   // Remove existing <style> tags (will be re-added in organized section)
   html = html.replace(/<style>[\s\S]*?<\/style>/gi, '');
   
-  // Build styles section
-  const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${existingStyles.trim()}\n${getGalleryStyles()}\n</style>`;
+  // Build styles section with theme support
+  const allStyles = `${existingStyles.trim()}\n${getGalleryStyles()}`;
+  const themedStyles = applyThemeStyles(allStyles, project);
+  const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
   
   // Build runtime logic section (GiftApp with integrated AudioManager)
   const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${buildGiftAppNamespace(project, templateMeta)}`;

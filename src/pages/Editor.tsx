@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
 import { EditorProvider, useEditor } from '../contexts/EditorContext';
 import { loadTemplateMeta } from '../utils/templateLoader';
-import type { TemplateMeta } from '../types/template';
+import type { TemplateMeta, ScreenConfig } from '../types/template';
+import type { Project } from '../types/project';
 import { StepIndicator } from '../components/ui/StepIndicator';
 import { Button } from '../components/ui/Button';
 import { TemplateStep } from '../components/editor/TemplateStep';
@@ -16,6 +17,27 @@ import { OverlayStep } from '../components/editor/OverlayStep';
 import { PreviewStep } from '../components/editor/PreviewStep';
 import { ExportStep } from '../components/editor/ExportStep';
 
+function generateCustomTemplateMeta(project: Project): TemplateMeta {
+  const customScreens = project.data.customTemplate?.customScreens || [];
+  const screens: ScreenConfig[] = customScreens.map((customScreen) => ({
+    screenId: customScreen.id,
+    type: customScreen.type,
+    placeholders: ['title', 'text'],
+    required: [],
+    order: customScreen.order,
+    supportsMusic: customScreen.supportsMusic,
+    galleryImageCount: customScreen.type === 'gallery' ? 1 : undefined,
+  }));
+
+  return {
+    templateId: 'custom',
+    templateName: 'Custom Template',
+    overlayType: 'custom',
+    screens: screens.sort((a, b) => a.order - b.order),
+    globalPlaceholders: ['recipientName', 'senderName', 'eventTitle', 'mainGreeting'],
+  };
+}
+
 function EditorContent() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -26,11 +48,17 @@ function EditorContent() {
 
   useEffect(() => {
     if (currentProject?.templateId) {
-      loadTemplateMeta(currentProject.templateId)
-        .then(setTemplateMeta)
-        .catch(console.error);
+      if (currentProject.templateId === 'custom' && currentProject.data.customTemplate?.isCustom) {
+        // Generate TemplateMeta from custom template
+        const customMeta = generateCustomTemplateMeta(currentProject);
+        setTemplateMeta(customMeta);
+      } else {
+        loadTemplateMeta(currentProject.templateId)
+          .then(setTemplateMeta)
+          .catch(console.error);
+      }
     }
-  }, [currentProject?.templateId]);
+  }, [currentProject?.templateId, currentProject?.data.customTemplate]);
 
   // Debug mode toggle (Ctrl+D)
   useEffect(() => {
@@ -128,17 +156,44 @@ function EditorContent() {
   );
 }
 
+function generateCustomTemplateMeta(project: Project): TemplateMeta {
+  const customScreens = project.data.customTemplate?.customScreens || [];
+  const screens: ScreenConfig[] = customScreens.map((customScreen) => ({
+    screenId: customScreen.id,
+    type: customScreen.type,
+    placeholders: ['title', 'text'],
+    required: [],
+    order: customScreen.order,
+    supportsMusic: customScreen.supportsMusic,
+    galleryImageCount: customScreen.type === 'gallery' ? 1 : undefined,
+  }));
+
+  return {
+    templateId: 'custom',
+    templateName: 'Custom Template',
+    overlayType: 'custom',
+    screens: screens.sort((a, b) => a.order - b.order),
+    globalPlaceholders: ['recipientName', 'senderName', 'eventTitle', 'mainGreeting'],
+  };
+}
+
 export function Editor() {
   const { currentProject } = useProject();
   const [templateMeta, setTemplateMeta] = useState<TemplateMeta | null>(null);
 
   useEffect(() => {
     if (currentProject?.templateId) {
-      loadTemplateMeta(currentProject.templateId)
-        .then(setTemplateMeta)
-        .catch(console.error);
+      if (currentProject.templateId === 'custom' && currentProject.data.customTemplate?.isCustom) {
+        // Generate TemplateMeta from custom template
+        const customMeta = generateCustomTemplateMeta(currentProject);
+        setTemplateMeta(customMeta);
+      } else {
+        loadTemplateMeta(currentProject.templateId)
+          .then(setTemplateMeta)
+          .catch(console.error);
+      }
     }
-  }, [currentProject?.templateId]);
+  }, [currentProject?.templateId, currentProject?.data.customTemplate]);
 
   if (!currentProject) {
     return null;

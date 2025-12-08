@@ -16,6 +16,7 @@ interface EditorContextType {
   setCurrentStep: (step: EditorStep) => void;
   steps: StepInfo[];
   getStepStatus: (step: EditorStep) => StepStatus;
+  templateMeta: TemplateMeta | null;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -54,25 +55,49 @@ export function EditorProvider({
           });
         }
 
-        // Check screen texts
+        // Check screen texts and images
         const screens = templateMeta.screens;
         let hasAnyScreenContent = false;
         let hasAllScreenContent = true;
+        let hasAnyImages = false;
+        let hasAllRequiredImages = true;
+        
         for (const screen of screens) {
           const screenData = project.data.screens[screen.screenId];
           const hasTitle = !!screenData?.title;
           const hasText = !!screenData?.text;
+          const screenImages = screenData?.images || [];
+          const imageCount = screenImages.length;
+          
+          // Check text content
           if (hasTitle || hasText) hasAnyScreenContent = true;
           for (const required of screen.required) {
             if (required.includes('title') && !hasTitle) hasAllScreenContent = false;
             if (required.includes('text') && !hasText) hasAllScreenContent = false;
           }
+          
+          // Check images for screens that require them
+          // galleryImageCount is the minimum number of images required for this screen
+          const requiredImageCount = typeof screen.galleryImageCount === 'number' ? screen.galleryImageCount : 0;
+          if (requiredImageCount > 0) {
+            if (imageCount > 0) hasAnyImages = true;
+            // If this screen requires images but doesn't have enough, mark as incomplete
+            if (imageCount < requiredImageCount) {
+              hasAllRequiredImages = false;
+            }
+          } else if (imageCount > 0) {
+            // Even if not required, if images are assigned, mark as having images
+            hasAnyImages = true;
+          }
         }
 
-        // Screens step is complete if gift details and all screen content is filled
-        if (giftDetailsComplete && hasAllScreenContent) return 'complete';
-        // In progress if any part has been started
-        if ((hasRecipient || hasSender || hasAnyScreenContent) || project.data.overlay.mainText || project.data.overlay.buttonText) return 'inProgress';
+        // Screens step is complete ONLY if:
+        // 1. Gift details are complete (if required)
+        // 2. All required screen texts are filled
+        // 3. All screens that require images have the required number of images
+        if (giftDetailsComplete && hasAllScreenContent && hasAllRequiredImages) return 'complete';
+        // In progress if any part has been started (texts, images, or overlay)
+        if ((hasRecipient || hasSender || hasAnyScreenContent || hasAnyImages) || project.data.overlay.mainText || project.data.overlay.buttonText) return 'inProgress';
         return 'notStarted';
       }
 
@@ -108,6 +133,7 @@ export function EditorProvider({
         setCurrentStep,
         steps,
         getStepStatus,
+        templateMeta,
       }}
     >
       {children}
@@ -122,7 +148,3 @@ export function useEditor() {
   }
   return context;
 }
-
-
-
-

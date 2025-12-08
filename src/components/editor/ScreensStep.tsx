@@ -81,12 +81,30 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
   const isMainScreen = activeScreenIndex === 0;
 
   // Get used image IDs
+  // Only count images that actually exist in the project's images array AND are assigned to screens that exist in the template
   const getUsedImageIds = (): Set<string> => {
     const usedIds = new Set<string>();
-    Object.values(currentProject.data.screens).forEach((screenData) => {
-      if (screenData.images) {
-        screenData.images.forEach((imageId) => {
-          usedIds.add(imageId);
+    if (!currentProject.data.images || currentProject.data.images.length === 0) {
+      return usedIds; // No images, so nothing is used
+    }
+    
+    const validImageIds = new Set(currentProject.data.images.map(img => img.id));
+    
+    // Get valid screen IDs from template (only check screens that exist in current template)
+    const validScreenIds = templateMeta ? new Set(templateMeta.screens.map(s => s.screenId)) : new Set<string>();
+    
+    Object.entries(currentProject.data.screens).forEach(([screenId, screenData]) => {
+      // Skip screens that don't exist in the current template
+      if (!validScreenIds.has(screenId)) {
+        return;
+      }
+      
+      if (screenData && screenData.images && Array.isArray(screenData.images) && screenData.images.length > 0) {
+        screenData.images.forEach((imageId: any) => {
+          // Validate: imageId must be a non-empty string and exist in the project
+          if (typeof imageId === 'string' && imageId.trim() !== '' && validImageIds.has(imageId)) {
+            usedIds.add(imageId);
+          }
         });
       }
     });
@@ -179,6 +197,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
           usedImageIds={usedImageIds}
           allScreenAudioFiles={allAvailableAudioFiles}
           isLastScreen={activeScreenIndex === screens.length - 1}
+          templateMeta={templateMeta}
         />
       )}
     </div>
@@ -353,9 +372,10 @@ interface ScreenEditorProps {
   usedImageIds: Set<string>;
   allScreenAudioFiles: AudioFile[];
   isLastScreen: boolean;
+  templateMeta: TemplateMeta | null;
 }
 
-function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenAudioFiles, isLastScreen }: ScreenEditorProps) {
+function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenAudioFiles, isLastScreen, templateMeta }: ScreenEditorProps) {
   const { t } = useTranslation();
   const screenData = project.data.screens[screen.screenId] || {};
 
@@ -488,6 +508,9 @@ function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenA
           onSelectImage={handleSelectImage}
           onDeselectImage={handleDeselectImage}
           screenImages={screenImages}
+          project={project}
+          templateMeta={templateMeta}
+          currentScreenId={screen.screenId}
         />
         {hasGalleryImages && (
           <div className="mt-4 pt-4 border-t">

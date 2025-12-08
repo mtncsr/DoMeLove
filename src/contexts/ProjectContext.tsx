@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { Project, ProjectData } from '../types/project';
 import { storageService } from '../services/storageService';
 import { validationService } from '../services/validationService';
@@ -21,28 +21,57 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProjectState] = useState<Project | null>(null);
+  const currentProjectRef = useRef<Project | null>(null);
+  const projectsRef = useRef<Project[]>([]);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentProjectRef.current = currentProject;
+  }, [currentProject]);
+
+  useEffect(() => {
+    projectsRef.current = projects;
+  }, [projects]);
 
   // Load projects on mount
   useEffect(() => {
     try {
       const loaded = storageService.loadProjects();
       setProjects(loaded);
+      projectsRef.current = loaded;
     } catch (error) {
       console.error('Failed to load projects:', error);
       // Continue with empty array if loading fails
       setProjects([]);
+      projectsRef.current = [];
     }
   }, []);
 
-  // Auto-save current project
+  // Auto-save current project (debounced)
   useEffect(() => {
     if (currentProject) {
       const timer = setTimeout(() => {
-        saveCurrentProject();
+        // Use refs to get the latest values without causing re-renders
+        const projectToSave = currentProjectRef.current;
+        const projectsToUpdate = projectsRef.current;
+        
+        if (projectToSave) {
+          const updated = {
+            ...projectToSave,
+            updatedAt: new Date().toISOString(),
+          };
+          
+          const updatedProjects = projectsToUpdate.map(p => 
+            p.id === updated.id ? updated : p
+          );
+          
+          setProjects(updatedProjects);
+          projectsRef.current = updatedProjects;
+          storageService.saveProjects(updatedProjects);
+        }
       }, 1000); // Debounce auto-save
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProject]);
 
   // Switch language when project changes
@@ -56,20 +85,22 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   }, [currentProject?.language]);
 
   const saveCurrentProject = useCallback(() => {
-    if (!currentProject) return;
+    const projectToSave = currentProjectRef.current;
+    if (!projectToSave) return;
 
     const updated = {
-      ...currentProject,
+      ...projectToSave,
       updatedAt: new Date().toISOString(),
     };
 
     setCurrentProjectState(updated);
-    const updatedProjects = projects.map(p => 
+    const updatedProjects = projectsRef.current.map(p => 
       p.id === updated.id ? updated : p
     );
     setProjects(updatedProjects);
+    projectsRef.current = updatedProjects;
     storageService.saveProjects(updatedProjects);
-  }, [currentProject, projects]);
+  }, []);
 
   const createProject = useCallback((templateId: string, name: string): Project => {
     const now = new Date().toISOString();
@@ -106,12 +137,16 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
     setCurrentProjectState(updated);
-    const updatedProjects = projects.map(p => 
-      p.id === updated.id ? updated : p
-    );
-    setProjects(updatedProjects);
-    storageService.saveProjects(updatedProjects);
-  }, [projects]);
+    // Update projects array but don't save to storage immediately
+    // The debounced auto-save effect will handle storage writes
+    setProjects(prevProjects => {
+      const updatedProjects = prevProjects.map(p => 
+        p.id === updated.id ? updated : p
+      );
+      projectsRef.current = updatedProjects;
+      return updatedProjects;
+    });
+  }, []);
 
   const deleteProject = useCallback((projectId: string) => {
     const updatedProjects = projects.filter(p => p.id !== projectId);
@@ -123,7 +158,28 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   }, [projects, currentProject]);
 
   const setCurrentProject = useCallback((project: Project | null) => {
-    setCurrentProjectState(project);
+    if (project) {
+      // Clean up stale image references before setting as current
+      const validImageIds = new Set(project.data.images.map(img => img.id));
+      const cleanedProject = {
+        ...project,
+        data: {
+          ...project.data,
+          screens: Object.fromEntries(
+            Object.entries(project.data.screens).map(([screenId, screenData]) => [
+              screenId,
+              {
+                ...screenData,
+                images: screenData.images?.filter(imageId => validImageIds.has(imageId)) || [],
+              },
+            ])
+          ),
+        },
+      };
+      setCurrentProjectState(cleanedProject);
+    } else {
+      setCurrentProjectState(null);
+    }
   }, []);
 
   const exportProject = useCallback((project: Project): string => {
@@ -192,6 +248,3 @@ export function useProject() {
   }
   return context;
 }
-
-
-

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
 }
 
-export function Input({ label, error, className = '', ...props }: InputProps) {
+export const Input = memo(function Input({ label, error, className = '', ...props }: InputProps) {
   return (
     <div className="w-full">
       {label && (
@@ -24,10 +24,4 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
       )}
     </div>
   );
-}
-
-
-
-
-
-
+});

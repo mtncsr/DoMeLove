@@ -33,6 +33,9 @@ class StorageServiceImpl implements StorageService {
   }
 
   migrateIfNeeded(project: Project): Project {
+    // Always clean up stale image references, even for current schema version
+    this.cleanupStaleImageReferences(project);
+
     if (project.schemaVersion === CURRENT_SCHEMA_VERSION) {
       return project;
     }
@@ -50,12 +53,33 @@ class StorageServiceImpl implements StorageService {
 
     return project;
   }
+
+  // Clean up stale image references - remove image IDs from screens that don't exist in project.images
+  private cleanupStaleImageReferences(project: Project): void {
+    if (!project.data?.images || !project.data?.screens) {
+      return;
+    }
+
+    const validImageIds = new Set(project.data.images.map(img => img.id));
+    let hasChanges = false;
+
+    // Clean up image references in all screens
+    for (const [screenId, screenData] of Object.entries(project.data.screens)) {
+      if (screenData.images && Array.isArray(screenData.images)) {
+        const originalLength = screenData.images.length;
+        screenData.images = screenData.images.filter(imageId => validImageIds.has(imageId));
+        if (screenData.images.length !== originalLength) {
+          hasChanges = true;
+        }
+      }
+    }
+
+    // If we cleaned up references, update the project (but don't save yet - let the auto-save handle it)
+    if (hasChanges) {
+      // The project object is already modified in place, so no need to return anything
+      // The caller will save it if needed
+    }
+  }
 }
 
 export const storageService = new StorageServiceImpl();
-
-
-
-
-
-

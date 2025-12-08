@@ -1,29 +1,121 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
+import { useEditor } from '../../contexts/EditorContext';
 import type { ImageData, AudioFile } from '../../types/project';
 import { ImageUpload } from '../ui/ImageUpload';
 import { AudioUpload } from '../ui/AudioUpload';
 import { Button } from '../ui/Button';
+import { Tooltip } from '../ui/Tooltip';
 import { formatFileSize, getImageSizeKB } from '../../utils/imageProcessor';
 
 export function ContentStep() {
   const { t } = useTranslation();
   const { currentProject, updateProject } = useProject();
+  const { templateMeta } = useEditor();
   const [activeTab, setActiveTab] = useState<'images' | 'music'>('images');
+  const cleanupDoneRef = useRef<string>('');
+
+  // Clean up stale image references and screens that don't exist in current template
+  useEffect(() => {
+    if (!currentProject || !currentProject.data.images) return;
+
+    // Create a unique key for this cleanup check (include template info)
+    const imageIdsKey = `${currentProject.id}-${templateMeta?.templateId || 'no-template'}-${currentProject.data.images.map(img => img.id).sort().join(',')}`;
+    
+    // Skip if we already cleaned up for this set of images and template
+    if (cleanupDoneRef.current === imageIdsKey) return;
+
+    const validImageIds = new Set(currentProject.data.images.map(img => img.id));
+    
+    // Get valid screen IDs from template (only keep screens that exist in current template)
+    const validScreenIds = templateMeta ? new Set(templateMeta.screens.map(s => s.screenId)) : new Set<string>();
+    
+    let hasStaleReferences = false;
+    const cleanedScreens: Record<string, any> = {};
+
+    // Check and clean up all screens
+    for (const [screenId, screenData] of Object.entries(currentProject.data.screens)) {
+      // Remove screens that don't exist in the current template
+      if (!validScreenIds.has(screenId)) {
+        hasStaleReferences = true;
+        // Don't add this screen to cleanedScreens (effectively removes it)
+        continue;
+      }
+      
+      if (screenData.images && Array.isArray(screenData.images)) {
+        const originalLength = screenData.images.length;
+        const cleanedImages = screenData.images.filter((imageId: string) => validImageIds.has(imageId));
+        if (cleanedImages.length !== originalLength) {
+          hasStaleReferences = true;
+          cleanedScreens[screenId] = {
+            ...screenData,
+            images: cleanedImages,
+          };
+        }
+      }
+    }
+
+    // If we found stale references, clean them up
+    if (hasStaleReferences) {
+      // If we have valid screens to keep, merge them; otherwise only keep cleaned screens
+      const finalScreens = validScreenIds.size > 0
+        ? Object.fromEntries(
+            Object.entries(currentProject.data.screens)
+              .filter(([screenId]) => validScreenIds.has(screenId))
+              .map(([screenId, screenData]) => [
+                screenId,
+                cleanedScreens[screenId] || screenData,
+              ])
+          )
+        : cleanedScreens;
+      
+      updateProject({
+        ...currentProject,
+        data: {
+          ...currentProject.data,
+          screens: finalScreens,
+        },
+      });
+    }
+    
+    // Mark cleanup as done for this set of images and template
+    cleanupDoneRef.current = imageIdsKey;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProject?.id, templateMeta?.templateId]);
 
   if (!currentProject) return null;
 
   // Get all image IDs that are used in at least one screen (for green checkmarks)
+  // Only count images that actually exist in the project's images array AND are assigned to screens that exist in the template
   const getUsedImageIds = (): Set<string> => {
     const usedIds = new Set<string>();
-    Object.values(currentProject.data.screens).forEach((screenData) => {
-      if (screenData.images) {
-        screenData.images.forEach((imageId) => {
-          usedIds.add(imageId);
+    if (!currentProject.data.images || currentProject.data.images.length === 0) {
+      return usedIds; // No images, so nothing is used
+    }
+    
+    const validImageIds = new Set(currentProject.data.images.map(img => img.id));
+    
+    // Get valid screen IDs from template (only check screens that exist in current template)
+    const validScreenIds = templateMeta ? new Set(templateMeta.screens.map(s => s.screenId)) : new Set<string>();
+    
+    // Only check screens that exist in the current template
+    Object.entries(currentProject.data.screens).forEach(([screenId, screenData]) => {
+      // Skip screens that don't exist in the current template
+      if (!validScreenIds.has(screenId)) {
+        return;
+      }
+      
+      if (screenData && screenData.images && Array.isArray(screenData.images) && screenData.images.length > 0) {
+        screenData.images.forEach((imageId: any) => {
+          // Validate: imageId must be a non-empty string and exist in the project
+          if (typeof imageId === 'string' && imageId.trim() !== '' && validImageIds.has(imageId)) {
+            usedIds.add(imageId);
+          }
         });
       }
     });
+    
     return usedIds;
   };
 
@@ -85,6 +177,41 @@ interface ImagesTabProps {
 function ImagesTab({ project, updateProject, usedImageIds }: ImagesTabProps) {
   const { t } = useTranslation();
 
+  // Get which screens an image is assigned to (only if image exists AND screen exists in current template)
+  const getScreensForImage = (imageId: string): string[] => {
+    const screenIds: string[] = [];
+    // First validate that this image ID actually exists in the project
+    const validImageIds = new Set(project.data.images.map((img: ImageData) => img.id));
+    if (!validImageIds.has(imageId)) {
+      return screenIds; // Image doesn't exist, return empty array
+    }
+    
+    // Get valid screen IDs from template (only check screens that exist in current template)
+    const validScreenIds = templateMeta ? new Set(templateMeta.screens.map(s => s.screenId)) : new Set<string>();
+    
+    Object.entries(project.data.screens).forEach(([screenId, screenData]: [string, any]) => {
+      // Only check screens that exist in the current template
+      if (!validScreenIds.has(screenId)) {
+        return;
+      }
+      
+      if (screenData?.images && Array.isArray(screenData.images) && screenData.images.includes(imageId)) {
+        screenIds.push(screenId);
+      }
+    });
+    return screenIds;
+  };
+
+  // Get display name for a screen
+  const getScreenDisplayName = (screenId: string): string => {
+    const displayNames = project.data.screenDisplayNames || {};
+    if (displayNames[screenId]) {
+      return displayNames[screenId];
+    }
+    // Fallback to screenId if no custom name
+    return screenId;
+  };
+
   const handleImageUpload = (image: ImageData) => {
     updateProject({
       ...project,
@@ -144,15 +271,23 @@ function ImagesTab({ project, updateProject, usedImageIds }: ImagesTabProps) {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {project.data.images.map((image: ImageData) => {
-              const isUsed = usedImageIds.has(image.id);
+              const assignedScreens = getScreensForImage(image.id);
+              // Only show checkmark if image is actually assigned to at least one screen
+              const isUsed = assignedScreens.length > 0;
+              const tooltipContent = assignedScreens.length > 0 
+                ? `Assigned to: ${assignedScreens.map(getScreenDisplayName).join(', ')}`
+                : t('editor.content.usedInScreen');
+              
               return (
                 <div key={image.id} className="bg-white p-4 rounded-lg border border-gray-200 relative">
                   {isUsed && (
-                    <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1.5 z-10" title={t('editor.content.usedInScreen')}>
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
+                    <Tooltip content={tooltipContent} position="top">
+                      <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1.5 z-10 cursor-help">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </Tooltip>
                   )}
                   <img
                     src={image.data}

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
 }
 
-export function Textarea({ label, error, className = '', ...props }: TextareaProps) {
+export const Textarea = memo(function Textarea({ label, error, className = '', ...props }: TextareaProps) {
   return (
     <div className="w-full">
       {label && (
@@ -24,10 +24,4 @@ export function Textarea({ label, error, className = '', ...props }: TextareaPro
       )}
     </div>
   );
-}
-
-
-
-
-
-
+});

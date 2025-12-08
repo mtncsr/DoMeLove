@@ -80,7 +80,7 @@ export function Home() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('app.title')}</h1>
-          <p className="text-gray-600">{t('app.myGifts')}</p>
+          <h2 className="text-3xl font-semibold text-gray-700">{t('app.subtitle')}</h2>
         </div>
 
         <div className="flex gap-4 mb-8">

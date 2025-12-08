@@ -1,6 +1,7 @@
 {
   "app": {
-    "title": "Interactive Gift Creator",
+    "title": "DoMeLove",
+    "subtitle": "Interactive Gift Creator",
     "myGifts": "My Gifts",
     "createNewGift": "Create New Gift",
     "importProject": "Import Project",
@@ -15,13 +16,9 @@
   "editor": {
     "steps": {
       "template": "Template",
-      "giftDetails": "Gift Details",
-      "screenTexts": "Screen Texts",
-      "images": "Images",
-      "music": "Music",
-      "overlay": "Overlay",
-      "preview": "Preview",
-      "export": "Export"
+      "screens": "Screens",
+      "content": "Content",
+      "previewExport": "Preview & Export"
     },
     "status": {
       "notStarted": "Not Started",

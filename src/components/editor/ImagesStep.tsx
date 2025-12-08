@@ -1,11 +1,10 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
 import type { ImageData } from '../../types/project';
 import { ImageUpload } from '../ui/ImageUpload';
 import { Button } from '../ui/Button';
-import { formatFileSize, getImageSizeKB } from '../../utils/imageProcessor';
+import { formatFileSize } from '../../utils/imageProcessor';
 
 interface ImagesStepProps {
   templateMeta: TemplateMeta | null;
@@ -54,26 +53,6 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
         ),
       },
     });
-  };
-
-  const handleAssignToScreen = (imageId: string, screenId: string) => {
-    const screenData = currentProject.data.screens[screenId] || {};
-    const currentImages = screenData.images || [];
-    if (!currentImages.includes(imageId)) {
-      updateProject({
-        ...currentProject,
-        data: {
-          ...currentProject.data,
-          screens: {
-            ...currentProject.data.screens,
-            [screenId]: {
-              ...screenData,
-              images: [...currentImages, imageId],
-            },
-          },
-        },
-      });
-    }
   };
 
   const handleRemoveFromScreen = (imageId: string, screenId: string) => {

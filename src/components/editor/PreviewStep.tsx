@@ -207,8 +207,7 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">{t('editor.steps.preview')}</h2>
+      <div className="flex justify-end items-center mb-6">
         <div className="flex gap-2 items-center">
           <button
             onClick={handleToggleMute}

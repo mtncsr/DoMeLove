@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useCallback } from
 import type { Project } from '../types/project';
 import type { TemplateMeta } from '../types/template';
 
-export type EditorStep = 'template' | 'giftDetails' | 'screenTexts' | 'images' | 'music' | 'overlay' | 'preview' | 'export';
+export type EditorStep = 'template' | 'screens' | 'content' | 'previewExport';
 
 export type StepStatus = 'notStarted' | 'inProgress' | 'complete';
 
@@ -38,66 +38,50 @@ export function EditorProvider({
       case 'template':
         return project.templateId ? 'complete' : 'notStarted';
       
-      case 'giftDetails': {
+      case 'screens': {
+        // Check gift details (for Main screen)
         const hasRecipient = !!project.data.recipientName;
         const hasSender = !!project.data.senderName;
         const required = templateMeta.globalPlaceholders.filter(p => 
           ['recipientName', 'senderName'].includes(p)
         );
-        if (required.length === 0) return 'complete';
-        const hasAll = required.every(p => {
-          if (p === 'recipientName') return hasRecipient;
-          if (p === 'senderName') return hasSender;
-          return true;
-        });
-        if (hasAll) return 'complete';
-        if (hasRecipient || hasSender) return 'inProgress';
-        return 'notStarted';
-      }
+        let giftDetailsComplete = true;
+        if (required.length > 0) {
+          giftDetailsComplete = required.every(p => {
+            if (p === 'recipientName') return hasRecipient;
+            if (p === 'senderName') return hasSender;
+            return true;
+          });
+        }
 
-      case 'screenTexts': {
+        // Check screen texts
         const screens = templateMeta.screens;
-        let hasAny = false;
-        let hasAll = true;
+        let hasAnyScreenContent = false;
+        let hasAllScreenContent = true;
         for (const screen of screens) {
           const screenData = project.data.screens[screen.screenId];
           const hasTitle = !!screenData?.title;
           const hasText = !!screenData?.text;
-          if (hasTitle || hasText) hasAny = true;
+          if (hasTitle || hasText) hasAnyScreenContent = true;
           for (const required of screen.required) {
-            if (required.includes('title') && !hasTitle) hasAll = false;
-            if (required.includes('text') && !hasText) hasAll = false;
+            if (required.includes('title') && !hasTitle) hasAllScreenContent = false;
+            if (required.includes('text') && !hasText) hasAllScreenContent = false;
           }
         }
-        if (hasAll) return 'complete';
-        if (hasAny) return 'inProgress';
+
+        // Screens step is complete if gift details and all screen content is filled
+        if (giftDetailsComplete && hasAllScreenContent) return 'complete';
+        // In progress if any part has been started
+        if ((hasRecipient || hasSender || hasAnyScreenContent) || project.data.overlay.mainText || project.data.overlay.buttonText) return 'inProgress';
         return 'notStarted';
       }
 
-      case 'images': {
-        const hasImages = project.data.images.length > 0;
-        const requiredImages = templateMeta.screens
-          .filter(s => s.galleryImageCount && s.galleryImageCount > 0)
-          .reduce((sum, s) => sum + (s.galleryImageCount || 0), 0);
-        if (requiredImages === 0) return 'complete';
-        if (project.data.images.length >= requiredImages) return 'complete';
-        if (hasImages) return 'inProgress';
-        return 'notStarted';
-      }
-
-      case 'music':
-        // Music is optional, so always complete
+      case 'content':
+        // Content is optional, so always complete
         return 'complete';
 
-      case 'overlay':
-        return project.data.overlay.mainText || project.data.overlay.subText ? 'complete' : 'inProgress';
-
-      case 'preview':
-        // Preview is always accessible
-        return 'complete';
-
-      case 'export':
-        // Export is always accessible
+      case 'previewExport':
+        // Preview & Export is always accessible
         return 'complete';
 
       default:
@@ -106,7 +90,7 @@ export function EditorProvider({
   }, []);
 
   const steps: StepInfo[] = useMemo(() => {
-    const stepIds: EditorStep[] = ['template', 'giftDetails', 'screenTexts', 'images', 'music', 'overlay', 'preview', 'export'];
+    const stepIds: EditorStep[] = ['template', 'screens', 'content', 'previewExport'];
     return stepIds.map(id => ({
       id,
       status: calculateStepStatus(id, project, templateMeta),

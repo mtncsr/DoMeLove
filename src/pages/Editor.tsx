@@ -9,13 +9,9 @@ import type { Project } from '../types/project';
 import { StepIndicator } from '../components/ui/StepIndicator';
 import { Button } from '../components/ui/Button';
 import { TemplateStep } from '../components/editor/TemplateStep';
-import { GiftDetailsStep } from '../components/editor/GiftDetailsStep';
-import { ScreenTextsStep } from '../components/editor/ScreenTextsStep';
-import { ImagesStep } from '../components/editor/ImagesStep';
-import { MusicStep } from '../components/editor/MusicStep';
-import { OverlayStep } from '../components/editor/OverlayStep';
-import { PreviewStep } from '../components/editor/PreviewStep';
-import { ExportStep } from '../components/editor/ExportStep';
+import { ScreensStep } from '../components/editor/ScreensStep';
+import { ContentStep } from '../components/editor/ContentStep';
+import { PreviewExportStep } from '../components/editor/PreviewExportStep';
 
 function generateCustomTemplateMeta(project: Project): TemplateMeta {
   const customScreens = project.data.customTemplate?.customScreens || [];
@@ -89,20 +85,12 @@ function EditorContent() {
     switch (currentStep) {
       case 'template':
         return <TemplateStep />;
-      case 'giftDetails':
-        return <GiftDetailsStep />;
-      case 'screenTexts':
-        return <ScreenTextsStep templateMeta={templateMeta} />;
-      case 'images':
-        return <ImagesStep templateMeta={templateMeta} />;
-      case 'music':
-        return <MusicStep templateMeta={templateMeta} />;
-      case 'overlay':
-        return <OverlayStep />;
-      case 'preview':
-        return <PreviewStep templateMeta={templateMeta} />;
-      case 'export':
-        return <ExportStep templateMeta={templateMeta} />;
+      case 'screens':
+        return <ScreensStep templateMeta={templateMeta} />;
+      case 'content':
+        return <ContentStep />;
+      case 'previewExport':
+        return <PreviewExportStep templateMeta={templateMeta} />;
       default:
         return null;
     }
@@ -154,27 +142,6 @@ function EditorContent() {
       </div>
     </div>
   );
-}
-
-function generateCustomTemplateMeta(project: Project): TemplateMeta {
-  const customScreens = project.data.customTemplate?.customScreens || [];
-  const screens: ScreenConfig[] = customScreens.map((customScreen) => ({
-    screenId: customScreen.id,
-    type: customScreen.type,
-    placeholders: ['title', 'text'],
-    required: [],
-    order: customScreen.order,
-    supportsMusic: customScreen.supportsMusic,
-    galleryImageCount: customScreen.type === 'gallery' ? 1 : undefined,
-  }));
-
-  return {
-    templateId: 'custom',
-    templateName: 'Custom Template',
-    overlayType: 'custom',
-    screens: screens.sort((a, b) => a.order - b.order),
-    globalPlaceholders: ['recipientName', 'senderName', 'eventTitle', 'mainGreeting'],
-  };
 }
 
 export function Editor() {

@@ -38,6 +38,9 @@ export interface ProjectData {
     theme?: ThemeConfig;
     customScreens?: CustomScreenConfig[];
   };
+  
+  // Screen display names (for UI tabs - preserves original screen IDs)
+  screenDisplayNames?: Record<string, string>; // screenId -> displayName
 }
 
 export interface ThemeConfig {
@@ -91,6 +94,7 @@ export interface ImageData {
 export interface AudioData {
   global?: AudioFile;
   screens: Record<string, AudioFile>; // screenId -> AudioFile
+  library?: AudioFile[]; // Unassigned music files that can be assigned to screens
 }
 
 export interface AudioFile {

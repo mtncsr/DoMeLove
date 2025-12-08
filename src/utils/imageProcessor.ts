@@ -62,18 +62,18 @@ export async function processImage(file: File): Promise<ImageData> {
           // Draw resized image
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Convert to JPEG with compression
+          // Convert to WebP with compression
           const quality = MediaConfig.IMAGE_COMPRESSION_QUALITY;
           let dataUrl: string;
           
           try {
-            dataUrl = canvas.toDataURL('image/jpeg', quality);
+            dataUrl = canvas.toDataURL('image/webp', quality);
           } catch (error) {
             // Fallback: try without quality parameter
             try {
-              dataUrl = canvas.toDataURL('image/jpeg');
+              dataUrl = canvas.toDataURL('image/webp');
             } catch (fallbackError) {
-              reject(new Error('Failed to convert image to JPEG format. The image format may not be supported.'));
+              reject(new Error('Failed to convert image to WebP format. Your browser may not support WebP encoding.'));
               return;
             }
           }

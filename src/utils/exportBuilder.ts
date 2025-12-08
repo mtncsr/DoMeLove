@@ -2,110 +2,14 @@ import type { Project, ImageData } from '../types/project';
 import type { TemplateMeta } from '../types/template';
 import { loadTemplateHTML } from './templateLoader';
 
-// AudioManager JavaScript for exported HTML (vanilla JS version)
-const AUDIO_MANAGER_JS = `
-<script>
-(function() {
-  'use strict';
-  var AudioManager = (function() {
-    var currentAudio = null;
-    var currentScreenId = null;
-    var isMuted = false;
-    var globalAudioData = null;
-
-    function setGlobalAudio(audioData) {
-      globalAudioData = audioData;
-    }
-
-    function playScreenAudio(screenId, audioData, loop) {
-      // If this is the same audio already playing and should loop, don't restart
-      if (currentAudio && currentScreenId === screenId && loop === currentAudio.loop) {
-        if (loop) return;
-      }
-      
-      stopAll();
-      if (isMuted) return;
-      
-      try {
-        var audio = new Audio(audioData);
-        audio.volume = 1.0;
-        audio.loop = loop || false;
-        audio.preload = 'auto';
-        
-        audio.onerror = function(e) {
-          console.error('Audio element error:', e);
-        };
-        
-        var playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(function() {
-              currentAudio = audio;
-              currentScreenId = screenId;
-            })
-            .catch(function(error) {
-              console.error('Error playing audio:', error);
-            });
-        } else {
-          currentAudio = audio;
-          currentScreenId = screenId;
-        }
-      } catch (error) {
-        console.error('Error creating audio element:', error);
-      }
-    }
-
-    function playGlobalAudio() {
-      if (globalAudioData && !isMuted) {
-        playScreenAudio('global', globalAudioData, true);
-      }
-    }
-
-    function stopAll() {
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-        currentAudio = null;
-      }
-      currentScreenId = null;
-    }
-
-    function toggleMute() {
-      isMuted = !isMuted;
-      if (isMuted) {
-        stopAll();
-      } else if (globalAudioData) {
-        playGlobalAudio();
-      }
-    }
-
-    function getMuteState() {
-      return isMuted;
-    }
-
-    return {
-      playScreenAudio: playScreenAudio,
-      playGlobalAudio: playGlobalAudio,
-      setGlobalAudio: setGlobalAudio,
-      stopAll: stopAll,
-      toggleMute: toggleMute,
-      getMuteState: getMuteState,
-      get globalAudioData() { return globalAudioData; },
-      get currentScreenId() { return currentScreenId; }
-    };
-  })();
-
-  window.AudioManager = AudioManager;
-})();
-</script>
-`;
+// AudioManager is now integrated into GiftApp - no separate global needed
 
 export async function buildExportHTML(project: Project, templateMeta: TemplateMeta): Promise<string> {
   // Load template HTML
   let html = await loadTemplateHTML(project.templateId);
 
-  // Inject AudioManager JavaScript first (before any scripts that use it)
-  html = injectScript(html, AUDIO_MANAGER_JS);
+  // Update template onclick handlers to use GiftApp namespace
+  html = updateTemplateOnclickHandlers(html);
 
   // Replace simple flat placeholders
   html = replacePlaceholders(html, project, templateMeta);
@@ -113,13 +17,133 @@ export async function buildExportHTML(project: Project, templateMeta: TemplateMe
   // Handle repeating structures (galleries, blessings) based on template-meta
   html = injectRepeatingStructures(html, project, templateMeta);
 
-  // Inject image carousel CSS and scripts
-  html = injectImageCarouselScripts(html);
+  // Add HTML section comments and inject all scripts/styles in organized sections
+  html = buildOrganizedHTML(html, project, templateMeta);
 
-  // Inject navigation and audio handling scripts
-  html = injectNavigationScripts(html, project, templateMeta);
+  // Export-time sanity checks: validate no external URLs
+  validateExportSanity(html, project);
+
+  // Dev-time verification (only in development)
+  if (import.meta.env.DEV) {
+    verifyExportStructure(html);
+  }
 
   return html;
+}
+
+/**
+ * Dev-time helper to verify exported HTML structure
+ * Logs warnings if expected structures are missing
+ */
+export function verifyExportStructure(html: string): void {
+  const checks = {
+    hasGiftAppNamespace: /window\.GiftApp\s*=/.test(html),
+    hasStylesSection: /STYLES SECTION/.test(html),
+    hasTemplatesSection: /TEMPLATES & CONTENT SECTION/.test(html),
+    hasRuntimeSection: /RUNTIME LOGIC SECTION/.test(html),
+    noLooseGlobals: !/window\.(startExperience|nextScreen|previousScreen|carouselPrev|carouselNext|carouselGoTo|zoomImage)\s*=/.test(html),
+    noGlobalAudioManager: !/window\.AudioManager\s*=/.test(html),
+    hasAudioInGiftApp: /GiftApp.*audio/.test(html),
+  };
+
+  const warnings: string[] = [];
+  if (!checks.hasGiftAppNamespace) warnings.push('❌ GiftApp namespace not found');
+  if (!checks.hasStylesSection) warnings.push('❌ STYLES SECTION comment not found');
+  if (!checks.hasTemplatesSection) warnings.push('❌ TEMPLATES & CONTENT SECTION comment not found');
+  if (!checks.hasRuntimeSection) warnings.push('❌ RUNTIME LOGIC SECTION comment not found');
+  if (!checks.noLooseGlobals) warnings.push('⚠️  Loose global functions found (should be in GiftApp namespace)');
+  if (!checks.noGlobalAudioManager) warnings.push('⚠️  Global AudioManager found (should be integrated into GiftApp)');
+  if (!checks.hasAudioInGiftApp) warnings.push('⚠️  GiftApp.audio not found');
+
+  if (warnings.length > 0) {
+    console.warn('Export structure verification:', warnings.join('\n'));
+  } else {
+    console.log('✅ Export structure verification passed');
+  }
+
+  // Log public API
+  const giftAppMatch = html.match(/return\s*\{([\s\S]*?)\}\s*;\s*}\s*\)\s*\(\s*\)\s*;\s*window\.GiftApp/);
+  if (giftAppMatch) {
+    const publicAPI = giftAppMatch[1].match(/\w+:/g)?.map(k => k.replace(':', '')) || [];
+    console.log('📦 GiftApp public API:', publicAPI.join(', '));
+  }
+}
+
+function validateExportSanity(html: string, project: Project): void {
+  const errors: string[] = [];
+  
+  // Remove HTML comments before validation (they may contain example URLs or patterns)
+  const htmlWithoutComments = html.replace(/<!--[\s\S]*?-->/g, '');
+  
+  // Check for external HTTP/HTTPS URLs (excluding data URLs)
+  const externalUrlPattern = /(?:src|href|url)\s*[:=]\s*['"]?(https?:\/\/[^'"\s<>]+)/gi;
+  const matches = htmlWithoutComments.matchAll(externalUrlPattern);
+  for (const match of matches) {
+    // Skip data URLs
+    if (!match[1].startsWith('data:')) {
+      errors.push(`Found external URL in exported HTML: ${match[1]}`);
+    }
+  }
+  
+  // Check that all images are embedded as data URLs
+  const imagePattern = /<img[^>]+src\s*=\s*['"]([^'"]+)['"]/gi;
+  const imageMatches = htmlWithoutComments.matchAll(imagePattern);
+  for (const match of imageMatches) {
+    const src = match[1];
+    if (!src.startsWith('data:image/')) {
+      errors.push(`Image source is not embedded as data URL: ${src.substring(0, 50)}...`);
+    }
+  }
+  
+  // Check that audio data URLs are present if audio exists
+  if (project.data.audio.global) {
+    if (!project.data.audio.global.data.startsWith('data:audio/')) {
+      errors.push('Global audio is not embedded as data URL');
+    }
+  }
+  
+  for (const [screenId, audio] of Object.entries(project.data.audio.screens)) {
+    if (!audio.data.startsWith('data:audio/')) {
+      errors.push(`Screen audio for ${screenId} is not embedded as data URL`);
+    }
+  }
+  
+  // Validate that GiftApp namespace exists and AudioManager is NOT a global
+  if (!html.includes('window.GiftApp') && !html.includes('window.GiftApp =')) {
+    errors.push('GiftApp namespace not found in exported HTML');
+  }
+  
+  // Validate that AudioManager is NOT exposed globally
+  if (htmlWithoutComments.includes('window.AudioManager')) {
+    errors.push('AudioManager should not be exposed as global - it should be integrated into GiftApp');
+  }
+  
+  // Validate that _carouselData is NOT in public API
+  if (htmlWithoutComments.includes('_carouselData:') || htmlWithoutComments.includes('_carouselData,')) {
+    // This is okay if it's commented out or in a string, but check if it's actually exposed
+    if (htmlWithoutComments.match(/return\s*\{[\s\S]*_carouselData[\s\S]*\}\s*;/) || 
+        htmlWithoutComments.match(/GiftApp[.\s]*_carouselData/)) {
+      errors.push('_carouselData should not be in GiftApp public API - it should be private');
+    }
+  }
+  
+  // Validate HTML section comments are present
+  const hasStylesComment = html.includes('STYLES SECTION');
+  const hasTemplatesComment = html.includes('TEMPLATES & CONTENT SECTION');
+  const hasRuntimeComment = html.includes('RUNTIME LOGIC SECTION');
+  
+  if (!hasStylesComment || !hasTemplatesComment || !hasRuntimeComment) {
+    const missing = [];
+    if (!hasStylesComment) missing.push('STYLES SECTION');
+    if (!hasTemplatesComment) missing.push('TEMPLATES & CONTENT SECTION');
+    if (!hasRuntimeComment) missing.push('RUNTIME LOGIC SECTION');
+    // This is a warning, not an error - don't block export but log it
+    console.warn('Missing HTML section comments:', missing.join(', '));
+  }
+  
+  if (errors.length > 0) {
+    throw new Error(`Export validation failed:\n${errors.join('\n')}`);
+  }
 }
 
 function replacePlaceholders(html: string, project: Project, templateMeta: TemplateMeta): string {
@@ -221,6 +245,7 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
 
 function generateImageCarouselHTML(screenId: string, images: ImageData[]): string {
   const carouselId = `carousel-${screenId}`;
+  // No onclick attributes - event listeners will be attached by GiftApp
   const carouselHTML = `
     <div class="image-carousel-container" id="${carouselId}">
       <div class="image-carousel-main">
@@ -228,11 +253,10 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[]): strin
           src="${images[0].data}" 
           alt="${escapeHtmlForExport(images[0].filename)}" 
           class="carousel-main-image"
-          onclick="zoomImage('${images[0].data}')"
         />
         ${images.length > 1 ? `
-        <button class="carousel-nav-btn carousel-nav-prev" onclick="carouselPrev('${carouselId}')">‹</button>
-        <button class="carousel-nav-btn carousel-nav-next" onclick="carouselNext('${carouselId}')">›</button>
+        <button class="carousel-nav-btn carousel-nav-prev" type="button">‹</button>
+        <button class="carousel-nav-btn carousel-nav-next" type="button">›</button>
         <div class="carousel-counter">1 / ${images.length}</div>
         ` : ''}
       </div>
@@ -243,20 +267,20 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[]): strin
             src="${img.data}" 
             alt="${escapeHtmlForExport(img.filename)}" 
             class="carousel-thumbnail ${index === 0 ? 'active' : ''}"
-            onclick="carouselGoTo('${carouselId}', ${index})"
           />
         `).join('')}
       </div>
       ` : ''}
     </div>
     <script>
+      // Initialize carousel data (will be migrated to GiftApp on init)
+      // Store in temporary location, will be migrated to GiftApp internal carouselData
       (function() {
-        var carouselData = window.carouselData || {};
-        carouselData['${carouselId}'] = {
+        window._tempCarouselData = window._tempCarouselData || {};
+        window._tempCarouselData['${carouselId}'] = {
           images: ${JSON.stringify(images.map(img => img.data))},
           currentIndex: 0
         };
-        window.carouselData = carouselData;
       })();
     </script>
   `;
@@ -326,74 +350,69 @@ function escapeHtmlForExport(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-function injectImageCarouselScripts(html: string): string {
-  const carouselScript = `
-<script>
-  function carouselPrev(carouselId) {
-    var data = window.carouselData && window.carouselData[carouselId];
-    if (!data) return;
-    var newIndex = data.currentIndex > 0 ? data.currentIndex - 1 : data.images.length - 1;
-    carouselGoTo(carouselId, newIndex);
-  }
 
-  function carouselNext(carouselId) {
-    var data = window.carouselData && window.carouselData[carouselId];
-    if (!data) return;
-    var newIndex = data.currentIndex < data.images.length - 1 ? data.currentIndex + 1 : 0;
-    carouselGoTo(carouselId, newIndex);
-  }
+function updateTemplateOnclickHandlers(html: string): string {
+  // FALLBACK: Update onclick handlers in templates to use GiftApp namespace
+  // NOTE: This is a backward compatibility fallback. Primary event binding is now done via
+  // event listeners in GiftApp initialization (attachEventListeners function).
+  // This regex replacement is only needed for templates that may have inline onclick handlers
+  // that we don't control or generate ourselves.
+  html = html.replace(/onclick="startExperience\(\)"/g, 'onclick="GiftApp.startExperience()"');
+  html = html.replace(/onclick="nextScreen\(\)"/g, 'onclick="GiftApp.nextScreen()"');
+  html = html.replace(/onclick="previousScreen\(\)"/g, 'onclick="GiftApp.previousScreen()"');
+  html = html.replace(/onclick="carouselPrev\(/g, 'onclick="GiftApp.carouselPrev(');
+  html = html.replace(/onclick="carouselNext\(/g, 'onclick="GiftApp.carouselNext(');
+  html = html.replace(/onclick="carouselGoTo\(/g, 'onclick="GiftApp.carouselGoTo(');
+  html = html.replace(/onclick="zoomImage\(/g, 'onclick="GiftApp.zoomImage(');
+  return html;
+}
 
-  function carouselGoTo(carouselId, index) {
-    var data = window.carouselData && window.carouselData[carouselId];
-    if (!data || index < 0 || index >= data.images.length) return;
-    
-    data.currentIndex = index;
-    var container = document.getElementById(carouselId);
-    if (!container) return;
-    
-    var mainImg = container.querySelector('.carousel-main-image');
-    var counter = container.querySelector('.carousel-counter');
-    var thumbnails = container.querySelectorAll('.carousel-thumbnail');
-    
-    if (mainImg) {
-      mainImg.src = data.images[index];
-      mainImg.onclick = function() { zoomImage(data.images[index]); };
-    }
-    
-    if (counter) {
-      counter.textContent = (index + 1) + ' / ' + data.images.length;
-    }
-    
-    thumbnails.forEach(function(thumb, i) {
-      if (i === index) {
-        thumb.classList.add('active');
-      } else {
-        thumb.classList.remove('active');
-      }
-    });
+function buildOrganizedHTML(html: string, project: Project, templateMeta: TemplateMeta): string {
+  // Extract existing <style> tags from head to consolidate in styles section
+  let existingStyles = '';
+  const styleMatches = html.matchAll(/<style>([\s\S]*?)<\/style>/gi);
+  for (const match of styleMatches) {
+    existingStyles += match[1] + '\n';
   }
+  
+  // Remove existing inline scripts that define functions (will be replaced by GiftApp)
+  html = html.replace(/<script>[\s\S]*?var currentScreenIndex[\s\S]*?<\/script>/gi, '');
+  
+  // Remove existing <style> tags (will be re-added in organized section)
+  html = html.replace(/<style>[\s\S]*?<\/style>/gi, '');
+  
+  // Build styles section
+  const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${existingStyles.trim()}\n${getCarouselStyles()}\n</style>`;
+  
+  // Build runtime logic section (GiftApp with integrated AudioManager)
+  const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${buildGiftAppNamespace(project, templateMeta)}`;
+  
+  // Inject styles before </head> or before <body> if no </head>
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `${stylesSection}\n</head>`);
+  } else if (html.includes('<body>')) {
+    html = html.replace('<body>', `${stylesSection}\n<body>`);
+  } else {
+    html = stylesSection + '\n' + html;
+  }
+  
+  // Mark templates/content section (only if <body> exists and not already marked)
+  if (html.includes('<body>') && !html.includes('TEMPLATES & CONTENT SECTION')) {
+    html = html.replace('<body>', '<!-- ========== TEMPLATES & CONTENT SECTION (screens layout) ========== -->\n<body>');
+  }
+  
+  // Inject scripts before </body>
+  if (html.includes('</body>')) {
+    html = html.replace('</body>', `${scriptsSection}\n</body>`);
+  } else {
+    html = html + '\n' + scriptsSection;
+  }
+  
+  return html;
+}
 
-  function zoomImage(imageSrc) {
-    var modal = document.createElement('div');
-    modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
-    modal.onclick = function() { document.body.removeChild(modal); };
-    
-    var img = document.createElement('img');
-    img.src = imageSrc;
-    img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
-    img.onclick = function(e) { e.stopPropagation(); };
-    
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent = '×';
-    closeBtn.style.cssText = 'position: absolute; top: 20px; right: 20px; color: white; font-size: 40px; background: none; border: none; cursor: pointer; z-index: 10000;';
-    closeBtn.onclick = function() { document.body.removeChild(modal); };
-    
-    modal.appendChild(img);
-    modal.appendChild(closeBtn);
-    document.body.appendChild(modal);
-  }
-</script>
-<style>
+function getCarouselStyles(): string {
+  return `
   .image-carousel-container {
     margin: 1rem 0;
     width: 100%;
@@ -493,13 +512,10 @@ function injectImageCarouselScripts(html: string): string {
   }
   .carousel-thumbnail.active {
     border-color: #3b82f6;
-  }
-</style>
-`;
-  return injectScript(html, carouselScript);
+  }`;
 }
 
-function injectNavigationScripts(html: string, project: Project, templateMeta: TemplateMeta): string {
+function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): string {
   const data = project.data;
   const screens = templateMeta.screens.map(s => s.screenId);
   
@@ -522,136 +538,342 @@ function injectNavigationScripts(html: string, project: Project, templateMeta: T
       }
     }
   }
-
-  // Create enhanced navigation script
-  const navigationScript = `
+  
+  return `
 <script>
-  (function() {
-    // Set global audio if available
+(function() {
+  'use strict';
+  
+  // GiftApp namespace - all runtime functions isolated here (including AudioManager)
+  var GiftApp = (function() {
+    var currentScreenIndex = 0;
+    var screens = ${JSON.stringify(screens)};
+    var screenAudioMap = ${JSON.stringify(screenAudioMap)};
     var globalAudioData = ${globalAudioData ? JSON.stringify(globalAudioData) : 'null'};
-    if (globalAudioData && typeof AudioManager !== 'undefined') {
-      AudioManager.setGlobalAudio(globalAudioData);
-    }
-
-    // Override startExperience to handle audio
-    if (typeof startExperience !== 'undefined') {
-      var originalStartExperience = startExperience;
-      window.startExperience = function() {
-        originalStartExperience();
-        // Start global audio if available
-        if (typeof AudioManager !== 'undefined' && AudioManager.playGlobalAudio) {
-          AudioManager.playGlobalAudio();
-        } else if (globalAudioData && typeof AudioManager !== 'undefined') {
-          // Fallback: play global audio directly
-          AudioManager.playScreenAudio('global', globalAudioData, true);
-        }
-      };
-    } else {
-      // If template doesn't have startExperience, create it
-      window.startExperience = function() {
-        var overlay = document.getElementById('overlay');
-        if (overlay) overlay.classList.add('hidden');
-        var nav = document.getElementById('navigation');
-        if (nav) nav.classList.remove('hidden');
-        if (typeof showScreen === 'function') {
-          showScreen(0);
-        }
-        // Start global audio if available
-        if (typeof AudioManager !== 'undefined' && AudioManager.playGlobalAudio) {
-          AudioManager.playGlobalAudio();
-        } else if (globalAudioData && typeof AudioManager !== 'undefined') {
-          // Fallback: play global audio directly
-          AudioManager.playScreenAudio('global', globalAudioData, true);
-        }
-      };
-    }
-
-    // Override nextScreen completely to handle audio properly
-    window.nextScreen = function() {
-      var currentIndex = typeof currentScreenIndex !== 'undefined' ? currentScreenIndex : 0;
-      var screens = ${JSON.stringify(screens)};
-      var screenAudioMap = ${JSON.stringify(screenAudioMap)};
+    var carouselData = {};
+    
+    // ========== AudioManager (integrated into GiftApp) ==========
+    var currentAudio = null;
+    var currentScreenId = null;
+    var isMuted = false;
+    
+    function playScreenAudio(screenId, audioData, loop) {
+      // If this is the same audio already playing and should loop, don't restart
+      if (currentAudio && currentScreenId === screenId && loop === currentAudio.loop) {
+        if (loop) return;
+      }
       
-      if (currentIndex < screens.length - 1) {
-        var currentScreenId = screens[currentIndex];
-        var nextScreenId = screens[currentIndex + 1];
-        var currentScreenData = screenAudioMap[currentScreenId];
+      stopAllAudio();
+      if (isMuted) return;
+      
+      try {
+        var audio = new Audio(audioData);
+        audio.volume = 1.0;
+        audio.loop = loop || false;
+        audio.preload = 'auto';
         
-        // Only stop audio if not extending music and no global audio
-        if (typeof AudioManager !== 'undefined') {
-          // If global audio is playing, don't stop it
-          if (globalAudioData && AudioManager.currentScreenId === 'global') {
-            // Global audio continues, don't stop
-          } else if (!currentScreenData || !currentScreenData.extendMusic) {
-            if (!globalAudioData) {
-              AudioManager.stopAll();
-            }
+        audio.onerror = function(e) {
+          console.error('Audio element error:', e);
+        };
+        
+        var playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(function() {
+              currentAudio = audio;
+              currentScreenId = screenId;
+            })
+            .catch(function(error) {
+              console.error('Error playing audio:', error);
+            });
+        } else {
+          currentAudio = audio;
+          currentScreenId = screenId;
+        }
+      } catch (error) {
+        console.error('Error creating audio element:', error);
+      }
+    }
+
+    function playGlobalAudio() {
+      if (globalAudioData && !isMuted) {
+        playScreenAudio('global', globalAudioData, true);
+      }
+    }
+
+    function stopAllAudio() {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+      }
+      currentScreenId = null;
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      if (isMuted) {
+        stopAllAudio();
+      } else if (globalAudioData) {
+        playGlobalAudio();
+      }
+    }
+
+    function getMuteState() {
+      return isMuted;
+    }
+    // ========== End AudioManager ==========
+    
+    function showScreen(index) {
+      if (index < 0 || index >= screens.length) return;
+      screens.forEach(function(screenId, i) {
+        var screen = document.getElementById(screenId);
+        if (screen) {
+          if (i === index) {
+            screen.classList.remove('hidden');
+          } else {
+            screen.classList.add('hidden');
+          }
+        }
+      });
+      currentScreenIndex = index;
+    }
+    
+    function startExperience() {
+      var overlay = document.getElementById('overlay');
+      if (overlay) overlay.classList.add('hidden');
+      var nav = document.getElementById('navigation');
+      if (nav) nav.classList.remove('hidden');
+      showScreen(0);
+      
+      // Start global audio if available
+      if (globalAudioData) {
+        playGlobalAudio();
+      }
+    }
+    
+    function nextScreen() {
+      if (currentScreenIndex < screens.length - 1) {
+        var currentScreenIdValue = screens[currentScreenIndex];
+        var nextScreenId = screens[currentScreenIndex + 1];
+        var currentScreenData = screenAudioMap[currentScreenIdValue];
+        
+        // Handle audio - check if global audio is currently playing
+        if (globalAudioData && currentScreenId === 'global') {
+          // Global audio continues, don't stop
+        } else if (!currentScreenData || !currentScreenData.extendMusic) {
+          if (!globalAudioData) {
+            stopAllAudio();
           }
         }
         
-        // Show next screen
-        if (typeof showScreen === 'function') {
-          showScreen(currentIndex + 1);
-        }
+        showScreen(currentScreenIndex + 1);
         
         // Play next screen audio if available (only if no global audio)
         setTimeout(function() {
-          if (typeof AudioManager !== 'undefined') {
-            if (globalAudioData) {
-              // Global audio continues playing, do nothing
-            } else {
-              var nextScreenData = screenAudioMap[nextScreenId];
-              if (nextScreenData) {
-                AudioManager.playScreenAudio(nextScreenId, nextScreenData.data, false);
-              }
+          if (!globalAudioData) {
+            var nextScreenData = screenAudioMap[nextScreenId];
+            if (nextScreenData) {
+              playScreenAudio(nextScreenId, nextScreenData.data, false);
             }
           }
         }, 100);
       }
-    };
-
-    // Override previousScreen completely to handle audio properly
-    window.previousScreen = function() {
-      var currentIndex = typeof currentScreenIndex !== 'undefined' ? currentScreenIndex : 0;
-      var screens = ${JSON.stringify(screens)};
-      var screenAudioMap = ${JSON.stringify(screenAudioMap)};
-      
-      if (currentIndex > 0) {
-        var prevScreenId = screens[currentIndex - 1];
+    }
+    
+    function previousScreen() {
+      if (currentScreenIndex > 0) {
+        var prevScreenId = screens[currentScreenIndex - 1];
         
-        if (typeof AudioManager !== 'undefined') {
-          // If global audio is playing, don't stop it
-          if (globalAudioData && AudioManager.currentScreenId === 'global') {
-            // Global audio continues, don't stop
-          } else if (!globalAudioData) {
-            AudioManager.stopAll();
-          }
+        // Check if global audio is currently playing (use audio manager's currentScreenId)
+        if (globalAudioData && currentScreenId === 'global') {
+          // Global audio continues, don't stop
+        } else if (!globalAudioData) {
+          stopAllAudio();
         }
         
-        // Show previous screen
-        if (typeof showScreen === 'function') {
-          showScreen(currentIndex - 1);
-        }
+        showScreen(currentScreenIndex - 1);
         
         // Play previous screen audio if available (only if no global audio)
         setTimeout(function() {
-          if (typeof AudioManager !== 'undefined') {
-            if (globalAudioData) {
-              // Global audio continues playing, do nothing
-            } else {
-              var prevScreenData = screenAudioMap[prevScreenId];
-              if (prevScreenData) {
-                AudioManager.playScreenAudio(prevScreenId, prevScreenData.data, false);
-              }
+          if (!globalAudioData) {
+            var prevScreenData = screenAudioMap[prevScreenId];
+            if (prevScreenData) {
+              playScreenAudio(prevScreenId, prevScreenData.data, false);
             }
           }
         }, 100);
       }
+    }
+    
+    function carouselPrev(carouselId) {
+      var data = carouselData[carouselId];
+      if (!data) return;
+      var newIndex = data.currentIndex > 0 ? data.currentIndex - 1 : data.images.length - 1;
+      carouselGoTo(carouselId, newIndex);
+    }
+    
+    function carouselNext(carouselId) {
+      var data = carouselData[carouselId];
+      if (!data) return;
+      var newIndex = data.currentIndex < data.images.length - 1 ? data.currentIndex + 1 : 0;
+      carouselGoTo(carouselId, newIndex);
+    }
+    
+    function carouselGoTo(carouselId, index) {
+      var data = carouselData[carouselId];
+      if (!data || index < 0 || index >= data.images.length) return;
+      
+      data.currentIndex = index;
+      var container = document.getElementById(carouselId);
+      if (!container) return;
+      
+      var mainImg = container.querySelector('.carousel-main-image');
+      var counter = container.querySelector('.carousel-counter');
+      var thumbnails = container.querySelectorAll('.carousel-thumbnail');
+      
+      if (mainImg) {
+        var imgSrc = data.images[index];
+        mainImg.src = imgSrc;
+        // Update zoom handler for this image
+        mainImg.onclick = function() { zoomImage(imgSrc); };
+      }
+      
+      if (counter) {
+        counter.textContent = (index + 1) + ' / ' + data.images.length;
+      }
+      
+      thumbnails.forEach(function(thumb, i) {
+        if (i === index) {
+          thumb.classList.add('active');
+        } else {
+          thumb.classList.remove('active');
+        }
+      });
+    }
+    
+    function zoomImage(imageSrc) {
+      var modal = document.createElement('div');
+      modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
+      modal.onclick = function() { document.body.removeChild(modal); };
+      
+      var img = document.createElement('img');
+      img.src = imageSrc;
+      img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
+      img.onclick = function(e) { e.stopPropagation(); };
+      
+      var closeBtn = document.createElement('button');
+      closeBtn.textContent = '×';
+      closeBtn.style.cssText = 'position: absolute; top: 20px; right: 20px; color: white; font-size: 40px; background: none; border: none; cursor: pointer; z-index: 10000;';
+      closeBtn.onclick = function() { document.body.removeChild(modal); };
+      
+      modal.appendChild(img);
+      modal.appendChild(closeBtn);
+      document.body.appendChild(modal);
+    }
+    
+    // Migrate temporary carousel data if it exists
+    if (window._tempCarouselData) {
+      for (var key in window._tempCarouselData) {
+        carouselData[key] = window._tempCarouselData[key];
+      }
+      delete window._tempCarouselData;
+    }
+    
+    // Attach event listeners to core UI elements (replacing onclick attributes)
+    function attachEventListeners() {
+      // Overlay start button
+      var overlay = document.getElementById('overlay');
+      if (overlay) {
+        var startButton = overlay.querySelector('button');
+        if (startButton) {
+          startButton.addEventListener('click', startExperience);
+        }
+        // Also allow clicking the overlay itself to start
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay || e.target === overlay.querySelector('h1') || e.target === overlay.querySelector('p')) {
+            startExperience();
+          }
+        });
+      }
+      
+      // Navigation buttons
+      var nav = document.getElementById('navigation');
+      if (nav) {
+        var prevBtn = nav.querySelector('.nav-button');
+        var nextBtn = nav.querySelectorAll('.nav-button');
+        if (prevBtn && nextBtn.length >= 2) {
+          prevBtn.addEventListener('click', previousScreen);
+          nextBtn[1].addEventListener('click', nextScreen);
+        }
+      }
+      
+      // Carousel controls - attach to all carousels
+      var carousels = document.querySelectorAll('.image-carousel-container');
+      carousels.forEach(function(container) {
+        var carouselId = container.id;
+        var prevBtn = container.querySelector('.carousel-nav-prev');
+        var nextBtn = container.querySelector('.carousel-nav-next');
+        var thumbnails = container.querySelectorAll('.carousel-thumbnail');
+        var mainImg = container.querySelector('.carousel-main-image');
+        
+        if (prevBtn) {
+          prevBtn.addEventListener('click', function() {
+            carouselPrev(carouselId);
+          });
+        }
+        if (nextBtn) {
+          nextBtn.addEventListener('click', function() {
+            carouselNext(carouselId);
+          });
+        }
+        thumbnails.forEach(function(thumb, index) {
+          thumb.addEventListener('click', function() {
+            carouselGoTo(carouselId, index);
+          });
+        });
+        if (mainImg && mainImg.src) {
+          mainImg.addEventListener('click', function() {
+            zoomImage(mainImg.src);
+          });
+        }
+      });
+    }
+    
+    // Initialize event listeners when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachEventListeners);
+    } else {
+      // DOM already loaded
+      attachEventListeners();
+    }
+    
+    // Public API
+    return {
+      startExperience: startExperience,
+      nextScreen: nextScreen,
+      previousScreen: previousScreen,
+      carouselPrev: carouselPrev,
+      carouselNext: carouselNext,
+      carouselGoTo: carouselGoTo,
+      zoomImage: zoomImage,
+      // Audio API (integrated, not separate global)
+      audio: {
+        playScreenAudio: playScreenAudio,
+        playGlobalAudio: playGlobalAudio,
+        stopAll: stopAllAudio,
+        toggleMute: toggleMute,
+        getMuteState: getMuteState,
+        get currentScreenId() { return currentScreenId; },
+        get isMuted() { return isMuted; }
+      }
     };
   })();
+  
+  // Attach to window
+  window.GiftApp = GiftApp;
+})();
 </script>`;
-
-  return injectScript(html, navigationScript);
 }
 
 function injectScript(html: string, script: string): string {

@@ -2,7 +2,7 @@
 export const MediaConfig = {
   // Image settings
   IMAGE_MAX_DIMENSION: 1600,
-  IMAGE_COMPRESSION_QUALITY: 0.6,
+  IMAGE_COMPRESSION_QUALITY: 0.75, // WebP quality (0.0-1.0), 0.75 balances size and quality
   IMAGE_TARGET_SIZE_KB: {
     min: 100,
     max: 200,

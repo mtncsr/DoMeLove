@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import type { AudioFile } from '../../types/project';
-import { processAudio, formatFileSize } from '../../utils/audioProcessor';
+import { processAudio } from '../../utils/audioProcessor';
 import { MediaConfig } from '../../config/mediaConfig';
 
 interface AudioUploadProps {

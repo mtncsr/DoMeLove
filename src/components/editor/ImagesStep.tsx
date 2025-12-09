@@ -207,11 +207,11 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
                       {screenImages.map((image) => (
                         <div key={image.id} className="relative group">
-                          <img
-                            src={image.data}
-                            alt={image.filename}
-                            className="w-full h-24 object-cover rounded"
-                          />
+                        <img
+                          src={image.data}
+                          alt={image.filename}
+                          className="w-full h-24 object-contain rounded bg-gray-100"
+                        />
                           <button
                             onClick={() => handleRemoveFromScreen(image.id, screen.screenId)}
                             className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -241,11 +241,11 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
                             className="relative cursor-pointer group"
                             onClick={() => handleAddToScreen(image.id, screen.screenId)}
                           >
-                            <img
-                              src={image.data}
-                              alt={image.filename}
-                              className="w-full h-20 object-cover rounded border-2 border-transparent group-hover:border-blue-500 transition-colors"
-                            />
+                          <img
+                            src={image.data}
+                            alt={image.filename}
+                            className="w-full h-20 object-contain rounded border-2 border-transparent group-hover:border-blue-500 transition-colors bg-gray-100"
+                          />
                             {isUsed && (() => {
                               const tooltipContent = assignedScreens.length > 0 
                                 ? `Assigned to: ${assignedScreens.map(getScreenDisplayName).join(', ')}`
@@ -299,7 +299,7 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
                 <img
                   src={image.data}
                   alt={image.filename}
-                  className="w-full h-32 object-cover rounded mb-2"
+                  className="w-full h-32 object-contain rounded mb-2 bg-gray-100"
                 />
                 <p className="text-sm text-gray-600 truncate mb-1">{image.filename}</p>
                 <p className="text-xs text-gray-500 mb-2">{formatFileSize(image.size)}</p>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
@@ -271,94 +271,111 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             `}</style>
           </div>
         ) : (
-          <div className={`${isMobileView ? 'p-4 h-full overflow-y-auto' : 'p-8 h-full overflow-y-auto'}`}>
-            <h3 className="text-2xl font-bold mb-4">
-              {currentProject.data.screens[currentScreen.screenId]?.title || currentScreen.screenId}
-            </h3>
-            <p className="text-gray-700 mb-4">
-              {currentProject.data.screens[currentScreen.screenId]?.text || ''}
-            </p>
+          <div className={`${isMobileView ? 'p-4' : 'p-5'} h-full flex flex-col gap-3`}>
+            <div>
+              <h3
+                className="text-2xl font-bold mb-2 leading-tight"
+                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+              >
+                {currentProject.data.screens[currentScreen.screenId]?.title || currentScreen.screenId}
+              </h3>
+              <p
+                className="text-gray-700"
+                style={{ display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+              >
+                {currentProject.data.screens[currentScreen.screenId]?.text || ''}
+              </p>
+            </div>
             
-            {(() => {
-              const screenData = currentProject.data.screens[currentScreen.screenId];
-              const screenImages = (screenData?.images || [])
-                .map(id => currentProject.data.images.find(img => img.id === id))
-                .filter((img): img is typeof currentProject.data.images[0] => img !== undefined);
+            <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+              {(() => {
+                const screenData = currentProject.data.screens[currentScreen.screenId];
+                const screenImages = (screenData?.images || [])
+                  .map(id => currentProject.data.images.find(img => img.id === id))
+                  .filter((img): img is typeof currentProject.data.images[0] => img !== undefined);
 
-              if (screenImages.length > 0) {
-                const currentImage = screenImages[currentImageIndex];
-                
-                return (
-                  <div className="mb-6">
-                    {/* Image Carousel */}
-                    <div className="relative mb-4">
-                      <img
-                        src={currentImage.data}
-                        alt={currentImage.filename}
-                        className="w-full h-64 md:h-96 object-contain rounded-lg cursor-pointer bg-gray-100"
-                        onClick={() => setZoomedImage(currentImage.data)}
-                      />
+                if (screenImages.length > 0) {
+                  const currentImage = screenImages[currentImageIndex];
+                  
+                  return (
+                    <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+                      {/* Image Carousel */}
+                      <div
+                        className={`relative flex-1 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center
+                          ${isMobileView ? 'min-h-[240px] max-h-[55vh]' : 'min-h-[180px] md:min-h-[220px] max-h-[320px] md:max-h-[360px]'}`}
+                      >
+                        <img
+                          src={currentImage.data}
+                          alt={currentImage.filename}
+                          className="max-w-full max-h-full object-contain cursor-pointer"
+                          onClick={() => setZoomedImage(currentImage.data)}
+                        />
+                        
+                        {screenImages.length > 1 && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentImageIndex((prev) => 
+                                  prev > 0 ? prev - 1 : screenImages.length - 1
+                                );
+                              }}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-9 h-9 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
+                              aria-label="Previous image"
+                            >
+                              ‹
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentImageIndex((prev) => 
+                                  prev < screenImages.length - 1 ? prev + 1 : 0
+                                );
+                              }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-9 h-9 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
+                              aria-label="Next image"
+                            >
+                              ›
+                            </button>
+                          </>
+                        )}
+                      </div>
                       
+                      {/* Image Thumbnails */}
                       {screenImages.length > 1 && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex((prev) => 
-                                prev > 0 ? prev - 1 : screenImages.length - 1
-                              );
-                            }}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70"
-                          >
-                            ‹
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex((prev) => 
-                                prev < screenImages.length - 1 ? prev + 1 : 0
-                              );
-                            }}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70"
-                          >
-                            ›
-                          </button>
-                        </>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {screenImages.map((image, index) => (
+                            <img
+                              key={image.id}
+                              src={image.data}
+                              alt={image.filename}
+                              className={`object-contain rounded cursor-pointer border-2 transition-colors bg-gray-100 ${
+                                isMobileView ? 'w-16 h-16' : 'w-14 h-14'
+                              } ${
+                                index === currentImageIndex 
+                                  ? 'border-blue-500' 
+                                  : 'border-transparent hover:border-gray-300'
+                              }`}
+                              onClick={() => setCurrentImageIndex(index)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Image Counter */}
+                      {screenImages.length > 1 && (
+                        <p className="text-sm text-gray-500 text-center">
+                          {currentImageIndex + 1} / {screenImages.length}
+                        </p>
                       )}
                     </div>
-                    
-                    {/* Image Thumbnails */}
-                    {screenImages.length > 1 && (
-                      <div className="flex gap-2 overflow-x-auto pb-2">
-                        {screenImages.map((image, index) => (
-                          <img
-                            key={image.id}
-                            src={image.data}
-                            alt={image.filename}
-                            className={`w-20 h-20 object-cover rounded cursor-pointer border-2 transition-colors ${
-                              index === currentImageIndex 
-                                ? 'border-blue-500' 
-                                : 'border-transparent hover:border-gray-300'
-                            }`}
-                            onClick={() => setCurrentImageIndex(index)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* Image Counter */}
-                    {screenImages.length > 1 && (
-                      <p className="text-sm text-gray-500 text-center mt-2">
-                        {currentImageIndex + 1} / {screenImages.length}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
-              return null;
-            })()}
+                  );
+                }
+                return null;
+              })()}
+            </div>
 
-            <div className="flex justify-between mt-6">
+            <div className="flex justify-between items-center mt-2">
               <Button
                 onClick={handlePrevious}
                 disabled={currentScreenIndex === 0}
@@ -384,12 +401,53 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
             onClick={() => setZoomedImage(null)}
           >
-            <img
-              src={zoomedImage}
-              alt="Zoomed"
-              className="max-w-full max-h-full object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {/* Navigation arrows in zoomed view */}
+            {(() => {
+              const screenData = currentProject.data.screens[currentScreen.screenId];
+              const screenImages = (screenData?.images || [])
+                .map(id => currentProject.data.images.find(img => img.id === id))
+                .filter((img): img is typeof currentProject.data.images[0] => img !== undefined);
+              
+              const canNavigate = screenImages.length > 1;
+              
+              return (
+                <>
+                  {canNavigate && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : screenImages.length - 1));
+                        setZoomedImage(screenImages[(currentImageIndex > 0 ? currentImageIndex - 1 : screenImages.length - 1)]?.data || null);
+                      }}
+                      className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/70 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-white"
+                      aria-label="Previous image"
+                    >
+                      ‹
+                    </button>
+                  )}
+                  <img
+                    src={zoomedImage}
+                    alt="Zoomed"
+                    className="max-w-full max-h-full object-contain"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {canNavigate && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentImageIndex((prev) => (prev < screenImages.length - 1 ? prev + 1 : 0));
+                        setZoomedImage(screenImages[(currentImageIndex < screenImages.length - 1 ? currentImageIndex + 1 : 0)]?.data || null);
+                      }}
+                      className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/70 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-white"
+                      aria-label="Next image"
+                    >
+                      ›
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+
             <button
               onClick={() => setZoomedImage(null)}
               className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300"

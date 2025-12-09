@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ImageData, Project } from '../../types/project';
 import type { TemplateMeta } from '../../types/template';
 import { Tooltip } from '../ui/Tooltip';
@@ -6,7 +5,6 @@ import { Tooltip } from '../ui/Tooltip';
 interface ScreenImageSelectorProps {
   allImages: ImageData[];
   selectedImageIds: string[];
-  usedImageIds: Set<string>;
   onSelectImage: (imageId: string) => void;
   onDeselectImage: (imageId: string) => void;
   screenImages: ImageData[];
@@ -18,7 +16,6 @@ interface ScreenImageSelectorProps {
 export function ScreenImageSelector({
   allImages,
   selectedImageIds,
-  usedImageIds,
   onSelectImage,
   onDeselectImage,
   screenImages,
@@ -86,7 +83,7 @@ export function ScreenImageSelector({
                 <img
                   src={image.data}
                   alt={image.filename}
-                  className="w-full h-24 object-cover rounded"
+                  className="w-full h-24 object-contain rounded bg-gray-100"
                 />
                 <button
                   onClick={() => onDeselectImage(image.id)}
@@ -121,7 +118,7 @@ export function ScreenImageSelector({
                   <img
                     src={image.data}
                     alt={image.filename}
-                    className="w-full h-20 object-cover rounded border-2 border-transparent group-hover:border-blue-500 transition-colors"
+                    className="w-full h-20 object-contain rounded border-2 border-transparent group-hover:border-blue-500 transition-colors bg-gray-100"
                   />
                   {isUsed && (
                     <div className="absolute top-1 left-1 z-20">

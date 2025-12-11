@@ -32,87 +32,99 @@ export function EditorProvider({
 }) {
   const [currentStep, setCurrentStep] = useState<EditorStep>('template');
 
-  const calculateStepStatus = useCallback((step: EditorStep, project: Project | null, templateMeta: TemplateMeta | null): StepStatus => {
-    if (!project || !templateMeta) return 'notStarted';
+  const getScreensStatus = useCallback((proj: Project | null, tmpl: TemplateMeta | null): StepStatus => {
+    if (!proj || !tmpl) return 'notStarted';
 
-    switch (step) {
-      case 'template':
-        return project.templateId ? 'complete' : 'notStarted';
-      
-      case 'screens': {
-        // Check gift details (for Main screen)
-        const hasRecipient = !!project.data.recipientName;
-        const hasSender = !!project.data.senderName;
-        const required = templateMeta.globalPlaceholders.filter(p => 
-          ['recipientName', 'senderName'].includes(p)
-        );
-        let giftDetailsComplete = true;
-        if (required.length > 0) {
-          giftDetailsComplete = required.every(p => {
-            if (p === 'recipientName') return hasRecipient;
-            if (p === 'senderName') return hasSender;
-            return true;
-          });
-        }
+    // Check gift details (for Main screen)
+    const hasRecipient = !!proj.data.recipientName;
+    const hasSender = !!proj.data.senderName;
+    const required = tmpl.globalPlaceholders.filter((p) => ['recipientName', 'senderName'].includes(p));
+    let giftDetailsComplete = true;
+    if (required.length > 0) {
+      giftDetailsComplete = required.every((p) => {
+        if (p === 'recipientName') return hasRecipient;
+        if (p === 'senderName') return hasSender;
+        return true;
+      });
+    }
 
-        // Check screen texts and images
-        const screens = templateMeta.screens;
-        let hasAnyScreenContent = false;
-        let hasAllScreenContent = true;
-        let hasAnyImages = false;
-        let hasAllRequiredImages = true;
-        
-        for (const screen of screens) {
-          const screenData = project.data.screens[screen.screenId];
-          const hasTitle = !!screenData?.title;
-          const hasText = !!screenData?.text;
-          const screenImages = screenData?.images || [];
-          const imageCount = screenImages.length;
-          
-          // Check text content
-          if (hasTitle || hasText) hasAnyScreenContent = true;
-          for (const required of screen.required) {
-            if (required.includes('title') && !hasTitle) hasAllScreenContent = false;
-            if (required.includes('text') && !hasText) hasAllScreenContent = false;
-          }
-          
-          // Check images for screens that require them
-          // galleryImageCount is the minimum number of images required for this screen
-          const requiredImageCount = typeof screen.galleryImageCount === 'number' ? screen.galleryImageCount : 0;
-          if (requiredImageCount > 0) {
-            if (imageCount > 0) hasAnyImages = true;
-            // If this screen requires images but doesn't have enough, mark as incomplete
-            if (imageCount < requiredImageCount) {
-              hasAllRequiredImages = false;
-            }
-          } else if (imageCount > 0) {
-            // Even if not required, if images are assigned, mark as having images
-            hasAnyImages = true;
-          }
-        }
+    // Check screen texts and images
+    const screens = tmpl.screens;
+    let hasAnyScreenContent = false;
+    let hasAllScreenContent = true;
+    let hasAnyImages = false;
+    let hasAllRequiredImages = true;
 
-        // Screens step is complete ONLY if:
-        // 1. Gift details are complete (if required)
-        // 2. All required screen texts are filled
-        // 3. All screens that require images have the required number of images
-        if (giftDetailsComplete && hasAllScreenContent && hasAllRequiredImages) return 'complete';
-        // In progress if any part has been started (texts, images, or overlay)
-        if ((hasRecipient || hasSender || hasAnyScreenContent || hasAnyImages) || project.data.overlay.mainText || project.data.overlay.buttonText) return 'inProgress';
-        return 'notStarted';
+    for (const screen of screens) {
+      const screenData = proj.data.screens[screen.screenId];
+      const hasTitle = !!screenData?.title;
+      const hasText = !!screenData?.text;
+      const screenImages = screenData?.images || [];
+      const imageCount = screenImages.length;
+
+      if (hasTitle || hasText) hasAnyScreenContent = true;
+      for (const required of screen.required) {
+        if (required.includes('title') && !hasTitle) hasAllScreenContent = false;
+        if (required.includes('text') && !hasText) hasAllScreenContent = false;
       }
 
-      case 'content':
-        // Content is optional, so always complete
-        return 'complete';
-
-      case 'previewExport':
-        // Preview & Export is always accessible
-        return 'complete';
-
-      default:
-        return 'notStarted';
+      const requiredImageCount = typeof screen.galleryImageCount === 'number' ? screen.galleryImageCount : 0;
+      if (requiredImageCount > 0) {
+        if (imageCount > 0) hasAnyImages = true;
+        if (imageCount < requiredImageCount) {
+          hasAllRequiredImages = false;
+        }
+      } else if (imageCount > 0) {
+        hasAnyImages = true;
+      }
     }
+
+    if (giftDetailsComplete && hasAllScreenContent && hasAllRequiredImages) return 'complete';
+    if (
+      hasRecipient ||
+      hasSender ||
+      hasAnyScreenContent ||
+      hasAnyImages ||
+      proj.data.overlay.mainText ||
+      proj.data.overlay.buttonText
+    )
+      return 'inProgress';
+    return 'notStarted';
   }, []);
+
+  const calculateStepStatus = useCallback(
+    (step: EditorStep, project: Project | null, templateMeta: TemplateMeta | null): StepStatus => {
+      if (!project || !templateMeta) return 'notStarted';
+
+      switch (step) {
+        case 'template':
+          return project.templateId ? 'complete' : 'notStarted';
+
+        case 'screens':
+          return getScreensStatus(project, templateMeta);
+
+        case 'content': {
+          const hasImages = (project.data.images?.length || 0) > 0;
+          const hasLibraryAudio = (project.data.audio.library?.length || 0) > 0;
+          const hasScreenAudio = Object.keys(project.data.audio.screens || {}).length > 0;
+          const hasGlobalAudio = !!project.data.audio.global;
+          if (hasImages || hasLibraryAudio || hasScreenAudio || hasGlobalAudio) return 'complete';
+          return 'notStarted';
+        }
+
+        case 'previewExport': {
+          const screensStatus = getScreensStatus(project, templateMeta);
+          if (screensStatus === 'complete') return 'complete';
+          if (screensStatus === 'inProgress') return 'inProgress';
+          return 'notStarted';
+        }
+
+        default:
+          return 'notStarted';
+      }
+    },
+    [getScreensStatus]
+  );
 
   const steps: StepInfo[] = useMemo(() => {
     const stepIds: EditorStep[] = ['template', 'screens', 'content', 'previewExport'];

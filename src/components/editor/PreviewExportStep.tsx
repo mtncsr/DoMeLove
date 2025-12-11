@@ -13,18 +13,18 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
   const { t } = useTranslation();
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.steps.previewExport')}</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-slate-900">{t('editor.steps.previewExport')}</h2>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-slate-200">
         <div className="flex gap-1">
           <button
             onClick={() => setActiveTab('preview')}
             className={`px-4 py-2 border-b-2 transition-colors ${
               activeTab === 'preview'
-                ? 'border-blue-500 text-blue-600 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                ? 'border-fuchsia-500 text-fuchsia-700 font-semibold'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
             {t('editor.preview.preview')}
@@ -33,8 +33,8 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
             onClick={() => setActiveTab('export')}
             className={`px-4 py-2 border-b-2 transition-colors ${
               activeTab === 'export'
-                ? 'border-blue-500 text-blue-600 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                ? 'border-fuchsia-500 text-fuchsia-700 font-semibold'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
             {t('editor.preview.export')}
@@ -43,11 +43,13 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'preview' ? (
-        <PreviewStep templateMeta={templateMeta} />
-      ) : (
-        <ExportStep templateMeta={templateMeta} />
-      )}
+      <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 animate-fade-in">
+        {activeTab === 'preview' ? (
+          <PreviewStep templateMeta={templateMeta} />
+        ) : (
+          <ExportStep templateMeta={templateMeta} />
+        )}
+      </div>
     </div>
   );
 }

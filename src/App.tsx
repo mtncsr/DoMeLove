@@ -10,6 +10,7 @@ import { FAQPage } from './pages/FAQPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { Editor } from './pages/Editor';
+import { ProfilePage } from './pages/ProfilePage';
 import { PageTransition } from './components/layout/PageTransition';
 import './i18n/config';
 
@@ -27,6 +28,7 @@ function AppRoutes() {
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/editor" element={<Editor />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

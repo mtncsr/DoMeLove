@@ -3,15 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Navigation } from '../components/layout/Navigation';
 import { Footer } from '../components/layout/Footer';
 import { useProject } from '../contexts/ProjectContext';
-
-const allTemplates = [
-  { id: 'birthday', title: 'Birthday Surprise', description: 'A magical journey through birthday memories with confetti animations and a special video message.', screens: 5, category: 'Birthday' },
-  { id: 'anniversary', title: 'Anniversary Love Story', description: 'A romantic timeline of shared moments, from the first date to years of togetherness.', screens: 7, category: 'Anniversary' },
-  { id: 'wedding', title: 'Save the Date Wedding Invite', description: 'An elegant invitation with venue details, countdown, and RSVP link.', screens: 4, category: 'Wedding' },
-  { id: 'baby', title: 'New Baby Welcome', description: 'Announce your little one with adorable photos, stats, and heartwarming messages.', screens: 3, category: 'Baby' },
-  { id: 'thank-you', title: 'Thank You from the Heart', description: 'Express gratitude with a personal message, photos, and a heartfelt video.', screens: 2, category: 'Thank you' },
-  { id: 'sorry', title: 'I am Sorry', description: 'A sincere apology with a personal message and promise for the future.', screens: 3, category: 'Other' },
-];
+import { Button } from '../components/ui/Button';
+import { TEMPLATE_CARDS } from '../data/templates';
 
 const categories = ['All templates', 'Birthday', 'Wedding', 'Anniversary', 'Baby', 'Thank you', 'Other'];
 
@@ -20,14 +13,21 @@ export function TemplatesPage() {
   const { createProject, setCurrentProject } = useProject();
   const [selectedCategory, setSelectedCategory] = useState('All templates');
 
-  const filteredTemplates = selectedCategory === 'All templates'
-    ? allTemplates
-    : allTemplates.filter(t => t.category === selectedCategory);
+  const filteredTemplates =
+    selectedCategory === 'All templates'
+      ? TEMPLATE_CARDS
+      : TEMPLATE_CARDS.filter((t) => t.category === selectedCategory);
 
-  const handleTemplateSelect = (templateId: string) => {
-    const project = createProject(templateId, `${allTemplates.find(t => t.id === templateId)?.title} Gift`);
+  const handleTemplateSelect = (templateId: string, title: string) => {
+    const project = createProject(templateId, `${title} Gift`);
     setCurrentProject(project);
     navigate('/editor');
+  };
+
+  const badgeStyles = (badge: string) => {
+    if (badge.includes('music')) return 'bg-purple-100 text-purple-700';
+    if (badge.includes('emoji') || badge.includes('emojis')) return 'bg-amber-100 text-amber-700';
+    return 'bg-fuchsia-100 text-fuchsia-700';
   };
 
   return (
@@ -50,7 +50,10 @@ export function TemplatesPage() {
         {/* LTR/RTL Banner */}
         <div className="flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 rounded-full bg-white shadow-sm text-sm text-slate-700 max-w-fit mx-auto mb-8">
           <span>🌐</span>
-          <span>All templates support both <strong className="font-semibold px-1">LTR</strong> and <strong className="font-semibold px-1">RTL</strong> languages</span>
+          <span>
+            All templates support both <strong className="font-semibold px-1">LTR</strong> and{' '}
+            <strong className="font-semibold px-1">RTL</strong> languages
+          </span>
           <span>↔</span>
         </div>
 
@@ -77,23 +80,51 @@ export function TemplatesPage() {
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="glass rounded-2xl p-6 hover:shadow-xl transition-all cursor-pointer group"
-              onClick={() => handleTemplateSelect(template.id)}
+              className="glass rounded-2xl p-5 sm:p-6 border border-white/60 hover:shadow-xl transition-all flex flex-col gap-4"
             >
-              <div className="flex items-start gap-4 mb-4">
-                <div className="min-w-20 h-20 rounded-xl bg-gradient-to-br from-fuchsia-500/20 to-purple-600/20 grid place-items-center text-sm font-semibold text-fuchsia-700 flex-shrink-0">
-                  {template.screens} screens
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-fuchsia-500/20 to-purple-600/20 grid place-items-center text-2xl">
+                  {template.icon || '🎁'}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-fuchsia-700 transition-colors">
-                    {template.title}
-                  </h3>
-                  <p className="text-slate-700 leading-relaxed text-sm">{template.description}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <span className="px-3 py-1 rounded-full bg-fuchsia-100 text-fuchsia-700 text-xs font-semibold">
+                      {template.screens} screens
+                    </span>
+                    {template.badges?.map((badge) => (
+                      <span
+                        key={badge}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeStyles(badge)}`}
+                      >
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900">{template.title}</h3>
+                  <p className="text-sm text-slate-700 mt-1">{template.description}</p>
                 </div>
               </div>
-              <button className="w-full mt-4 gradient-button rounded-xl px-4 py-2 text-sm font-semibold text-white">
-                Use this template →
-              </button>
+
+              {template.bullets && (
+                <ul className="space-y-2 text-sm text-slate-700">
+                  {template.bullets.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-fuchsia-600 mt-0.5">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="mt-auto">
+                <Button
+                  variant="primary"
+                  className="w-full rounded-xl"
+                  onClick={() => handleTemplateSelect(template.id, template.title)}
+                >
+                  Use this template →
+                </Button>
+              </div>
             </div>
           ))}
         </div>

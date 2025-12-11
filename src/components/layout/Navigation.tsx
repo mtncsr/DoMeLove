@@ -25,14 +25,14 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 sm:gap-3">
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg text-base sm:text-lg">
+            <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg text-lg sm:text-xl">
               ✨
             </div>
-            <div className="font-semibold text-base sm:text-lg bg-gradient-to-r from-fuchsia-600 to-purple-700 bg-clip-text text-transparent hidden sm:block">
-              Interactive HTML Gifts
+            <div className="font-semibold text-lg sm:text-xl bg-gradient-to-r from-fuchsia-600 to-purple-700 bg-clip-text text-transparent hidden sm:block">
+              LoveMeDo
             </div>
             <div className="font-semibold text-sm bg-gradient-to-r from-fuchsia-600 to-purple-700 bg-clip-text text-transparent sm:hidden">
-              HTML Gifts
+              LoveMeDo
             </div>
           </Link>
 
@@ -42,7 +42,7 @@ export function Navigation() {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`text-sm sm:text-base font-semibold transition-colors whitespace-nowrap ${
                   location.pathname === link.path
                     ? 'text-fuchsia-700 font-semibold'
                     : 'text-slate-700 hover:text-fuchsia-700'
@@ -56,18 +56,18 @@ export function Navigation() {
           {/* Right side actions */}
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-slate-600 text-sm">🌐</span>
+              <span className="text-slate-600 text-base">🌐</span>
               <LanguageSelector value={i18n.language} onChange={(lang) => i18n.changeLanguage(lang)} subtle />
             </div>
             <Link
-              to="/live-examples"
-              className="hidden md:inline-flex items-center gap-2 rounded-full px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-white border border-slate-200 hover:border-fuchsia-300 shadow-sm transition-colors"
+              to="/profile"
+              className="hidden md:inline-flex items-center gap-2 rounded-full px-3 sm:px-4 py-2 text-sm font-semibold bg-white border border-slate-200 hover:border-fuchsia-300 shadow-sm transition-colors"
             >
-              <span>▶</span> <span className="hidden sm:inline">View example</span>
+              <span>👤</span> <span className="hidden sm:inline">Profile</span>
             </Link>
             <Link
               to="/editor"
-              className="gradient-button rounded-full px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition-all hover:shadow-xl whitespace-nowrap flex items-center gap-1.5"
+              className="gradient-button rounded-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white transition-all hover:shadow-xl whitespace-nowrap flex items-center gap-1.5"
             >
               <span aria-hidden="true">✨</span>
               <span>Start creating</span>

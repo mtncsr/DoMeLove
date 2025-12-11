@@ -120,11 +120,11 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
   ];
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.screens.title')}</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-slate-900">{t('editor.screens.title')}</h2>
 
       {/* Screen Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-slate-200 pb-1">
         <div className="flex gap-1 overflow-x-auto">
           {screens.map((screen, index) => {
             const displayName = getScreenDisplayName(screen.screenId, index);
@@ -133,10 +133,10 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
             return (
               <div
                 key={screen.screenId}
-                className={`px-4 py-2 cursor-pointer border-b-2 transition-colors min-w-[100px] flex items-center gap-2 ${
+                className={`px-4 py-2 cursor-pointer border-b-2 transition-colors min-w-[110px] flex items-center gap-2 ${
                   activeScreenIndex === index
-                    ? 'border-blue-500 text-blue-600 font-medium'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-fuchsia-500 text-fuchsia-700 font-semibold'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'
                 }`}
                 onClick={() => {
                   setActiveScreenIndex(index);
@@ -157,7 +157,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
                         setEditingTabValue('');
                       }
                     }}
-                    className="border border-blue-500 rounded px-1 py-0 text-sm w-full"
+                    className="border border-fuchsia-400 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-fuchsia-300"
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -169,7 +169,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
                         e.stopPropagation();
                         startEditingTab(screen.screenId);
                       }}
-                      className="text-gray-400 hover:text-gray-600 text-xs"
+                      className="text-slate-400 hover:text-slate-600 text-xs"
                       title={t('editor.screens.rename')}
                     >
                       ✎
@@ -183,23 +183,25 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
       </div>
 
       {/* Screen Editor */}
-      {isMainScreen ? (
-        <MainScreenEditor
-          project={currentProject}
-          updateProject={updateProject}
-          usedImageIds={usedImageIds}
-        />
-      ) : (
-        <ScreenEditor
-          screen={currentScreen}
-          project={currentProject}
-          updateProject={updateProject}
-          usedImageIds={usedImageIds}
-          allScreenAudioFiles={allAvailableAudioFiles}
-          isLastScreen={activeScreenIndex === screens.length - 1}
-          templateMeta={templateMeta}
-        />
-      )}
+      <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 space-y-4 animate-fade-in">
+        {isMainScreen ? (
+          <MainScreenEditor
+            project={currentProject}
+            updateProject={updateProject}
+            usedImageIds={usedImageIds}
+          />
+        ) : (
+          <ScreenEditor
+            screen={currentScreen}
+            project={currentProject}
+            updateProject={updateProject}
+            usedImageIds={usedImageIds}
+            allScreenAudioFiles={allAvailableAudioFiles}
+            isLastScreen={activeScreenIndex === screens.length - 1}
+            templateMeta={templateMeta}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -271,8 +273,8 @@ function MainScreenEditor({ project, updateProject, usedImageIds }: MainScreenEd
   return (
     <div className="space-y-6">
       {/* Gift Details */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">{t('editor.screens.giftDetails')}</h3>
+      <div className="bg-white/90 p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('editor.screens.giftDetails')}</h3>
         <div className="space-y-4">
           <Input
             label={t('editor.giftDetails.recipientName')}
@@ -299,17 +301,17 @@ function MainScreenEditor({ project, updateProject, usedImageIds }: MainScreenEd
       </div>
 
       {/* Overlay Configuration */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">{t('editor.overlay.startButton')}</h3>
+      <div className="bg-white/90 p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('editor.overlay.startButton')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-800 mb-1">
               {t('editor.overlay.overlayType')}
             </label>
             <select
               value={project.data.overlay.type}
               onChange={(e) => updateOverlay('type', e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
             >
               <option value="heart">{t('editor.overlay.types.heart')}</option>
               <option value="birthday">{t('editor.overlay.types.birthday')}</option>
@@ -327,8 +329,8 @@ function MainScreenEditor({ project, updateProject, usedImageIds }: MainScreenEd
       </div>
 
       {/* Global Music */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">{t('editor.screens.backgroundMusic')}</h3>
+      <div className="bg-white/90 p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('editor.screens.backgroundMusic')}</h3>
         {project.data.audio.global ? (
           <div>
             <p className="text-sm text-gray-600 mb-2">{project.data.audio.global.filename}</p>

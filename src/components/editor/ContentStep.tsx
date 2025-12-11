@@ -123,18 +123,18 @@ export function ContentStep() {
   const usedImageIds = getUsedImageIds();
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.content.title')}</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-slate-900">{t('editor.content.title')}</h2>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-slate-200">
         <div className="flex gap-1">
           <button
             onClick={() => setActiveTab('images')}
             className={`px-4 py-2 border-b-2 transition-colors ${
               activeTab === 'images'
-                ? 'border-blue-500 text-blue-600 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                ? 'border-fuchsia-500 text-fuchsia-700 font-semibold'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
             {t('editor.content.images')}
@@ -143,8 +143,8 @@ export function ContentStep() {
             onClick={() => setActiveTab('music')}
             className={`px-4 py-2 border-b-2 transition-colors ${
               activeTab === 'music'
-                ? 'border-blue-500 text-blue-600 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                ? 'border-fuchsia-500 text-fuchsia-700 font-semibold'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
             {t('editor.content.music')}
@@ -153,19 +153,21 @@ export function ContentStep() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'images' ? (
-        <ImagesTab
-          project={currentProject}
-          updateProject={updateProject}
-          usedImageIds={usedImageIds}
-          templateMeta={templateMeta}
-        />
-      ) : (
-        <MusicTab
-          project={currentProject}
-          updateProject={updateProject}
-        />
-      )}
+      <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 animate-fade-in">
+        {activeTab === 'images' ? (
+          <ImagesTab
+            project={currentProject}
+            updateProject={updateProject}
+            usedImageIds={usedImageIds}
+            templateMeta={templateMeta}
+          />
+        ) : (
+          <MusicTab
+            project={currentProject}
+            updateProject={updateProject}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -255,9 +257,9 @@ function ImagesTab({ project, updateProject, usedImageIds, templateMeta }: Image
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-4">{t('editor.content.uploadImages')}</h3>
+    <div className="space-y-6">
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">{t('editor.content.uploadImages')}</h3>
         <ImageUpload
           onUpload={handleImageUpload}
           onMultipleUpload={handleMultipleImageUpload}
@@ -266,11 +268,11 @@ function ImagesTab({ project, updateProject, usedImageIds, templateMeta }: Image
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">
           {t('editor.content.allUploadedImages')} ({project.data.images.length})
         </h3>
         {project.data.images.length === 0 ? (
-          <p className="text-gray-500">{t('editor.content.noImagesUploaded')}</p>
+          <p className="text-slate-500">{t('editor.content.noImagesUploaded')}</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {project.data.images.map((image: ImageData) => {
@@ -282,10 +284,10 @@ function ImagesTab({ project, updateProject, usedImageIds, templateMeta }: Image
                 : t('editor.content.usedInScreen');
               
               return (
-                <div key={image.id} className="bg-white p-4 rounded-lg border border-gray-200 relative">
+                <div key={image.id} className="bg-white/90 p-4 rounded-xl border border-slate-200 relative shadow-sm">
                   {isUsed && (
                     <Tooltip content={tooltipContent} position="top">
-                      <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1.5 z-10 cursor-help">
+                      <div className="absolute top-2 right-2 bg-emerald-500 rounded-full p-1.5 z-10 cursor-help shadow">
                         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
@@ -295,12 +297,12 @@ function ImagesTab({ project, updateProject, usedImageIds, templateMeta }: Image
                   <img
                     src={image.data}
                     alt={image.filename}
-                    className="w-full h-32 object-cover rounded mb-2"
+                    className="w-full h-32 object-cover rounded-lg mb-2"
                   />
-                  <p className="text-sm text-gray-600 truncate mb-1">{image.filename}</p>
-                  <p className="text-xs text-gray-500 mb-2">{formatFileSize(image.size)}</p>
+                  <p className="text-sm text-slate-700 truncate mb-1">{image.filename}</p>
+                  <p className="text-xs text-slate-500 mb-2">{formatFileSize(image.size)}</p>
                   {image.width && image.height && (
-                    <p className="text-xs text-gray-400 mb-2">
+                    <p className="text-xs text-slate-400 mb-2">
                       {image.width} × {image.height}px
                     </p>
                   )}
@@ -421,29 +423,29 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-4">{t('editor.content.uploadMusic')}</h3>
+    <div className="space-y-6">
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">{t('editor.content.uploadMusic')}</h3>
         <AudioUpload
           onUpload={handleUploadToLibrary}
         />
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">
           {t('editor.content.allUploadedMusic')} ({allAudioFiles.length})
         </h3>
         {allAudioFiles.length === 0 ? (
-          <p className="text-gray-500">{t('editor.content.noMusicUploaded')}</p>
+          <p className="text-slate-500">{t('editor.content.noMusicUploaded')}</p>
         ) : (
           <div className="space-y-4">
             {allAudioFiles.map(({ id, file, type, screenId }) => (
-              <div key={id} className="bg-white p-4 rounded-lg border border-gray-200">
+              <div key={id} className="bg-white/90 p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{file.filename}</p>
-                    <p className="text-xs text-gray-500 mt-1">{formatFileSize(file.size)}</p>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-sm font-semibold text-slate-900">{file.filename}</p>
+                    <p className="text-xs text-slate-500 mt-1">{formatFileSize(file.size)}</p>
+                    <p className="text-xs text-fuchsia-700 mt-1">
                       {type === 'global' 
                         ? t('editor.content.globalPlaysOnStart')
                         : type === 'library'

@@ -5,16 +5,14 @@ import type { ScreenData, CustomScreenConfig, ThemeConfig } from '../../types/pr
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { PREDEFINED_THEMES, getDefaultTheme } from '../../utils/themes';
+import { TEMPLATE_CARDS } from '../../data/templates';
 
-const getTemplates = (t: (key: string) => string) => [
-  { id: 'romantic', name: t('editor.template.romantic') },
-  { id: 'adult-birthday', name: t('editor.template.adultBirthday') },
-  { id: 'kids-birthday', name: t('editor.template.kidsBirthday') },
-  { id: 'new-baby', name: t('editor.template.newBaby') },
-  { id: 'bar-mitzvah', name: t('editor.template.barMitzvah') },
-  { id: 'wedding', name: t('editor.template.wedding') },
-  { id: 'single-screen', name: t('editor.template.singleScreen') },
-];
+const getTemplates = () =>
+  TEMPLATE_CARDS.map((t) => ({
+    id: t.templateId,
+    displayId: t.id,
+    name: t.title,
+  }));
 
 const GALLERY_LAYOUTS = [
   { value: 'carousel', label: 'Carousel' },
@@ -89,41 +87,47 @@ export function TemplateStep() {
     return <CustomTemplateBuilder project={currentProject} onUpdate={updateProject} onBack={() => setShowCustomBuilder(false)} />;
   }
 
-  const templates = getTemplates(t);
+  const templates = getTemplates();
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.template.selectTemplate')}</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {templates.map((template) => (
-          <div
-            key={template.id}
-            className={`p-6 border-2 rounded-lg cursor-pointer transition-colors ${
-              currentProject.templateId === template.id
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 hover:border-blue-300'
-            }`}
-            onClick={() => handleSelectTemplate(template.id)}
-          >
-            <h3 className="text-lg font-semibold text-gray-900">{template.name}</h3>
-          </div>
-        ))}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">{t('editor.template.selectTemplate')}</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {templates.map((template) => {
+          const active = currentProject.templateId === template.id;
+          return (
+            <div
+              key={template.displayId}
+              className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white ${
+                active
+                  ? 'border-fuchsia-300 shadow-lg ring-1 ring-fuchsia-200'
+                  : 'border-slate-200 hover:border-fuchsia-200 hover:shadow-md'
+              }`}
+              onClick={() => handleSelectTemplate(template.id)}
+            >
+              <h3 className="text-lg font-semibold text-slate-900">{template.name}</h3>
+            </div>
+          );
+        })}
         <div
-          className={`p-6 border-2 rounded-lg cursor-pointer transition-colors ${
+          className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white ${
             isCustomTemplate
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-300 hover:border-blue-300'
+              ? 'border-fuchsia-300 shadow-lg ring-1 ring-fuchsia-200'
+              : 'border-slate-200 hover:border-fuchsia-200 hover:shadow-md'
           }`}
           onClick={() => handleSelectTemplate('custom')}
         >
-          <h3 className="text-lg font-semibold text-gray-900">{t('editor.template.customTemplate')}</h3>
-          <p className="text-sm text-gray-600 mt-2">{t('editor.template.customTemplateDescription')}</p>
+          <h3 className="text-lg font-semibold text-slate-900">{t('editor.template.customTemplate')}</h3>
+          <p className="text-sm text-slate-600 mt-2">{t('editor.template.customTemplateDescription')}</p>
         </div>
       </div>
       
       {isCustomTemplate && !showCustomBuilder && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-blue-800 mb-2">{t('editor.template.customTemplateSelected')}</p>
+        <div className="glass rounded-2xl p-4 border border-white/60">
+          <p className="text-slate-800 mb-2">{t('editor.template.customTemplateSelected')}</p>
           <Button onClick={() => setShowCustomBuilder(true)} variant="primary">
             {t('editor.template.editCustomTemplate')}
           </Button>
@@ -262,91 +266,91 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
   const sortedScreens = [...customScreens].sort((a, b) => a.order - b.order);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Custom Template Builder</h2>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Custom Template Builder</h2>
         <Button onClick={onBack} variant="secondary">
           Back to Templates
         </Button>
       </div>
 
       {/* Theme Selection */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-        <h3 className="text-lg font-semibold mb-4">Theme</h3>
+      <div className="glass rounded-2xl p-6 border border-white/60 space-y-4">
+        <h3 className="text-lg font-semibold text-slate-900">Theme</h3>
         
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Predefined Themes</label>
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 mb-2">Predefined Themes</label>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {PREDEFINED_THEMES.map((predefinedTheme) => (
               <div
                 key={predefinedTheme.name}
-                className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                className={`p-3 rounded-xl cursor-pointer border transition-all ${
                   theme.name === predefinedTheme.name && theme.type === 'predefined'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-blue-300'
+                    ? 'border-fuchsia-300 bg-fuchsia-50 shadow-md'
+                    : 'border-slate-200 bg-white hover:border-fuchsia-200 hover:shadow-sm'
                 }`}
                 onClick={() => handleSelectTheme(predefinedTheme)}
               >
-                <div className="text-sm font-medium">{predefinedTheme.name}</div>
+                <div className="text-sm font-semibold text-slate-900">{predefinedTheme.name}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Custom Theme</label>
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 mb-2">Custom Theme</label>
           <div
-            className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+            className={`p-3 rounded-xl cursor-pointer border transition-all ${
               theme.type === 'custom'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 hover:border-blue-300'
+                ? 'border-fuchsia-300 bg-fuchsia-50 shadow-md'
+                : 'border-slate-200 bg-white hover:border-fuchsia-200 hover:shadow-sm'
             }`}
             onClick={() => handleSelectTheme({ ...getDefaultTheme(), type: 'custom', name: 'Custom' })}
           >
-            <div className="text-sm font-medium">Custom Theme</div>
-            <p className="text-xs text-gray-600 mt-1">Define your own colors and fonts</p>
+            <div className="text-sm font-semibold text-slate-900">Custom Theme</div>
+            <p className="text-xs text-slate-600 mt-1">Define your own colors and fonts</p>
           </div>
         </div>
 
         {theme.type === 'custom' && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium mb-3">Custom Theme Settings</h4>
+          <div className="mt-2 p-4 rounded-xl border border-slate-200 bg-white/70">
+            <h4 className="font-semibold text-slate-900 mb-3">Custom Theme Settings</h4>
             
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Text Color</label>
+                <label className="block text-sm text-slate-700 mb-1">Text Color</label>
                 <input
                   type="color"
                   value={theme.colors?.text || '#333333'}
                   onChange={(e) => handleUpdateCustomTheme({ colors: { ...theme.colors, text: e.target.value } })}
-                  className="w-full h-10 rounded border border-gray-300"
+                  className="w-full h-10 rounded border border-slate-200"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Background Color</label>
+                <label className="block text-sm text-slate-700 mb-1">Background Color</label>
                 <input
                   type="color"
                   value={theme.colors?.background || '#ffffff'}
                   onChange={(e) => handleUpdateCustomTheme({ colors: { ...theme.colors, background: e.target.value } })}
-                  className="w-full h-10 rounded border border-gray-300"
+                  className="w-full h-10 rounded border border-slate-200"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Accent Color</label>
+                <label className="block text-sm text-slate-700 mb-1">Accent Color</label>
                 <input
                   type="color"
-                  value={theme.colors?.accent || '#3b82f6'}
+                  value={theme.colors?.accent || '#a21caf'}
                   onChange={(e) => handleUpdateCustomTheme({ colors: { ...theme.colors, accent: e.target.value } })}
-                  className="w-full h-10 rounded border border-gray-300"
+                  className="w-full h-10 rounded border border-slate-200"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Button Color</label>
+                <label className="block text-sm text-slate-700 mb-1">Button Color</label>
                 <input
                   type="color"
-                  value={theme.colors?.button || '#3b82f6'}
+                  value={theme.colors?.button || '#e11d8d'}
                   onChange={(e) => handleUpdateCustomTheme({ colors: { ...theme.colors, button: e.target.value } })}
-                  className="w-full h-10 rounded border border-gray-300"
+                  className="w-full h-10 rounded border border-slate-200"
                 />
               </div>
             </div>
@@ -355,9 +359,9 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
       </div>
 
       {/* Screens Management */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Screens</h3>
+      <div className="glass rounded-2xl p-6 border border-white/60 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">Screens</h3>
           <Button onClick={handleAddScreen} variant="primary">
             + Add Screen
           </Button>
@@ -365,15 +369,15 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
 
         <div className="space-y-4">
           {sortedScreens.map((screen: CustomScreenConfig, index: number) => (
-            <div key={screen.id} className="border border-gray-200 rounded-lg p-4">
+            <div key={screen.id} className="bg-white/90 rounded-xl border border-slate-200 p-4 shadow-sm">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-sm font-medium text-gray-600">Screen {index + 1}</span>
+                    <span className="text-sm font-semibold text-slate-700">Screen {index + 1}</span>
                     <select
                       value={screen.type}
                       onChange={(e) => handleUpdateScreen(screen.id, { type: e.target.value as any })}
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                      className="text-sm border border-slate-200 rounded px-2 py-1"
                     >
                       {SCREEN_TYPES.map((st) => (
                         <option key={st.value} value={st.value}>
@@ -385,11 +389,11 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                   
                   {screen.type === 'gallery' && (
                     <div className="mb-2">
-                      <label className="block text-sm text-gray-700 mb-1">Gallery Layout</label>
+                      <label className="block text-sm text-slate-700 mb-1">Gallery Layout</label>
                       <select
                         value={project.data.screens[screen.id]?.galleryLayout || 'carousel'}
                         onChange={(e) => handleUpdateScreenData(screen.id, { galleryLayout: e.target.value as any })}
-                        className="text-sm border border-gray-300 rounded px-2 py-1 w-full"
+                        className="text-sm border border-slate-200 rounded px-2 py-1 w-full"
                       >
                         {GALLERY_LAYOUTS.map((layout) => (
                           <option key={layout.value} value={layout.value}>
@@ -401,23 +405,23 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                   )}
 
                   <div className="flex items-center gap-4 mt-2">
-                    <label className="flex items-center gap-2 text-sm">
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
                       <input
                         type="checkbox"
                         checked={screen.supportsMusic || false}
                         onChange={(e) => handleUpdateScreen(screen.id, { supportsMusic: e.target.checked })}
-                        className="rounded"
+                        className="rounded border-slate-300"
                       />
                       Supports Music
                     </label>
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-2 text-slate-500">
                   {index > 0 && (
                     <button
                       onClick={() => handleUpdateScreen(screen.id, { order: screen.order - 1 })}
-                      className="text-gray-600 hover:text-gray-900"
+                      className="hover:text-slate-800"
                       title="Move up"
                     >
                       ↑
@@ -426,7 +430,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                   {index < sortedScreens.length - 1 && (
                     <button
                       onClick={() => handleUpdateScreen(screen.id, { order: screen.order + 1 })}
-                      className="text-gray-600 hover:text-gray-900"
+                      className="hover:text-slate-800"
                       title="Move down"
                     >
                       ↓
@@ -435,7 +439,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                   {customScreens.length > 1 && (
                     <button
                       onClick={() => handleRemoveScreen(screen.id)}
-                      className="text-red-600 hover:text-red-800"
+                      className="text-red-500 hover:text-red-700"
                       title="Remove screen"
                     >
                       ×

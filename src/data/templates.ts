@@ -1,0 +1,177 @@
+export type TemplateCard = {
+  id: string;
+  templateId: string;
+  title: string;
+  description: string;
+  screens: number;
+  category: string;
+  badges?: string[];
+  bullets?: string[];
+  icon?: string;
+};
+
+export const TEMPLATE_CARDS: TemplateCard[] = [
+  {
+    id: 'birthday-mom',
+    templateId: 'adult-birthday',
+    title: 'Birthday Surprise for Mom',
+    description: 'A heartfelt five-screen journey celebrating 60 years of an amazing life.',
+    screens: 5,
+    category: 'Birthday',
+    badges: ['with music', 'emojis'],
+    bullets: [
+      'Confetti intro with “Happy Birthday!” reveal',
+      'Collage of childhood memories with zoom',
+      'Voice note from the family over slideshow',
+    ],
+    icon: '🎂',
+  },
+  {
+    id: 'kids-birthday',
+    templateId: 'kids-birthday',
+    title: 'Kids Birthday Adventure',
+    description: 'Colorful and playful experience with stickers and fun sounds.',
+    screens: 4,
+    category: 'Birthday',
+    badges: ['with music', 'emojis'],
+    bullets: [
+      'Balloon intro with playful chimes',
+      'Sticker-style gallery with zoom',
+      'Treasure hunt clue screen',
+    ],
+    icon: '🎈',
+  },
+  {
+    id: 'adult-birthday',
+    templateId: 'adult-birthday',
+    title: 'Adult Birthday Memories',
+    description: 'Elegant timeline with toasts, photos, and music.',
+    screens: 5,
+    category: 'Birthday',
+    badges: ['with music'],
+    bullets: [
+      'Hero photo with typewriter wish',
+      'Milestone timeline with icons',
+      'Toast audio message',
+    ],
+    icon: '🥂',
+  },
+  {
+    id: 'anniversary-love',
+    templateId: 'romantic',
+    title: 'Anniversary Love Story',
+    description: 'A romantic timeline of shared moments, from the first date to years of togetherness.',
+    screens: 7,
+    category: 'Anniversary',
+    badges: ['with music'],
+    bullets: [
+      'First-date photo opener',
+      'Timeline of milestones with emojis',
+      'Slow-pan gallery with your song',
+    ],
+    icon: '💜',
+  },
+  {
+    id: 'proposal-countdown',
+    templateId: 'romantic',
+    title: 'Proposal Countdown',
+    description: 'Dramatic countdown leading to the big question.',
+    screens: 4,
+    category: 'Anniversary',
+    badges: ['with music'],
+    bullets: [
+      'Countdown intro',
+      'Why I love you highlights',
+      'Final screen with proposal CTA',
+    ],
+    icon: '💍',
+  },
+  {
+    id: 'wedding-save-date',
+    templateId: 'wedding',
+    title: 'Save the Date — Sarah & David',
+    description: 'Elegant wedding invitation with venue details, countdown, and RSVP link.',
+    screens: 4,
+    category: 'Wedding',
+    badges: ['with music'],
+    bullets: [
+      'Hero with couple photo',
+      'Venue map and schedule',
+      'Countdown + RSVP link',
+    ],
+    icon: '👰‍♀️',
+  },
+  {
+    id: 'wedding-thankyou',
+    templateId: 'wedding',
+    title: 'Wedding Thank You',
+    description: 'Share highlights and gratitude after the big day.',
+    screens: 3,
+    category: 'Wedding',
+    bullets: [
+      'Highlight reel photos',
+      'Thank-you note',
+      'Link to gallery download',
+    ],
+    icon: '💐',
+  },
+  {
+    id: 'new-baby',
+    templateId: 'new-baby',
+    title: 'New Baby Welcome',
+    description: 'Announce your little one with adorable photos, stats, and heartwarming messages.',
+    screens: 3,
+    category: 'Baby',
+    bullets: [
+      'Stats card (weight/height)',
+      'Cute photo grid',
+      'Message from parents',
+    ],
+    icon: '👶',
+  },
+  {
+    id: 'baby-shower',
+    templateId: 'new-baby',
+    title: 'Baby Shower Invite',
+    description: 'Sweet invitation with date, time, registry, and RSVP.',
+    screens: 3,
+    category: 'Baby',
+    bullets: [
+      'Hero with invite details',
+      'Registry links',
+      'Countdown + map',
+    ],
+    icon: '🍼',
+  },
+  {
+    id: 'thank-you',
+    templateId: 'romantic',
+    title: 'Thank You from the Heart',
+    description: 'Express gratitude with a personal message, photos, and a heartfelt video.',
+    screens: 2,
+    category: 'Thank you',
+    bullets: ['Personal note card', 'Highlight photo + video link'],
+    icon: '🙏',
+  },
+  {
+    id: 'im-sorry',
+    templateId: 'romantic',
+    title: "I'm Sorry — Please Forgive Me",
+    description: 'A sincere apology with a personal promise for the future.',
+    screens: 3,
+    category: 'Other',
+    bullets: ['Opening apology screen', 'Context and feelings', 'Promise and next steps'],
+    icon: '💔',
+  },
+  {
+    id: 'single-screen',
+    templateId: 'single-screen',
+    title: 'Single Screen Announcement',
+    description: 'A concise one-screen message with photo and CTA.',
+    screens: 1,
+    category: 'Other',
+    bullets: ['Hero photo', 'Short copy', 'CTA link or button'],
+    icon: '📣',
+  },
+];
+

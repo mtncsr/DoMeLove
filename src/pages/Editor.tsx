@@ -97,22 +97,23 @@ function EditorContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-slate-200 p-4 overflow-y-auto shadow-sm">
+      <div className="w-64 bg-white/80 backdrop-blur border-r border-slate-200 p-4 overflow-y-auto shadow-md">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold text-base">
               ✨
             </div>
-            <h2 className="text-lg font-bold text-slate-900">{currentProject.name}</h2>
+            <h2 className="text-lg font-bold text-slate-900 leading-snug line-clamp-2">{currentProject.name}</h2>
           </div>
-          <button
+          <Button
+            variant="secondary"
             onClick={() => navigate('/')}
-            className="w-full secondary-button rounded-xl px-4 py-2 text-sm font-semibold"
+            className="w-full rounded-xl px-4 py-2 text-sm font-semibold"
           >
             ← {t('common.back')}
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-2">
@@ -129,7 +130,7 @@ function EditorContent() {
         </div>
 
         {debugMode && (
-          <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="mt-8 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <h3 className="font-semibold mb-2 text-slate-900">Debug Mode</h3>
             <pre className="text-xs overflow-auto max-h-96 text-slate-700">
               {JSON.stringify(currentProject, null, 2)}
@@ -139,8 +140,8 @@ function EditorContent() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-8 overflow-y-auto bg-gradient-to-br from-slate-50 to-white">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex-1 p-6 sm:p-8 overflow-y-auto">
+        <div className="max-w-5xl mx-auto glass rounded-2xl p-4 sm:p-6 md:p-8 border border-white/60 shadow-xl">
           {renderStepContent()}
         </div>
       </div>

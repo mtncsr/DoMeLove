@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
 import { Navigation } from '../components/layout/Navigation';
@@ -53,25 +52,22 @@ export function HomePage() {
       <Navigation />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero */}
-        <section className="pt-12 md:pt-20 lg:pt-24 pb-16 text-center relative">
+        <section className="pt-10 md:pt-14 lg:pt-16 pb-10 text-center relative">
           {/* Background gradient */}
           <div className="absolute inset-0 -z-10 bg-gradient-to-br from-purple-50 via-pink-50 to-white opacity-50" />
-          
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-fuchsia-100 to-purple-100 text-fuchsia-700 shadow-sm mb-6">
-            ✨ Create magical moments
-          </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight text-slate-900 mb-6 max-w-5xl mx-auto">
+
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight text-slate-900 mb-5 max-w-5xl mx-auto">
             Turn your memories into an{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 via-purple-600 to-pink-600">
               interactive HTML gift
             </span>{' '}
             in minutes
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-slate-700 max-w-3xl mx-auto mb-8 leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-slate-700 max-w-3xl mx-auto mb-6 leading-relaxed">
             Create a fully personalized, self-contained HTML file that plays like a mini experience — with photos, music, text, and interactive elements. No app needed, works anywhere, forever yours.
           </p>
           {/* Features in 2 columns like Base44 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto mb-8 text-sm text-slate-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto mb-6 text-sm text-slate-700">
             <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-full shadow-sm border border-slate-100 hover:border-fuchsia-200 transition-colors">
               <span className="text-xl">🚫</span>
               <span>No app to install</span>

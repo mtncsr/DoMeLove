@@ -14,8 +14,8 @@ body {
 /* Preview container styles */
 .preview-mobile {
   width: 100%;
-  max-width: 450px;
-  aspect-ratio: 9 / 16;
+  max-width: 390px;
+  aspect-ratio: 390 / 844;
   margin-left: auto;
   margin-right: auto;
   overflow: hidden;
@@ -23,9 +23,25 @@ body {
 
 .preview-desktop {
   width: 100%;
-  max-width: 1200px;
-  aspect-ratio: 16 / 9;
+  max-width: 1280px;
+  aspect-ratio: 16 / 10;
   margin-left: auto;
   margin-right: auto;
   overflow: hidden;
+}
+
+/* Page transition animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
 }

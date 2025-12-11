@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import { useEditor } from '../../contexts/EditorContext';
 import type { ImageData, AudioFile } from '../../types/project';
+import type { TemplateMeta } from '../../types/template';
 import { ImageUpload } from '../ui/ImageUpload';
 import { AudioUpload } from '../ui/AudioUpload';
 import { Button } from '../ui/Button';
@@ -157,6 +158,7 @@ export function ContentStep() {
           project={currentProject}
           updateProject={updateProject}
           usedImageIds={usedImageIds}
+          templateMeta={templateMeta}
         />
       ) : (
         <MusicTab
@@ -172,9 +174,10 @@ interface ImagesTabProps {
   project: any;
   updateProject: (project: any) => void;
   usedImageIds: Set<string>;
+  templateMeta: TemplateMeta | null;
 }
 
-function ImagesTab({ project, updateProject, usedImageIds }: ImagesTabProps) {
+function ImagesTab({ project, updateProject, usedImageIds, templateMeta }: ImagesTabProps) {
   const { t } = useTranslation();
 
   // Get which screens an image is assigned to (only if image exists AND screen exists in current template)

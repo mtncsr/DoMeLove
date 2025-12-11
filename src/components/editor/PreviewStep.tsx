@@ -26,6 +26,19 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
 
   const screens = templateMeta.screens;
   const currentScreen = screens[currentScreenIndex];
+  const screenData = currentProject.data.screens[currentScreen.screenId] || {};
+  const screenImages = (screenData.images || [])
+    .map(id => currentProject.data.images.find(img => img.id === id))
+    .filter((img): img is typeof currentProject.data.images[0] => img !== undefined);
+  const hasImages = screenImages.length > 0;
+  const hasMultipleImages = screenImages.length > 1;
+  const currentImage = hasImages
+    ? screenImages[Math.min(currentImageIndex, screenImages.length - 1)]
+    : null;
+  const titleText = (screenData.title || '').trim();
+  const bodyText = (screenData.text || '').trim();
+  const maxTextLines = isMobileView ? 4 : 10;
+  const maxTitleLines = 2;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -38,6 +51,17 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
       timeoutRefs.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasImages && currentImageIndex !== 0) {
+      setCurrentImageIndex(0);
+      return;
+    }
+
+    if (hasImages && currentImageIndex >= screenImages.length) {
+      setCurrentImageIndex(screenImages.length - 1);
+    }
+  }, [currentImageIndex, hasImages, screenImages.length]);
 
   const handleOverlayClick = () => {
     setOverlayVisible(false);
@@ -241,10 +265,10 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
         </div>
       )}
 
-      <div className={`bg-white rounded-lg border border-gray-200 ${isMobileView ? 'preview-mobile' : 'preview-desktop'}`}>
+      <div className={`bg-white rounded-lg border border-gray-200 ${isMobileView ? 'preview-mobile' : 'preview-desktop'} relative overflow-x-hidden overflow-y-auto`}>
         {overlayVisible ? (
           <div
-            className={`flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-red-500 text-white cursor-pointer ${isMobileView ? 'h-full' : 'h-full'}`}
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-red-500 text-white cursor-pointer"
             onClick={handleOverlayClick}
           >
             <h3 className="text-3xl font-bold mb-2">
@@ -271,78 +295,109 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             `}</style>
           </div>
         ) : (
-          <div className={`${isMobileView ? 'p-4' : 'p-5'} h-full flex flex-col gap-3`}>
-            <div>
-              <h3
-                className="text-2xl font-bold mb-2 leading-tight"
-                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-              >
-                {currentProject.data.screens[currentScreen.screenId]?.title || currentScreen.screenId}
-              </h3>
-              <p
-                className="text-gray-700"
-                style={{ display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-              >
-                {currentProject.data.screens[currentScreen.screenId]?.text || ''}
-              </p>
-            </div>
-            
-            <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
-              {(() => {
-                const screenData = currentProject.data.screens[currentScreen.screenId];
-                const screenImages = (screenData?.images || [])
-                  .map(id => currentProject.data.images.find(img => img.id === id))
-                  .filter((img): img is typeof currentProject.data.images[0] => img !== undefined);
+          <>
+            {isMobileView ? (
+              <div className="flex flex-col h-full">
+                {/* Fixed Top Bar */}
+                <div className="flex-none h-12 px-4 flex items-center justify-between border-b border-gray-200 bg-white/90">
+                  <button
+                    className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50"
+                    title="Menu"
+                  >
+                    ☰
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={handlePrevious}
+                      disabled={currentScreenIndex === 0}
+                      className="px-3 py-2"
+                    >
+                      ←
+                    </Button>
+                  </div>
+                </div>
 
-                if (screenImages.length > 0) {
-                  const currentImage = screenImages[currentImageIndex];
-                  
-                  return (
-                    <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
-                      {/* Image Carousel */}
-                      <div
-                        className={`relative flex-1 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center
-                          ${isMobileView ? 'min-h-[240px] max-h-[55vh]' : 'min-h-[180px] md:min-h-[220px] max-h-[320px] md:max-h-[360px]'}`}
-                      >
+                {/* Optional Title */}
+                {titleText && (
+                  <div className="flex-none px-4 pt-3 pb-2 border-b border-gray-100 bg-white/90">
+                    <h3
+                      className="text-lg font-semibold leading-tight"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: maxTitleLines,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {titleText}
+                    </h3>
+                  </div>
+                )}
+
+                {/* Flexible Content */}
+                <div className="flex flex-col flex-1 min-h-0 px-4 py-3 gap-3 overflow-y-auto">
+                  {bodyText && (
+                    <p
+                      className="text-gray-700 leading-relaxed"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: maxTextLines,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {bodyText}
+                    </p>
+                  )}
+
+                  <div className="flex flex-col flex-1 min-h-0 gap-3 overflow-hidden">
+                    {/* Main Image fills remaining space */}
+                    <div className="relative flex-1 min-h-0 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
+                      {currentImage ? (
                         <img
                           src={currentImage.data}
                           alt={currentImage.filename}
-                          className="max-w-full max-h-full object-contain cursor-pointer"
+                          className="w-full h-full object-contain cursor-pointer"
                           onClick={() => setZoomedImage(currentImage.data)}
                         />
-                        
-                        {screenImages.length > 1 && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCurrentImageIndex((prev) => 
-                                  prev > 0 ? prev - 1 : screenImages.length - 1
-                                );
-                              }}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-9 h-9 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
-                              aria-label="Previous image"
-                            >
-                              ‹
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCurrentImageIndex((prev) => 
-                                  prev < screenImages.length - 1 ? prev + 1 : 0
-                                );
-                              }}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-9 h-9 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
-                              aria-label="Next image"
-                            >
-                              ›
-                            </button>
-                          </>
-                        )}
-                      </div>
-                      
-                      {/* Image Thumbnails */}
-                      {screenImages.length > 1 && (
+                      ) : (
+                        <span className="text-gray-400 text-sm">No image selected</span>
+                      )}
+
+                      {hasMultipleImages && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImageIndex((prev) => 
+                                prev > 0 ? prev - 1 : screenImages.length - 1
+                              );
+                            }}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-9 h-9 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
+                            aria-label="Previous image"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImageIndex((prev) => 
+                                prev < screenImages.length - 1 ? prev + 1 : 0
+                              );
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-9 h-9 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
+                            aria-label="Next image"
+                          >
+                            ›
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Thumbnail carousel appears only when multiple images */}
+                    {hasMultipleImages && (
+                      <div className="flex-none">
                         <div className="flex gap-2 overflow-x-auto pb-1">
                           {screenImages.map((image, index) => (
                             <img
@@ -360,39 +415,166 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                             />
                           ))}
                         </div>
-                      )}
-                      
-                      {/* Image Counter */}
-                      {screenImages.length > 1 && (
-                        <p className="text-sm text-gray-500 text-center">
+                        <p className="text-xs text-gray-500 text-center mt-1">
                           {currentImageIndex + 1} / {screenImages.length}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Fixed Bottom Bar */}
+                <div className="flex-none h-14 px-4 border-t border-gray-200 bg-white/90 flex items-center justify-center">
+                  <Button
+                    onClick={handleNext}
+                    disabled={currentScreenIndex === screens.length - 1}
+                    className="w-full sm:w-auto"
+                  >
+                    {t('editor.preview.next')}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col h-full">
+                {/* Fixed Top Bar */}
+                <div className="flex-none h-12 px-5 flex items-center justify-between border-b border-gray-200 bg-white/90">
+                  <button
+                    className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50"
+                    title="Menu"
+                  >
+                    ☰
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={handlePrevious}
+                      disabled={currentScreenIndex === 0}
+                      className="px-3 py-2"
+                    >
+                      ←
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Optional Title */}
+                {titleText && (
+                  <div className="flex-none px-6 pt-3 pb-2 border-b border-gray-100 bg-white/90">
+                    <h3
+                      className="text-xl font-semibold leading-tight"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: maxTitleLines,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {titleText}
+                    </h3>
+                  </div>
+                )}
+
+                {/* Desktop Split Content */}
+                <div className={`flex-1 min-h-0 px-6 ${titleText ? 'pt-2 pb-3' : 'py-4'} overflow-hidden`}>
+                  <div className="grid grid-cols-12 gap-4 h-full">
+                    <div className="col-span-5 flex flex-col h-full overflow-hidden">
+                      {bodyText && (
+                        <p
+                          className="text-gray-700 leading-relaxed overflow-y-auto pr-1"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: maxTextLines,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {bodyText}
                         </p>
                       )}
                     </div>
-                  );
-                }
-                return null;
-              })()}
-            </div>
 
-            <div className="flex justify-between items-center mt-2">
-              <Button
-                onClick={handlePrevious}
-                disabled={currentScreenIndex === 0}
-              >
-                {t('editor.preview.previous')}
-              </Button>
-              <span className="text-gray-600">
-                {currentScreenIndex + 1} / {screens.length}
-              </span>
-              <Button
-                onClick={handleNext}
-                disabled={currentScreenIndex === screens.length - 1}
-              >
-                {t('editor.preview.next')}
-              </Button>
-            </div>
-          </div>
+                    <div className="col-span-7 flex flex-col h-full min-h-0 gap-3 overflow-hidden">
+                      <div className="relative flex-1 min-h-0 max-h-[50vh] min-h-[260px] rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
+                        {currentImage ? (
+                          <img
+                            src={currentImage.data}
+                            alt={currentImage.filename}
+                            className="w-full h-full object-contain cursor-pointer"
+                            onClick={() => setZoomedImage(currentImage.data)}
+                          />
+                        ) : (
+                          <span className="text-gray-400 text-sm">No image selected</span>
+                        )}
+
+                        {hasMultipleImages && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentImageIndex((prev) => 
+                                  prev > 0 ? prev - 1 : screenImages.length - 1
+                                );
+                              }}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
+                              aria-label="Previous image"
+                            >
+                              ‹
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentImageIndex((prev) => 
+                                  prev < screenImages.length - 1 ? prev + 1 : 0
+                                );
+                              }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
+                              aria-label="Next image"
+                            >
+                              ›
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Thumbnail carousel appears only when multiple images */}
+                      {hasMultipleImages && (
+                        <div className="flex-none">
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {screenImages.map((image, index) => (
+                              <img
+                                key={image.id}
+                                src={image.data}
+                                alt={image.filename}
+                                className={`object-contain rounded cursor-pointer border-2 transition-colors bg-gray-100 w-16 h-16 ${
+                                  index === currentImageIndex 
+                                    ? 'border-blue-500' 
+                                    : 'border-transparent hover:border-gray-300'
+                                }`}
+                                onClick={() => setCurrentImageIndex(index)}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 text-center mt-1">
+                            {currentImageIndex + 1} / {screenImages.length}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fixed Bottom Bar */}
+                <div className="flex-none h-14 px-6 border-t border-gray-200 bg-white/90 flex items-center justify-center">
+                  <Button
+                    onClick={handleNext}
+                    disabled={currentScreenIndex === screens.length - 1}
+                    className="w-full sm:w-auto"
+                  >
+                    {t('editor.preview.next')}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
         
         {/* Zoomed Image Modal */}

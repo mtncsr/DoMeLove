@@ -70,9 +70,9 @@ function EditorContent() {
 
   if (!currentProject) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">No project selected</p>
+          <p className="text-slate-700 mb-4">No project selected</p>
           <Button onClick={() => navigate('/')}>
             {t('common.back')}
           </Button>
@@ -97,18 +97,22 @@ function EditorContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-white flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 p-4 overflow-y-auto">
+      <div className="w-64 bg-white border-r border-slate-200 p-4 overflow-y-auto shadow-sm">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">{currentProject.name}</h2>
-          <Button
-            variant="secondary"
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+              ✨
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">{currentProject.name}</h2>
+          </div>
+          <button
             onClick={() => navigate('/')}
-            className="w-full"
+            className="w-full secondary-button rounded-xl px-4 py-2 text-sm font-semibold"
           >
-            {t('common.back')}
-          </Button>
+            ← {t('common.back')}
+          </button>
         </div>
 
         <div className="space-y-2">
@@ -125,9 +129,9 @@ function EditorContent() {
         </div>
 
         {debugMode && (
-          <div className="mt-8 p-4 bg-gray-100 rounded-lg">
-            <h3 className="font-semibold mb-2">Debug Mode</h3>
-            <pre className="text-xs overflow-auto max-h-96">
+          <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <h3 className="font-semibold mb-2 text-slate-900">Debug Mode</h3>
+            <pre className="text-xs overflow-auto max-h-96 text-slate-700">
               {JSON.stringify(currentProject, null, 2)}
             </pre>
           </div>
@@ -135,7 +139,7 @@ function EditorContent() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="flex-1 p-8 overflow-y-auto bg-gradient-to-br from-slate-50 to-white">
         <div className="max-w-4xl mx-auto">
           {renderStepContent()}
         </div>

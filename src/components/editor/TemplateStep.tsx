@@ -37,7 +37,7 @@ export function TemplateStep() {
   if (!currentProject) return null;
 
   const isCustomTemplate = currentProject.templateId === 'custom' || currentProject.data.customTemplate?.isCustom;
-
+  
   // Resolve which card should appear active. Prefer the stored selection; otherwise fall back
   // to the first card whose template id matches the project's templateId to avoid highlighting multiple cards.
   const templates = getTemplates();
@@ -108,10 +108,10 @@ export function TemplateStep() {
           return (
           <div
               key={template.displayId}
-            className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white ${
-              active
-                ? 'border-2 border-fuchsia-500 shadow-xl ring-2 ring-fuchsia-200'
-                : 'border-slate-200 hover:border-fuchsia-200 hover:shadow-md'
+              className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white dark:bg-[var(--surface-2)] ${
+                active
+                ? 'border-2 border-fuchsia-500 dark:border-[rgba(255,255,255,0.18)] shadow-xl ring-2 ring-fuchsia-200'
+                  : 'border-slate-200 dark:border-[rgba(255,255,255,0.12)] hover:border-fuchsia-200 hover:shadow-md'
             }`}
             onClick={() => handleSelectTemplate(template.id, template.displayId)}
           >
@@ -120,10 +120,10 @@ export function TemplateStep() {
           );
         })}
         <div
-          className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white ${
+          className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white dark:bg-[var(--surface-2)] ${
             isCustomTemplate
-              ? 'border-fuchsia-300 shadow-lg ring-1 ring-fuchsia-200'
-              : 'border-slate-200 hover:border-fuchsia-200 hover:shadow-md'
+              ? 'border-fuchsia-300 dark:border-[rgba(255,255,255,0.18)] shadow-lg ring-1 ring-fuchsia-200'
+              : 'border-slate-200 dark:border-[rgba(255,255,255,0.12)] hover:border-fuchsia-200 hover:shadow-md'
           }`}
           onClick={() => handleSelectTemplate('custom', 'custom')}
         >
@@ -133,7 +133,7 @@ export function TemplateStep() {
       </div>
       
       {isCustomTemplate && !showCustomBuilder && (
-        <div className="glass rounded-2xl p-4 border border-white/60">
+      <div className="glass rounded-2xl p-4 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)]">
           <p className="text-slate-800 mb-2">{t('editor.template.customTemplateSelected')}</p>
           <Button onClick={() => setShowCustomBuilder(true)} variant="primary">
             {t('editor.template.editCustomTemplate')}
@@ -282,7 +282,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
       </div>
 
       {/* Theme Selection */}
-      <div className="glass rounded-2xl p-6 border border-white/60 space-y-4">
+      <div className="glass rounded-2xl p-6 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)] space-y-4">
         <h3 className="text-lg font-semibold text-slate-900">Theme</h3>
         
         <div>
@@ -294,7 +294,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                 className={`p-3 rounded-xl cursor-pointer border transition-all ${
                   theme.name === predefinedTheme.name && theme.type === 'predefined'
                     ? 'border-fuchsia-300 bg-fuchsia-50 shadow-md'
-                    : 'border-slate-200 bg-white hover:border-fuchsia-200 hover:shadow-sm'
+                    : 'border-slate-200 bg-white dark:bg-[var(--surface-2)] dark:border-[rgba(255,255,255,0.12)] hover:border-fuchsia-200 hover:shadow-sm'
                 }`}
                 onClick={() => handleSelectTheme(predefinedTheme)}
               >
@@ -310,7 +310,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
             className={`p-3 rounded-xl cursor-pointer border transition-all ${
               theme.type === 'custom'
                 ? 'border-fuchsia-300 bg-fuchsia-50 shadow-md'
-                : 'border-slate-200 bg-white hover:border-fuchsia-200 hover:shadow-sm'
+                : 'border-slate-200 bg-white dark:bg-[var(--surface-2)] dark:border-[rgba(255,255,255,0.12)] hover:border-fuchsia-200 hover:shadow-sm'
             }`}
             onClick={() => handleSelectTheme({ ...getDefaultTheme(), type: 'custom', name: 'Custom' })}
           >
@@ -320,7 +320,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
         </div>
 
         {theme.type === 'custom' && (
-          <div className="mt-2 p-4 rounded-xl border border-slate-200 bg-white/70">
+          <div className="mt-2 p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] bg-white/70 dark:bg-[var(--surface-2)]">
             <h4 className="font-semibold text-slate-900 mb-3">Custom Theme Settings</h4>
             
             <div className="grid grid-cols-2 gap-4">
@@ -366,7 +366,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
       </div>
 
       {/* Screens Management */}
-      <div className="glass rounded-2xl p-6 border border-white/60 space-y-4">
+      <div className="glass rounded-2xl p-6 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)] space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-900">Screens</h3>
           <Button onClick={handleAddScreen} variant="primary">
@@ -376,7 +376,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
 
         <div className="space-y-4">
           {sortedScreens.map((screen: CustomScreenConfig, index: number) => (
-            <div key={screen.id} className="bg-white/90 rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div key={screen.id} className="bg-white/90 dark:bg-[var(--surface-2)] rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] p-4 shadow-sm">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">

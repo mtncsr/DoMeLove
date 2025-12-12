@@ -6,6 +6,24 @@
   --secondary: #e11d8d;
   --text-strong: #0f172a;
   --text-muted: #475569;
+  --surface: #ffffff;
+  --surface-2: #f9fafb;
+  --border-strong: rgba(0, 0, 0, 0.08);
+  --shadow-strong: rgba(162, 28, 175, 0.25);
+}
+
+html.theme-dark {
+  color-scheme: dark;
+  --gradient-hero: radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.45) 0, rgba(79, 70, 229, 0.45) 30%, rgba(46, 16, 101, 0.65) 60%, #0d0618 90%);
+  --gradient-card: linear-gradient(135deg, rgba(124, 58, 237, 0.24) 0%, rgba(232, 121, 249, 0.22) 55%, rgba(24, 24, 27, 0.65) 100%);
+  --primary: #d8b4fe;
+  --secondary: #f472b6;
+  --text-strong: #f6f6ff;
+  --text-muted: #cdd2e8;
+  --surface: #0f0a1a;
+  --surface-2: #171022;
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --shadow-strong: rgba(192, 132, 252, 0.32);
 }
 
 * {
@@ -14,23 +32,37 @@
 }
 
 body {
-  background: #ffffff;
+  background: var(--surface);
   color: var(--text-strong);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
+html.theme-dark body {
+  background: var(--surface);
+  color: var(--text-strong);
+}
+
+/* Invert the app tree for dark mode to preserve vibrancy */
 #root {
   min-height: 100vh;
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--surface-2);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border-strong);
   box-shadow: 0 18px 50px rgba(62, 8, 120, 0.08);
 }
 
+html.theme-dark .glass {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Re-invert images/media so they look normal after the global invert */
 .pill {
   border-radius: 9999px;
 }
@@ -42,12 +74,18 @@ body {
 }
 
 .gradient-button {
-  background: linear-gradient(120deg, #a21caf, #e11d8d);
+  background: linear-gradient(120deg, var(--primary), var(--secondary));
   color: #fff;
-  box-shadow: 0 16px 40px rgba(162, 28, 175, 0.25);
+  box-shadow: 0 16px 40px var(--shadow-strong);
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+html.theme-dark .gradient-button {
+  background: linear-gradient(120deg, var(--primary), var(--secondary)) !important;
+  color: #fff !important;
+  box-shadow: 0 18px 42px var(--shadow-strong);
 }
 
 .gradient-button:hover {
@@ -61,16 +99,27 @@ body {
   }
 
 .secondary-button {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: #fff;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
   color: var(--text-strong);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .secondary-button:hover {
-  border-color: rgba(162, 28, 175, 0.2);
-  background: #fafafa;
+  border-color: color-mix(in srgb, var(--primary) 25%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 85%, #fafafa 15%);
+}
+
+html.theme-dark .secondary-button {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-strong);
+}
+
+html.theme-dark .secondary-button:hover {
+  border-color: color-mix(in srgb, var(--secondary) 35%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 80%, #221538 20%);
 }
 
 .section-shell {
@@ -79,6 +128,109 @@ body {
 
 .card-gradient {
   background: var(--gradient-card);
+}
+
+html.theme-dark .card-gradient {
+  background: var(--gradient-card);
+}
+
+/* Override common light utility backgrounds in dark mode */
+html.theme-dark .bg-white,
+html.theme-dark .bg-white\/90,
+html.theme-dark .bg-white\/80,
+html.theme-dark .bg-white\/70,
+html.theme-dark .bg-white\/60,
+html.theme-dark .bg-gray-50,
+html.theme-dark .bg-gray-100,
+html.theme-dark .bg-gray-200,
+html.theme-dark .bg-slate-50,
+html.theme-dark .bg-slate-100,
+html.theme-dark .bg-slate-200 {
+  background-color: var(--surface-2) !important;
+  color: var(--text-strong) !important;
+}
+
+/* Override common light borders in dark mode */
+html.theme-dark .border-slate-200,
+html.theme-dark .border-gray-200,
+html.theme-dark .border-white,
+html.theme-dark .border-white\/60,
+html.theme-dark .border-gray-100,
+html.theme-dark .border-slate-100 {
+  border-color: var(--border-strong) !important;
+}
+
+/* Override common light text colors in dark mode */
+html.theme-dark .text-slate-900,
+html.theme-dark .text-gray-900 {
+  color: var(--text-strong) !important;
+}
+
+html.theme-dark .text-slate-800,
+html.theme-dark .text-slate-700,
+html.theme-dark .text-gray-800,
+html.theme-dark .text-gray-700 {
+  color: var(--text-strong) !important;
+}
+
+html.theme-dark .text-slate-600,
+html.theme-dark .text-slate-500,
+html.theme-dark .text-gray-600,
+html.theme-dark .text-gray-500 {
+  color: var(--text-muted) !important;
+}
+
+/* Keep preview content (overlay and frame) light even in dark mode */
+.theme-dark .force-light-preview .bg-white,
+.theme-dark .force-light-preview .bg-white\/90,
+.theme-dark .force-light-preview .bg-white\/80,
+.theme-dark .force-light-preview .bg-white\/70,
+.theme-dark .force-light-preview .bg-white\/60 {
+  background-color: #ffffff !important;
+  color: inherit !important;
+}
+
+.theme-dark .force-light-preview .border-gray-200,
+.theme-dark .force-light-preview .border-gray-100,
+.theme-dark .force-light-preview .border-white,
+.theme-dark .force-light-preview .border-white\/60 {
+  border-color: #e5e7eb !important;
+}
+
+.theme-dark .force-light-preview .text-pink-600 {
+  color: #db2777 !important;
+}
+
+.theme-dark .force-light-preview {
+  color-scheme: light;
+}
+
+/* Form fields */
+input:not([type='checkbox']):not([type='radio']),
+textarea,
+select {
+  background-color: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-strong);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--text-muted) 80%, transparent);
+}
+
+html.theme-dark input:not([type='checkbox']):not([type='radio']),
+html.theme-dark textarea,
+html.theme-dark select {
+  background-color: var(--surface-2);
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+html.theme-dark input::placeholder,
+html.theme-dark textarea::placeholder {
+  color: color-mix(in srgb, var(--text-muted) 70%, transparent);
 }
 
 /* Smooth scrolling */

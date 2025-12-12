@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import type { Project, ProjectData } from '../types/project';
+import type { Project } from '../types/project';
 import { storageService } from '../services/storageService';
 import { validationService } from '../services/validationService';
 import i18n, { getTextDirection } from '../i18n/config';
+import { useAppSettings } from './AppSettingsContext';
 
 interface ProjectContextType {
   projects: Project[];
@@ -23,6 +24,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const [currentProject, setCurrentProjectState] = useState<Project | null>(null);
   const currentProjectRef = useRef<Project | null>(null);
   const projectsRef = useRef<Project[]>([]);
+  const { autosaveEnabled } = useAppSettings();
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -47,11 +49,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Auto-save current project (debounced)
+  // Auto-save current project (debounced) when autosave is enabled
   useEffect(() => {
-    if (currentProject) {
+    if (currentProject && autosaveEnabled) {
       const timer = setTimeout(() => {
-        // Use refs to get the latest values without causing re-renders
         const projectToSave = currentProjectRef.current;
         const projectsToUpdate = projectsRef.current;
         
@@ -69,10 +70,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
           projectsRef.current = updatedProjects;
           storageService.saveProjects(updatedProjects);
         }
-      }, 1000); // Debounce auto-save
+      }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [currentProject]);
+  }, [currentProject, autosaveEnabled]);
 
   // Switch language when project changes
   useEffect(() => {

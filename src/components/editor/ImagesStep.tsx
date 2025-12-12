@@ -196,7 +196,7 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
               .filter((img): img is ImageData => img !== undefined);
 
             return (
-              <div key={screen.screenId} className="bg-white p-6 rounded-lg border border-gray-200">
+              <div key={screen.screenId} className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
                 <h3 className="text-lg font-semibold mb-4">Screen: {screen.screenId}</h3>
                 
                 {screenImages.length > 0 ? (
@@ -280,7 +280,7 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
           {currentProject.data.images.map((image) => {
             const isUsed = usedImageIds.has(image.id);
             return (
-              <div key={image.id} className="bg-white p-4 rounded-lg border border-gray-200 relative">
+              <div key={image.id} className="bg-white dark:bg-[var(--surface-2)] p-4 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)] relative">
                 {isUsed && (() => {
                   const assignedScreens = getScreensForImage(image.id);
                   const tooltipContent = assignedScreens.length > 0 

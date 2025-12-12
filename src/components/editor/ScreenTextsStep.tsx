@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
@@ -75,7 +74,7 @@ export function ScreenTextsStep({ templateMeta }: ScreenTextsStepProps) {
       <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('editor.steps.screenTexts')}</h2>
       <div className="space-y-8">
         {templateMeta.screens.map((screen) => (
-          <div key={screen.screenId} className="bg-white p-6 rounded-lg border border-gray-200">
+          <div key={screen.screenId} className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{screen.screenId}</h3>
             
             {screen.placeholders.includes('title') && (

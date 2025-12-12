@@ -2,46 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Preview container styles */
-.preview-mobile {
-  width: 100%;
-  max-width: 390px;
-  aspect-ratio: 390 / 844;
-  margin-left: auto;
-  margin-right: auto;
-  overflow: hidden;
-}
-
-.preview-desktop {
-  width: 100%;
-  max-width: 1280px;
-  aspect-ratio: 16 / 10;
-  margin-left: auto;
-  margin-right: auto;
-  overflow: hidden;
-}
-
-/* Page transition animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* Base reset + typography stays in the base layer so Tailwind can order it */
+@layer base {
+  body {
+    margin: 0;
+    @apply font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  /* Support class-based dark mode (paired with tailwind.config darkMode) */
+  .theme-dark body {
+    background-color: #0b1222;
+    color: #e2e8f0;
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+/* Component-level helpers */
+@layer components {
+  .theme-dark .glass {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .theme-dark .secondary-button {
+    background: #111827;
+    color: #e5e7eb;
+    border-color: #1f2937;
+  }
+
+  .preview-mobile {
+    width: 100%;
+    max-width: 390px;
+    aspect-ratio: 390 / 844;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+  }
+
+  .preview-desktop {
+    width: 100%;
+    max-width: 1280px;
+    aspect-ratio: 16 / 10;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+  }
+}
+
+/* Utility-level animation */
+@layer utilities {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
 }

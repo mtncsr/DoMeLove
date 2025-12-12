@@ -3,9 +3,10 @@ import React, { memo } from 'react';
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
+  footer?: React.ReactNode;
 }
 
-export const Textarea = memo(function Textarea({ label, error, className = '', ...props }: TextareaProps) {
+export const Textarea = memo(function Textarea({ label, error, footer, className = '', ...props }: TextareaProps) {
   return (
     <div className="w-full">
       {label && (
@@ -20,6 +21,7 @@ export const Textarea = memo(function Textarea({ label, error, className = '', .
         {...props}
       />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {footer && <div className="mt-1">{footer}</div>}
     </div>
   );
 });

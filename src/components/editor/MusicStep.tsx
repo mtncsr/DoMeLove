@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
@@ -96,7 +95,7 @@ export function MusicStep({ templateMeta }: MusicStepProps) {
         <div>
           <h3 className="text-lg font-semibold mb-4">{t('editor.music.globalMusic')}</h3>
           {currentProject.data.audio.global ? (
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="bg-white dark:bg-[var(--surface-2)] p-4 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
               <p className="text-sm text-gray-600 mb-2">{currentProject.data.audio.global.filename}</p>
               <p className="text-xs text-gray-500 mb-4">{formatFileSize(currentProject.data.audio.global.size)}</p>
               <Button variant="danger" onClick={handleDeleteGlobalAudio}>
@@ -120,7 +119,7 @@ export function MusicStep({ templateMeta }: MusicStepProps) {
             <div key={screen.screenId}>
               <h3 className="text-lg font-semibold mb-4">Screen: {screen.screenId}</h3>
               {hasAudio ? (
-                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <div className="bg-white dark:bg-[var(--surface-2)] p-4 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
                   <p className="text-sm text-gray-600 mb-2">
                     {currentProject.data.audio.screens[screen.screenId].filename}
                   </p>

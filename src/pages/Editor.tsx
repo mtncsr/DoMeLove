@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
+import { useAppSettings } from '../contexts/AppSettingsContext';
 import { EditorProvider, useEditor } from '../contexts/EditorContext';
 import { loadTemplateMeta } from '../utils/templateLoader';
 import type { TemplateMeta, ScreenConfig } from '../types/template';
@@ -12,6 +13,7 @@ import { TemplateStep } from '../components/editor/TemplateStep';
 import { ScreensStep } from '../components/editor/ScreensStep';
 import { ContentStep } from '../components/editor/ContentStep';
 import { PreviewExportStep } from '../components/editor/PreviewExportStep';
+import { TEMPLATE_CARDS } from '../data/templates';
 
 function generateCustomTemplateMeta(project: Project): TemplateMeta {
   const customScreens = project.data.customTemplate?.customScreens || [];
@@ -37,7 +39,8 @@ function generateCustomTemplateMeta(project: Project): TemplateMeta {
 function EditorContent() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { currentProject, updateProject } = useProject();
+  const { currentProject, updateProject, saveCurrentProject } = useProject();
+  const { setAutosaveEnabled } = useAppSettings();
   const { currentStep, setCurrentStep, steps } = useEditor();
   const [templateMeta, setTemplateMeta] = useState<TemplateMeta | null>(null);
   const [debugMode, setDebugMode] = useState(false);
@@ -55,6 +58,32 @@ function EditorContent() {
       }
     }
   }, [currentProject?.templateId, currentProject?.data.customTemplate]);
+
+  // When template meta loads or template changes, sync dynamicScreens to match the template
+  useEffect(() => {
+    if (!templateMeta || !currentProject) return;
+    const alreadySynced = currentProject.data.dynamicScreensTemplateId === templateMeta.templateId;
+    if (!alreadySynced) {
+      const selectedCard = TEMPLATE_CARDS.find(
+        (c) => c.id === currentProject.data.selectedTemplateCardId
+      );
+      let orderedScreens = [...templateMeta.screens].sort((a, b) => a.order - b.order);
+
+      // If marketing card defines a specific screen count, trim to that count to match expectation
+      if (selectedCard?.screens && orderedScreens.length > selectedCard.screens) {
+        orderedScreens = orderedScreens.slice(0, selectedCard.screens);
+      }
+
+      updateProject({
+        ...currentProject,
+        data: {
+          ...currentProject.data,
+          dynamicScreens: orderedScreens,
+          dynamicScreensTemplateId: templateMeta.templateId,
+        },
+      });
+    }
+  }, [templateMeta?.templateId, currentProject, updateProject]);
 
   // Debug mode toggle (Ctrl+D)
   useEffect(() => {
@@ -97,9 +126,9 @@ function EditorContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-[#0f0a1a] dark:via-[#140a26] dark:to-[#0f0a1a] flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white/80 backdrop-blur border-r border-slate-200 p-4 overflow-y-auto shadow-md">
+      <div className="w-64 bg-white/80 dark:bg-[rgba(23,16,34,0.85)] backdrop-blur border-r border-slate-200 dark:border-[rgba(255,255,255,0.08)] p-4 overflow-y-auto shadow-md">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold text-base">
@@ -129,6 +158,21 @@ function EditorContent() {
           ))}
         </div>
 
+        <div className="mt-10">
+          <Button
+            className="w-full gradient-button text-white px-4 py-3 rounded-2xl text-base shadow-lg hover:shadow-xl"
+            onClick={() => {
+              saveCurrentProject();
+              setAutosaveEnabled(true);
+            }}
+          >
+            Save project
+          </Button>
+          <p className="text-xs text-slate-500 mt-2">
+            Saves now and turns on autosave for future edits.
+          </p>
+        </div>
+
         {debugMode && (
           <div className="mt-8 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
             <h3 className="font-semibold mb-2 text-slate-900">Debug Mode</h3>
@@ -140,8 +184,8 @@ function EditorContent() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-6 sm:p-8 overflow-y-auto">
-        <div className="max-w-5xl mx-auto glass rounded-2xl p-4 sm:p-6 md:p-8 border border-white/60 shadow-xl">
+      <div className="flex-1 p-6 sm:p-8 overflow-y-auto" style={{ backgroundColor: 'var(--surface)' }}>
+        <div className="max-w-5xl mx-auto glass rounded-2xl p-4 sm:p-6 md:p-8 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)] shadow-xl">
           {renderStepContent()}
         </div>
       </div>
@@ -150,8 +194,16 @@ function EditorContent() {
 }
 
 export function Editor() {
-  const { currentProject } = useProject();
+  const { currentProject, createProject, setCurrentProject } = useProject();
   const [templateMeta, setTemplateMeta] = useState<TemplateMeta | null>(null);
+
+  // If user navigates directly without a current project, create a default one
+  useEffect(() => {
+    if (!currentProject) {
+      const project = createProject('romantic', 'My interactive gift');
+      setCurrentProject(project);
+    }
+  }, [currentProject, createProject, setCurrentProject]);
 
   useEffect(() => {
     if (currentProject?.templateId) {
@@ -168,7 +220,11 @@ export function Editor() {
   }, [currentProject?.templateId, currentProject?.data.customTemplate]);
 
   if (!currentProject) {
-    return null;
+    return (
+      <div className="min-h-screen bg-white dark:bg-[var(--surface)] flex items-center justify-center text-slate-700 dark:text-[var(--text-strong)]">
+        <p>Loading editor...</p>
+      </div>
+    );
   }
 
   return (

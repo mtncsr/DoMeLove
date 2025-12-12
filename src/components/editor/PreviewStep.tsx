@@ -230,7 +230,7 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
   }, []);
 
   return (
-    <div>
+    <div className="bg-transparent">
       <div className="flex justify-end items-center mb-6">
         <div className="flex gap-2 items-center">
           <button
@@ -265,24 +265,35 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
         </div>
       )}
 
-      <div className={`bg-white rounded-lg border border-gray-200 ${isMobileView ? 'preview-mobile' : 'preview-desktop'} relative overflow-x-hidden overflow-y-auto`}>
+      <div
+        className={`bg-white rounded-lg border border-gray-200 ${
+          isMobileView ? 'preview-mobile' : 'preview-desktop'
+        } relative overflow-x-hidden overflow-y-auto force-light-preview`}
+        style={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb' }}
+      >
         {overlayVisible ? (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-red-500 text-white cursor-pointer"
+            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-red-500 text-white cursor-pointer force-light-preview"
             onClick={handleOverlayClick}
+            style={{ 
+              background: 'linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68))',
+              color: 'white'
+            }}
           >
-            <h3 className="text-3xl font-bold mb-2">
+            <h3 className="text-3xl font-bold mb-2" style={{ color: 'white' }}>
               {currentProject.data.overlay.mainText || 'Welcome'}
             </h3>
-            <p className="text-xl mb-4">
+            <p className="text-xl mb-4" style={{ color: 'white' }}>
               {currentProject.data.overlay.subText || 'To your special gift'}
             </p>
             <button 
-              className="px-6 py-3 bg-white text-pink-600 rounded-lg font-semibold hover:bg-gray-100"
+              className="px-6 py-3 rounded-lg font-semibold shadow-sm"
               style={{ 
                 animation: 'pulse 2s infinite',
                 minWidth: '120px',
-                minHeight: '48px'
+                minHeight: '48px',
+                backgroundColor: 'white',
+                color: 'rgb(219, 39, 119)'
               }}
             >
               {currentProject.data.overlay.buttonText || ''}
@@ -492,8 +503,8 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                       )}
                     </div>
 
-                    <div className="col-span-7 flex flex-col h-full min-h-0 gap-3 overflow-hidden">
-                      <div className="relative flex-1 min-h-0 max-h-[50vh] min-h-[260px] rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
+                    <div className="col-span-7 flex flex-col h-full gap-3 overflow-hidden">
+                      <div className="relative flex-1 max-h-[50vh] min-h-[260px] rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
                         {currentImage ? (
                           <img
                             src={currentImage.data}
@@ -514,7 +525,7 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                                   prev > 0 ? prev - 1 : screenImages.length - 1
                                 );
                               }}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
                               aria-label="Previous image"
                             >
                               ‹
@@ -526,7 +537,7 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                                   prev < screenImages.length - 1 ? prev + 1 : 0
                                 );
                               }}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
                               aria-label="Next image"
                             >
                               ›

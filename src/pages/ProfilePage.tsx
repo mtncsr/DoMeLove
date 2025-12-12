@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navigation } from '../components/layout/Navigation';
 import { Footer } from '../components/layout/Footer';
 import { Button } from '../components/ui/Button';
 import { useProject } from '../contexts/ProjectContext';
+import { useAppSettings } from '../contexts/AppSettingsContext';
+import { Settings } from 'lucide-react';
 
 export function ProfilePage() {
   const { projects, setCurrentProject, deleteProject, exportProject, importProject } = useProject();
   const navigate = useNavigate();
+  const { autosaveEnabled, setAutosaveEnabled, theme, setTheme } = useAppSettings();
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleEdit = (projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
@@ -66,6 +71,13 @@ export function ProfilePage() {
             <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold">
               Projects: {projects.length}
             </span>
+            <button
+              className="ml-auto p-2 rounded-full hover:bg-slate-100 transition-colors border border-slate-200"
+              onClick={() => setShowSettings(true)}
+              aria-label="Open settings"
+            >
+              <Settings className="w-5 h-5 text-slate-700" />
+            </button>
           </div>
         </section>
 
@@ -110,6 +122,88 @@ export function ProfilePage() {
             </div>
           )}
         </section>
+
+        {/* Settings modal */}
+        {showSettings && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg border border-slate-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-slate-900">Settings</h3>
+                <button
+                  className="text-slate-500 hover:text-slate-800"
+                  onClick={() => setShowSettings(false)}
+                  aria-label="Close settings"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-900">Autosave</p>
+                    <p className="text-sm text-slate-600">Automatically save while editing.</p>
+                  </div>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={autosaveEnabled}
+                      onChange={(e) => setAutosaveEnabled(e.target.checked)}
+                    />
+                    <div
+                      className="w-11 h-6 rounded-full transition-colors relative"
+                      style={{
+                        backgroundColor: autosaveEnabled ? '#f472b6' : '#e2e8f0',
+                      }}
+                    >
+                      <span
+                        className="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200"
+                        style={{
+                          left: autosaveEnabled ? '1.4rem' : '0.25rem',
+                        }}
+                      />
+                    </div>
+                  </label>
+                </div>
+
+                <div>
+                  <p className="font-semibold text-slate-900 mb-2">Theme</p>
+                  <div className="flex gap-3">
+                    <Button
+                      variant={theme === 'light' ? 'primary' : 'secondary'}
+                      onClick={() => setTheme('light')}
+                    >
+                      Light
+                    </Button>
+                    <Button
+                      variant={theme === 'dark' ? 'primary' : 'secondary'}
+                      onClick={() => setTheme('dark')}
+                    >
+                      Dark
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white px-4 py-3 rounded-2xl">
+                  <div>
+                    <p className="font-semibold">Upgrade your plan</p>
+                    <p className="text-sm opacity-90">Unlock more projects and features.</p>
+                  </div>
+                  <Button className="bg-white text-fuchsia-600 hover:shadow-lg" onClick={() => alert('Upgrade flow coming soon')}>
+                    Upgrade
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setShowSettings(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </div>

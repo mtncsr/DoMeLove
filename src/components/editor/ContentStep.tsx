@@ -118,7 +118,7 @@ export function ContentStep() {
       </div>
 
       {/* Tab Content */}
-      <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 animate-fade-in">
+      <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)] animate-fade-in">
       {activeTab === 'images' ? (
         <ImagesTab
           project={currentProject}
@@ -247,7 +247,7 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
                 : t('editor.content.usedInScreen');
               
               return (
-                <div key={image.id} className="bg-white/90 p-4 rounded-xl border border-slate-200 relative shadow-sm">
+                <div key={image.id} className="bg-white/90 dark:bg-[var(--surface-2)] p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] relative shadow-sm">
                   {isUsed && (
                     <Tooltip content={tooltipContent} position="top">
                       <div className="absolute top-2 right-2 bg-emerald-500 rounded-full p-1.5 z-10 cursor-help shadow">
@@ -404,7 +404,7 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
         ) : (
           <div className="space-y-4">
             {allAudioFiles.map(({ id, file, type, screenId }) => (
-              <div key={id} className="bg-white/90 p-4 rounded-xl border border-slate-200 shadow-sm">
+              <div key={id} className="bg-white/90 dark:bg-[var(--surface-2)] p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] shadow-sm">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-900">{file.filename}</p>

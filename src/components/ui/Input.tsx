@@ -3,9 +3,10 @@ import React, { memo } from 'react';
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  footer?: React.ReactNode;
 }
 
-export const Input = memo(function Input({ label, error, className = '', ...props }: InputProps) {
+export const Input = memo(function Input({ label, error, footer, className = '', ...props }: InputProps) {
   return (
     <div className="w-full">
       {label && (
@@ -20,6 +21,7 @@ export const Input = memo(function Input({ label, error, className = '', ...prop
         {...props}
       />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {footer && <div className="mt-1">{footer}</div>}
     </div>
   );
 });

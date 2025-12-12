@@ -1,3 +1,5 @@
+import type { ScreenConfig } from './template';
+
 // Project data structure
 export interface Project {
   id: string;
@@ -41,6 +43,18 @@ export interface ProjectData {
   
   // Screen display names (for UI tabs - preserves original screen IDs)
   screenDisplayNames?: Record<string, string>; // screenId -> displayName
+
+  // User-customized screen structure (order, placeholders, types) derived from template meta
+  dynamicScreens?: ScreenConfig[];
+  dynamicScreensTemplateId?: string;
+
+  // UI context for main screen details (helps reflect marketing positioning)
+  mainDetailsContext?: {
+    heading?: string;
+    subtitle?: string;
+    titlePlaceholder?: string;
+    textPlaceholder?: string;
+  };
 
   // UI selection state
   selectedTemplateCardId?: string;

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ProjectProvider } from './contexts/ProjectContext';
+import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { HomePage } from './pages/HomePage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
@@ -38,18 +39,20 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ProjectProvider>
-      <ErrorBoundary>
-        <Router
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
-          <AppRoutes />
-        </Router>
-      </ErrorBoundary>
-    </ProjectProvider>
+    <AppSettingsProvider>
+      <ProjectProvider>
+        <ErrorBoundary>
+          <Router
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
+            <AppRoutes />
+          </Router>
+        </ErrorBoundary>
+      </ProjectProvider>
+    </AppSettingsProvider>
   );
 }
 

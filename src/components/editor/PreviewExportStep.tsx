@@ -11,6 +11,7 @@ interface PreviewExportStepProps {
 export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
   const [activeTab, setActiveTab] = useState<'preview' | 'export'>('preview');
   const { t } = useTranslation();
+  
 
   return (
     <div className="space-y-6">
@@ -43,7 +44,7 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 animate-fade-in">
+      <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)] animate-fade-in">
       {activeTab === 'preview' ? (
         <PreviewStep templateMeta={templateMeta} />
       ) : (

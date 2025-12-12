@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import { useEditor } from '../../contexts/EditorContext';
@@ -8,7 +8,7 @@ import { ImageUpload } from '../ui/ImageUpload';
 import { AudioUpload } from '../ui/AudioUpload';
 import { Button } from '../ui/Button';
 import { Tooltip } from '../ui/Tooltip';
-import { formatFileSize, getImageSizeKB } from '../../utils/imageProcessor';
+import { formatFileSize } from '../../utils/imageProcessor';
 
 export function ContentStep() {
   const { t } = useTranslation();
@@ -87,41 +87,6 @@ export function ContentStep() {
 
   if (!currentProject) return null;
 
-  // Get all image IDs that are used in at least one screen (for green checkmarks)
-  // Only count images that actually exist in the project's images array AND are assigned to screens that exist in the template
-  const getUsedImageIds = (): Set<string> => {
-    const usedIds = new Set<string>();
-    if (!currentProject.data.images || currentProject.data.images.length === 0) {
-      return usedIds; // No images, so nothing is used
-    }
-    
-    const validImageIds = new Set(currentProject.data.images.map(img => img.id));
-    
-    // Get valid screen IDs from template (only check screens that exist in current template)
-    const validScreenIds = templateMeta ? new Set(templateMeta.screens.map(s => s.screenId)) : new Set<string>();
-    
-    // Only check screens that exist in the current template
-    Object.entries(currentProject.data.screens).forEach(([screenId, screenData]) => {
-      // Skip screens that don't exist in the current template
-      if (!validScreenIds.has(screenId)) {
-        return;
-      }
-      
-      if (screenData && screenData.images && Array.isArray(screenData.images) && screenData.images.length > 0) {
-        screenData.images.forEach((imageId: any) => {
-          // Validate: imageId must be a non-empty string and exist in the project
-          if (typeof imageId === 'string' && imageId.trim() !== '' && validImageIds.has(imageId)) {
-            usedIds.add(imageId);
-          }
-        });
-      }
-    });
-    
-    return usedIds;
-  };
-
-  const usedImageIds = getUsedImageIds();
-
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-900">{t('editor.content.title')}</h2>
@@ -154,19 +119,18 @@ export function ContentStep() {
 
       {/* Tab Content */}
       <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 animate-fade-in">
-        {activeTab === 'images' ? (
-          <ImagesTab
-            project={currentProject}
-            updateProject={updateProject}
-            usedImageIds={usedImageIds}
-            templateMeta={templateMeta}
-          />
-        ) : (
-          <MusicTab
-            project={currentProject}
-            updateProject={updateProject}
-          />
-        )}
+      {activeTab === 'images' ? (
+        <ImagesTab
+          project={currentProject}
+          updateProject={updateProject}
+          templateMeta={templateMeta}
+        />
+      ) : (
+        <MusicTab
+          project={currentProject}
+          updateProject={updateProject}
+        />
+      )}
       </div>
     </div>
   );
@@ -175,11 +139,10 @@ export function ContentStep() {
 interface ImagesTabProps {
   project: any;
   updateProject: (project: any) => void;
-  usedImageIds: Set<string>;
   templateMeta: TemplateMeta | null;
 }
 
-function ImagesTab({ project, updateProject, usedImageIds, templateMeta }: ImagesTabProps) {
+function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
   const { t } = useTranslation();
 
   // Get which screens an image is assigned to (only if image exists AND screen exists in current template)
@@ -370,10 +333,11 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
     });
   }
 
-  Object.entries(project.data.audio.screens || {}).forEach(([screenId, audio]: [string, AudioFile]) => {
+  Object.entries(project.data.audio.screens || {}).forEach(([screenId, audio]) => {
+    const audioFile = audio as AudioFile;
     allAudioFiles.push({
-      id: audio.id,
-      file: audio,
+      id: audioFile.id,
+      file: audioFile,
       type: 'screen',
       screenId,
     });

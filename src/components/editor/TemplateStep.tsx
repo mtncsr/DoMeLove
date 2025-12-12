@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import type { ScreenData, CustomScreenConfig, ThemeConfig } from '../../types/project';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 import { PREDEFINED_THEMES, getDefaultTheme } from '../../utils/themes';
 import { TEMPLATE_CARDS } from '../../data/templates';
 
 const getTemplates = () =>
   TEMPLATE_CARDS.map((t) => ({
-    id: t.templateId,
-    displayId: t.id,
+    id: t.templateId, // actual template id used to load metadata
+    displayId: t.id,  // card id for UI selection
     name: t.title,
   }));
 
@@ -38,8 +37,14 @@ export function TemplateStep() {
   if (!currentProject) return null;
 
   const isCustomTemplate = currentProject.templateId === 'custom' || currentProject.data.customTemplate?.isCustom;
+
+  // Resolve which card should appear active. Prefer the stored selection; otherwise fall back
+  // to the first card whose template id matches the project's templateId to avoid highlighting multiple cards.
+  const templates = getTemplates();
+  const fallbackSelectedCard = templates.find((t) => t.id === currentProject.templateId)?.displayId;
+  const selectedTemplateCardId = currentProject.data.selectedTemplateCardId ?? fallbackSelectedCard;
   
-  const handleSelectTemplate = (templateId: string) => {
+  const handleSelectTemplate = (templateId: string, displayId: string) => {
     if (currentProject) {
       if (templateId === 'custom') {
         // Initialize custom template
@@ -48,6 +53,7 @@ export function TemplateStep() {
           templateId: 'custom',
           data: {
             ...currentProject.data,
+            selectedTemplateCardId: displayId,
             customTemplate: {
               isCustom: true,
               theme: getDefaultTheme(),
@@ -76,7 +82,10 @@ export function TemplateStep() {
         updateProject({
           ...currentProject,
           templateId,
-          data: restData,
+          data: {
+            ...restData,
+            selectedTemplateCardId: displayId,
+          },
         });
         setShowCustomBuilder(false);
       }
@@ -87,8 +96,6 @@ export function TemplateStep() {
     return <CustomTemplateBuilder project={currentProject} onUpdate={updateProject} onBack={() => setShowCustomBuilder(false)} />;
   }
 
-  const templates = getTemplates();
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -97,19 +104,19 @@ export function TemplateStep() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {templates.map((template) => {
-          const active = currentProject.templateId === template.id;
+          const active = selectedTemplateCardId === template.displayId;
           return (
-            <div
+          <div
               key={template.displayId}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white ${
-                active
-                  ? 'border-fuchsia-300 shadow-lg ring-1 ring-fuchsia-200'
-                  : 'border-slate-200 hover:border-fuchsia-200 hover:shadow-md'
-              }`}
-              onClick={() => handleSelectTemplate(template.id)}
-            >
+            className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white ${
+              active
+                ? 'border-2 border-fuchsia-500 shadow-xl ring-2 ring-fuchsia-200'
+                : 'border-slate-200 hover:border-fuchsia-200 hover:shadow-md'
+            }`}
+            onClick={() => handleSelectTemplate(template.id, template.displayId)}
+          >
               <h3 className="text-lg font-semibold text-slate-900">{template.name}</h3>
-            </div>
+          </div>
           );
         })}
         <div
@@ -118,7 +125,7 @@ export function TemplateStep() {
               ? 'border-fuchsia-300 shadow-lg ring-1 ring-fuchsia-200'
               : 'border-slate-200 hover:border-fuchsia-200 hover:shadow-md'
           }`}
-          onClick={() => handleSelectTemplate('custom')}
+          onClick={() => handleSelectTemplate('custom', 'custom')}
         >
           <h3 className="text-lg font-semibold text-slate-900">{t('editor.template.customTemplate')}</h3>
           <p className="text-sm text-slate-600 mt-2">{t('editor.template.customTemplateDescription')}</p>

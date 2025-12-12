@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
 import { LanguageSelector } from '../components/ui/LanguageSelector';
@@ -106,8 +105,8 @@ export function Home() {
 
   const startNewGift = () => {
     const project = createProject('romantic', 'My interactive gift');
-    setCurrentProject(project);
-    navigate('/editor');
+      setCurrentProject(project);
+      navigate('/editor');
   };
 
   const scrollTo = (id: string) => {
@@ -186,7 +185,7 @@ export function Home() {
             <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-slate-100">
               🔗 Share by link, QR or file
             </div>
-          </div>
+        </div>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
               className="gradient-button pill px-6 py-3 text-base font-semibold"
@@ -197,10 +196,10 @@ export function Home() {
             <button
               className="secondary-button pill px-6 py-3 text-base font-semibold"
               onClick={() => scrollTo('examples')}
-            >
+                  >
               Watch an example
             </button>
-          </div>
+                </div>
           <div className="mt-12 card-gradient rounded-3xl p-6 shadow-xl border border-white/60">
             <div className="h-64 md:h-80 w-full rounded-2xl bg-gradient-to-br from-purple-500/30 via-white to-fuchsia-400/30 grid place-items-center text-2xl text-slate-800 font-semibold">
               Your interactive gift preview
@@ -356,7 +355,7 @@ export function Home() {
                 <button
                   className={`${plan.popular ? 'gradient-button text-white' : 'secondary-button'} pill px-5 py-3 text-sm font-semibold`}
                   onClick={startNewGift}
-                >
+                  >
                   {plan.cta}
                 </button>
               </div>
@@ -397,7 +396,7 @@ export function Home() {
           </p>
           <div className="mt-8 card-gradient rounded-3xl p-10 shadow-xl border border-white/60 grid place-items-center text-3xl font-semibold text-slate-800">
             Built for moments that matter ❤️
-          </div>
+        </div>
         </section>
 
         {/* Contact */}
@@ -434,7 +433,7 @@ export function Home() {
               rows={4}
               placeholder="Tell us how we can help you..."
             />
-          </div>
+        </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <button className="gradient-button pill px-6 py-3 text-sm font-semibold" onClick={startNewGift}>
               Start creating
@@ -442,7 +441,7 @@ export function Home() {
             <button className="secondary-button pill px-6 py-3 text-sm font-semibold">
               Send message
             </button>
-          </div>
+      </div>
         </section>
       </main>
     </div>

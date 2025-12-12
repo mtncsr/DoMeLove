@@ -41,6 +41,9 @@ export interface ProjectData {
   
   // Screen display names (for UI tabs - preserves original screen IDs)
   screenDisplayNames?: Record<string, string>; // screenId -> displayName
+
+  // UI selection state
+  selectedTemplateCardId?: string;
 }
 
 export interface ThemeConfig {

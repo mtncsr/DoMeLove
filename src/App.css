@@ -58,7 +58,7 @@ body {
 
 .gradient-button:active {
   transform: translateY(0);
-}
+  }
 
 .secondary-button {
   border: 1px solid rgba(0, 0, 0, 0.08);

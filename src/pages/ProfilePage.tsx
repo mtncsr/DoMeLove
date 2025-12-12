@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navigation } from '../components/layout/Navigation';
 import { Footer } from '../components/layout/Footer';
@@ -116,4 +115,5 @@ export function ProfilePage() {
     </div>
   );
 }
+
 

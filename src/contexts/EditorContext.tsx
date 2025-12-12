@@ -35,51 +35,51 @@ export function EditorProvider({
   const getScreensStatus = useCallback((proj: Project | null, tmpl: TemplateMeta | null): StepStatus => {
     if (!proj || !tmpl) return 'notStarted';
 
-    // Check gift details (for Main screen)
+        // Check gift details (for Main screen)
     const hasRecipient = !!proj.data.recipientName;
     const hasSender = !!proj.data.senderName;
     const required = tmpl.globalPlaceholders.filter((p) => ['recipientName', 'senderName'].includes(p));
-    let giftDetailsComplete = true;
-    if (required.length > 0) {
+        let giftDetailsComplete = true;
+        if (required.length > 0) {
       giftDetailsComplete = required.every((p) => {
-        if (p === 'recipientName') return hasRecipient;
-        if (p === 'senderName') return hasSender;
-        return true;
-      });
-    }
-
-    // Check screen texts and images
-    const screens = tmpl.screens;
-    let hasAnyScreenContent = false;
-    let hasAllScreenContent = true;
-    let hasAnyImages = false;
-    let hasAllRequiredImages = true;
-
-    for (const screen of screens) {
-      const screenData = proj.data.screens[screen.screenId];
-      const hasTitle = !!screenData?.title;
-      const hasText = !!screenData?.text;
-      const screenImages = screenData?.images || [];
-      const imageCount = screenImages.length;
-
-      if (hasTitle || hasText) hasAnyScreenContent = true;
-      for (const required of screen.required) {
-        if (required.includes('title') && !hasTitle) hasAllScreenContent = false;
-        if (required.includes('text') && !hasText) hasAllScreenContent = false;
-      }
-
-      const requiredImageCount = typeof screen.galleryImageCount === 'number' ? screen.galleryImageCount : 0;
-      if (requiredImageCount > 0) {
-        if (imageCount > 0) hasAnyImages = true;
-        if (imageCount < requiredImageCount) {
-          hasAllRequiredImages = false;
+            if (p === 'recipientName') return hasRecipient;
+            if (p === 'senderName') return hasSender;
+            return true;
+          });
         }
-      } else if (imageCount > 0) {
-        hasAnyImages = true;
-      }
-    }
 
-    if (giftDetailsComplete && hasAllScreenContent && hasAllRequiredImages) return 'complete';
+        // Check screen texts and images
+    const screens = tmpl.screens;
+        let hasAnyScreenContent = false;
+        let hasAllScreenContent = true;
+        let hasAnyImages = false;
+        let hasAllRequiredImages = true;
+        
+        for (const screen of screens) {
+      const screenData = proj.data.screens[screen.screenId];
+          const hasTitle = !!screenData?.title;
+          const hasText = !!screenData?.text;
+          const screenImages = screenData?.images || [];
+          const imageCount = screenImages.length;
+          
+          if (hasTitle || hasText) hasAnyScreenContent = true;
+          for (const required of screen.required) {
+            if (required.includes('title') && !hasTitle) hasAllScreenContent = false;
+            if (required.includes('text') && !hasText) hasAllScreenContent = false;
+          }
+          
+          const requiredImageCount = typeof screen.galleryImageCount === 'number' ? screen.galleryImageCount : 0;
+          if (requiredImageCount > 0) {
+            if (imageCount > 0) hasAnyImages = true;
+            if (imageCount < requiredImageCount) {
+              hasAllRequiredImages = false;
+            }
+          } else if (imageCount > 0) {
+            hasAnyImages = true;
+          }
+        }
+
+        if (giftDetailsComplete && hasAllScreenContent && hasAllRequiredImages) return 'complete';
     if (
       hasRecipient ||
       hasSender ||
@@ -109,8 +109,8 @@ export function EditorProvider({
           const hasScreenAudio = Object.keys(project.data.audio.screens || {}).length > 0;
           const hasGlobalAudio = !!project.data.audio.global;
           if (hasImages || hasLibraryAudio || hasScreenAudio || hasGlobalAudio) return 'complete';
-          return 'notStarted';
-        }
+        return 'notStarted';
+      }
 
         case 'previewExport': {
           const screensStatus = getScreensStatus(project, templateMeta);
@@ -119,9 +119,9 @@ export function EditorProvider({
           return 'notStarted';
         }
 
-        default:
-          return 'notStarted';
-      }
+      default:
+        return 'notStarted';
+    }
     },
     [getScreensStatus]
   );

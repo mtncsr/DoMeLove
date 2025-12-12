@@ -18,9 +18,17 @@ export function TemplatesPage() {
       ? TEMPLATE_CARDS
       : TEMPLATE_CARDS.filter((t) => t.category === selectedCategory);
 
-  const handleTemplateSelect = (templateId: string, title: string) => {
+  const handleTemplateSelect = (templateId: string, cardId: string, title: string) => {
+    // Create a new project and record which card was selected for UI highlighting
     const project = createProject(templateId, `${title} Gift`);
-    setCurrentProject(project);
+    // Persist selected card id on the project for later highlighting in the editor
+    setCurrentProject({
+      ...project,
+      data: {
+        ...project.data,
+        selectedTemplateCardId: cardId,
+      },
+    });
     navigate('/editor');
   };
 
@@ -120,7 +128,7 @@ export function TemplatesPage() {
                 <Button
                   variant="primary"
                   className="w-full rounded-xl"
-                  onClick={() => handleTemplateSelect(template.id, template.title)}
+                  onClick={() => handleTemplateSelect(template.templateId, template.id, template.title)}
                 >
                   Use this template →
                 </Button>

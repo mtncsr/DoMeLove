@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
 import { Navigation } from '../components/layout/Navigation';
 import { Footer } from '../components/layout/Footer';
-import { GiftBox } from '../components/graphics/GiftBox';
+import { Gift } from 'lucide-react';
 
 const templateCards = [
   {
@@ -103,7 +103,7 @@ export function HomePage() {
           
           {/* Gift box graphic */}
           <div className="absolute bottom-0 left-0 opacity-20 -z-10 hidden lg:block">
-            <GiftBox className="w-48 h-48" />
+            <Gift className="w-48 h-48 text-fuchsia-500" strokeWidth={2.4} />
           </div>
         </section>
 
@@ -182,7 +182,7 @@ export function HomePage() {
           {/* Gift box at bottom */}
           <div className="mt-8 flex justify-center lg:justify-start lg:absolute lg:bottom-0 lg:left-0 lg:mt-0">
             <div className="opacity-30 lg:opacity-20">
-              <GiftBox className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48" />
+            <Gift className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 text-fuchsia-500" strokeWidth={2.4} />
             </div>
           </div>
         </section>

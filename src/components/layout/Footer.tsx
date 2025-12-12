@@ -13,7 +13,7 @@ export function Footer() {
                 ✨
               </div>
               <div className="font-semibold text-base bg-gradient-to-r from-fuchsia-600 to-purple-700 bg-clip-text text-transparent">
-                Interactive HTML Gifts
+                LoveMeDo
               </div>
             </Link>
             <p className="text-sm text-slate-600 leading-relaxed">
@@ -32,7 +32,7 @@ export function Footer() {
               </li>
               <li>
                 <Link to="/templates" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  Template
+                  Templates
                 </Link>
               </li>
               <li>
@@ -89,7 +89,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 pt-8 border-t border-slate-200 text-center text-sm text-slate-600">
-          <p>© {new Date().getFullYear()} Interactive HTML Gifts. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} LoveMeDo. All rights reserved.</p>
         </div>
       </div>
     </footer>

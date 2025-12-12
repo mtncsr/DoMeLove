@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
@@ -80,43 +80,10 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
   const currentScreen = screens[activeScreenIndex];
   const isMainScreen = activeScreenIndex === 0;
 
-  // Get used image IDs
-  // Only count images that actually exist in the project's images array AND are assigned to screens that exist in the template
-  const getUsedImageIds = (): Set<string> => {
-    const usedIds = new Set<string>();
-    if (!currentProject.data.images || currentProject.data.images.length === 0) {
-      return usedIds; // No images, so nothing is used
-    }
-    
-    const validImageIds = new Set(currentProject.data.images.map(img => img.id));
-    
-    // Get valid screen IDs from template (only check screens that exist in current template)
-    const validScreenIds = templateMeta ? new Set(templateMeta.screens.map(s => s.screenId)) : new Set<string>();
-    
-    Object.entries(currentProject.data.screens).forEach(([screenId, screenData]) => {
-      // Skip screens that don't exist in the current template
-      if (!validScreenIds.has(screenId)) {
-        return;
-      }
-      
-      if (screenData && screenData.images && Array.isArray(screenData.images) && screenData.images.length > 0) {
-        screenData.images.forEach((imageId: any) => {
-          // Validate: imageId must be a non-empty string and exist in the project
-          if (typeof imageId === 'string' && imageId.trim() !== '' && validImageIds.has(imageId)) {
-            usedIds.add(imageId);
-          }
-        });
-      }
-    });
-    return usedIds;
-  };
-
-  const usedImageIds = getUsedImageIds();
-
   // Get all available audio files (library + already assigned to other screens)
   const allAvailableAudioFiles: AudioFile[] = [
     ...(currentProject.data.audio.library || []),
-    ...Object.values(currentProject.data.audio.screens || {}),
+    ...((Object.values(currentProject.data.audio.screens || {}) as AudioFile[])),
   ];
 
   return (
@@ -184,23 +151,21 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
 
       {/* Screen Editor */}
       <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 space-y-4 animate-fade-in">
-        {isMainScreen ? (
-          <MainScreenEditor
-            project={currentProject}
-            updateProject={updateProject}
-            usedImageIds={usedImageIds}
-          />
-        ) : (
-          <ScreenEditor
-            screen={currentScreen}
-            project={currentProject}
-            updateProject={updateProject}
-            usedImageIds={usedImageIds}
-            allScreenAudioFiles={allAvailableAudioFiles}
-            isLastScreen={activeScreenIndex === screens.length - 1}
-            templateMeta={templateMeta}
-          />
-        )}
+      {isMainScreen ? (
+        <MainScreenEditor
+          project={currentProject}
+          updateProject={updateProject}
+        />
+      ) : (
+        <ScreenEditor
+          screen={currentScreen}
+          project={currentProject}
+          updateProject={updateProject}
+          allScreenAudioFiles={allAvailableAudioFiles}
+          isLastScreen={activeScreenIndex === screens.length - 1}
+          templateMeta={templateMeta}
+        />
+      )}
       </div>
     </div>
   );
@@ -209,10 +174,9 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
 interface MainScreenEditorProps {
   project: any;
   updateProject: (project: any) => void;
-  usedImageIds: Set<string>;
 }
 
-function MainScreenEditor({ project, updateProject, usedImageIds }: MainScreenEditorProps) {
+function MainScreenEditor({ project, updateProject }: MainScreenEditorProps) {
   const { t } = useTranslation();
 
   // Get all available audio files (library + already assigned to other screens)
@@ -371,13 +335,12 @@ interface ScreenEditorProps {
   screen: any;
   project: any;
   updateProject: (project: any) => void;
-  usedImageIds: Set<string>;
   allScreenAudioFiles: AudioFile[];
   isLastScreen: boolean;
   templateMeta: TemplateMeta | null;
 }
 
-function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenAudioFiles, isLastScreen, templateMeta }: ScreenEditorProps) {
+function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isLastScreen, templateMeta }: ScreenEditorProps) {
   const { t } = useTranslation();
   const screenData = project.data.screens[screen.screenId] || {};
 
@@ -439,9 +402,10 @@ function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenA
     delete screens[screen.screenId];
     
     // Check if this audio was only used for this screen, and if it's not in library, add it back
-    const removedAudio = project.data.audio.screens[screen.screenId];
-    const isUsedElsewhere = Object.values(screens).some((a: AudioFile) => a.id === removedAudio?.id) ||
-                            (project.data.audio.global?.id === removedAudio?.id);
+    const removedAudio = project.data.audio.screens[screen.screenId] as AudioFile | undefined;
+    const isUsedElsewhere =
+      Object.values(screens).some((a) => (a as AudioFile).id === removedAudio?.id) ||
+      project.data.audio.global?.id === removedAudio?.id;
     const isInLibrary = (project.data.audio.library || []).some((a: AudioFile) => a.id === removedAudio?.id);
     
     let library = project.data.audio.library || [];
@@ -506,7 +470,6 @@ function ScreenEditor({ screen, project, updateProject, usedImageIds, allScreenA
         <ScreenImageSelector
           allImages={project.data.images}
           selectedImageIds={screenData.images || []}
-          usedImageIds={usedImageIds}
           onSelectImage={handleSelectImage}
           onDeselectImage={handleDeselectImage}
           screenImages={screenImages}

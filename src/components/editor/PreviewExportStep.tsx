@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PreviewStep } from './PreviewStep';
 import { ExportStep } from './ExportStep';
@@ -44,11 +44,11 @@ export function PreviewExportStep({ templateMeta }: PreviewExportStepProps) {
 
       {/* Tab Content */}
       <div className="glass rounded-2xl p-4 sm:p-6 border border-white/60 animate-fade-in">
-        {activeTab === 'preview' ? (
-          <PreviewStep templateMeta={templateMeta} />
-        ) : (
-          <ExportStep templateMeta={templateMeta} />
-        )}
+      {activeTab === 'preview' ? (
+        <PreviewStep templateMeta={templateMeta} />
+      ) : (
+        <ExportStep templateMeta={templateMeta} />
+      )}
       </div>
     </div>
   );

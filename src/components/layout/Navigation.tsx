@@ -11,7 +11,7 @@ export function Navigation() {
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/how-it-works', label: 'How it work' },
-    { path: '/templates', label: 'Template' },
+    { path: '/templates', label: 'Templates' },
     { path: '/live-examples', label: 'Live example' },
     { path: '/pricing', label: 'Pricing' },
     { path: '/faq', label: 'FAQ' },

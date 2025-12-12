@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import type { Project } from '../types/project';
+import type { Project, ScreenData } from '../types/project';
 import { storageService } from '../services/storageService';
 import { validationService } from '../services/validationService';
 import i18n, { getTextDirection } from '../i18n/config';
 import { useAppSettings } from './AppSettingsContext';
+import { deleteProjectVideos } from '../services/videoBlobStore';
 
 interface ProjectContextType {
   projects: Project[];
@@ -114,6 +115,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       data: {
         screens: {},
         images: [],
+        videos: [],
         audio: {
           screens: {},
         },
@@ -153,6 +155,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const updatedProjects = projects.filter(p => p.id !== projectId);
     setProjects(updatedProjects);
     storageService.saveProjects(updatedProjects);
+    deleteProjectVideos(projectId).catch((err) => {
+      console.error('Failed to delete project videos from IndexedDB:', err);
+    });
     if (currentProject?.id === projectId) {
       setCurrentProjectState(null);
     }
@@ -162,19 +167,36 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     if (project) {
       // Clean up stale image references before setting as current
       const validImageIds = new Set(project.data.images.map(img => img.id));
+      const validVideoIds = new Set((project.data.videos || []).map(v => v.id));
+      const cleanedScreens = Object.fromEntries(
+        Object.entries(project.data.screens).map(([screenId, screenData]) => {
+          const mediaMode = screenData.mediaMode || 'classic';
+          const isVideoMode = mediaMode === 'video';
+          const hasVideo = screenData.videoId && validVideoIds.has(screenData.videoId);
+          const nextMediaMode: ScreenData['mediaMode'] = isVideoMode && hasVideo ? 'video' : 'classic';
+          return [
+            screenId,
+            {
+              ...screenData,
+              mediaMode: nextMediaMode,
+              videoId: nextMediaMode === 'video' ? screenData.videoId : undefined,
+              images: nextMediaMode === 'classic'
+                ? (screenData.images?.filter(imageId => validImageIds.has(imageId)) || [])
+                : [],
+              audioId: nextMediaMode === 'classic' ? screenData.audioId : undefined,
+              extendMusicToNext: nextMediaMode === 'classic' ? screenData.extendMusicToNext : undefined,
+              galleryLayout: nextMediaMode === 'classic' ? screenData.galleryLayout : undefined,
+            },
+          ];
+        })
+      ) as Record<string, ScreenData>;
+
       const cleanedProject = {
         ...project,
         data: {
           ...project.data,
-          screens: Object.fromEntries(
-            Object.entries(project.data.screens).map(([screenId, screenData]) => [
-              screenId,
-              {
-                ...screenData,
-                images: screenData.images?.filter(imageId => validImageIds.has(imageId)) || [],
-              },
-            ])
-          ),
+          videos: project.data.videos || [],
+          screens: cleanedScreens,
         },
       };
       setCurrentProjectState(cleanedProject);

@@ -24,6 +24,9 @@ export interface ProjectData {
   
   // Images (Base64)
   images: ImageData[];
+
+  // Videos (metadata only; blobs stored in IndexedDB)
+  videos: VideoData[];
   
   // Audio (Base64)
   audio: AudioData;
@@ -97,6 +100,8 @@ export interface ScreenData {
   audioId?: string;
   extendMusicToNext?: boolean; // If true, this screen's music continues to next screen
   galleryLayout?: 'carousel' | 'gridWithZoom' | 'fullscreenSlideshow' | 'heroWithThumbnails' | 'timeline'; // Gallery layout type for screens with images
+  mediaMode?: 'classic' | 'video'; // classic allows images/audio; video allows a single video only
+  videoId?: string; // Only valid when mediaMode === 'video'
 }
 
 export interface ImageData {
@@ -106,6 +111,18 @@ export interface ImageData {
   size: number; // Size in bytes
   width?: number;
   height?: number;
+}
+
+export interface VideoData {
+  id: string;
+  filename: string;
+  mime: string;
+  size: number; // bytes
+  duration: number; // seconds
+  width: number;
+  height: number;
+  posterDataUrl?: string;
+  createdAt: string;
 }
 
 export interface AudioData {

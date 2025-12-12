@@ -10,6 +10,12 @@ export const MediaConfig = {
   
   // Audio settings
   AUDIO_WARNING_SIZE_MB: 4,
+
+  // Video settings
+  VIDEO_MAX_DURATION_SECONDS: 15,
+  VIDEO_MAX_SIZE_MB: 12,
+  VIDEO_MAX_TOTAL_MB: 25,
+  VIDEO_ALLOWED_MIME: ['video/mp4', 'video/webm'],
 } as const;
 
 

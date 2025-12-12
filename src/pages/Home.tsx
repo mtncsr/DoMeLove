@@ -5,7 +5,7 @@ import { LanguageSelector } from '../components/ui/LanguageSelector';
 const templateCards = [
   {
     title: 'Birthday surprise',
-    description: 'A magical journey through birthday memories with confetti animations and a special video message.',
+    description: 'A magical journey through birthday memories with confetti animations, photos, and video moments.',
     tag: '5 screens',
   },
   {
@@ -38,7 +38,7 @@ const templateCards = [
 const howSteps = [
   {
     title: 'Choose a template',
-    text: 'Pick a beautiful starting point for your moment — birthday, anniversary, wedding, baby, and more.',
+    text: 'Pick a beautiful starting point for your moment - birthday, anniversary, wedding, baby, and more.',
   },
   {
     title: 'Make it yours',
@@ -88,10 +88,6 @@ const faqs = [
   {
     q: 'Can I upgrade from Free to Pro later?',
     a: 'Absolutely. Start free and upgrade when you are ready with one click.',
-  },
-  {
-    q: 'Do you offer refunds?',
-    a: 'We offer a 14-day money-back guarantee for Pro and Team purchases.',
   },
   {
     q: 'What payment methods do you accept?',
@@ -170,7 +166,7 @@ export function Home() {
             in minutes
           </h1>
           <p className="mt-4 text-lg text-slate-700 max-w-3xl">
-            Create a fully personalized, self-contained HTML file that plays like a mini experience — with photos, music, text, and interactive elements. No app needed, works anywhere, forever yours.
+            Create a fully personalized, self-contained HTML file that plays like a mini experience - with photos or a single video per screen, music, text, and interactive elements. No app needed, works anywhere, forever yours.
           </p>
           <div className="mt-6 flex flex-wrap gap-4 text-sm text-slate-700">
             <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-slate-100">
@@ -183,7 +179,7 @@ export function Home() {
               🔒 Fully offline, privacy friendly
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-slate-100">
-              🔗 Share by link, QR or file
+              🎥 Photo or single-video screens, fully embedded
             </div>
         </div>
           <div className="mt-8 flex flex-wrap gap-3">

@@ -35,6 +35,7 @@ class StorageServiceImpl implements StorageService {
   migrateIfNeeded(project: Project): Project {
     // Always clean up stale image references, even for current schema version
     this.cleanupStaleImageReferences(project);
+    this.cleanupVideoReferences(project);
 
     if (project.schemaVersion === CURRENT_SCHEMA_VERSION) {
       return project;
@@ -64,7 +65,7 @@ class StorageServiceImpl implements StorageService {
     let hasChanges = false;
 
     // Clean up image references in all screens
-    for (const [screenId, screenData] of Object.entries(project.data.screens)) {
+    for (const [, screenData] of Object.entries(project.data.screens)) {
       if (screenData.images && Array.isArray(screenData.images)) {
         const originalLength = screenData.images.length;
         screenData.images = screenData.images.filter(imageId => validImageIds.has(imageId));
@@ -78,6 +79,54 @@ class StorageServiceImpl implements StorageService {
     if (hasChanges) {
       // The project object is already modified in place, so no need to return anything
       // The caller will save it if needed
+    }
+  }
+
+  private cleanupVideoReferences(project: Project): void {
+    if (!project.data) return;
+
+    if (!project.data.videos) {
+      project.data.videos = [];
+    }
+
+    const validVideoIds = new Set(project.data.videos.map(v => v.id));
+    const validImageIds = new Set(project.data.images?.map(img => img.id));
+
+    let hasChanges = false;
+
+    project.data.screens = Object.fromEntries(
+      Object.entries(project.data.screens || {}).map(([screenId, screenData]) => {
+        const mediaMode = screenData.mediaMode || 'classic';
+        const isVideoMode = mediaMode === 'video';
+        const videoValid = screenData.videoId && validVideoIds.has(screenData.videoId);
+        const nextMediaMode = isVideoMode && videoValid ? 'video' : 'classic';
+
+        if (mediaMode !== nextMediaMode || (isVideoMode && !videoValid)) {
+          hasChanges = true;
+        }
+
+        const cleanedImages =
+          nextMediaMode === 'classic'
+            ? screenData.images?.filter(id => validImageIds.has(id)) || []
+            : [];
+
+        return [
+          screenId,
+          {
+            ...screenData,
+            mediaMode: nextMediaMode,
+            videoId: nextMediaMode === 'video' ? screenData.videoId : undefined,
+            images: cleanedImages,
+            audioId: nextMediaMode === 'classic' ? screenData.audioId : undefined,
+            extendMusicToNext: nextMediaMode === 'classic' ? screenData.extendMusicToNext : undefined,
+            galleryLayout: nextMediaMode === 'classic' ? screenData.galleryLayout : undefined,
+          },
+        ];
+      })
+    );
+
+    if (hasChanges) {
+      // updated project in place
     }
   }
 }

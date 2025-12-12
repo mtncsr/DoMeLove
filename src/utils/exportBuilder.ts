@@ -1,6 +1,8 @@
 import type { Project, ImageData } from '../types/project';
 import type { TemplateMeta } from '../types/template';
 import { loadTemplateHTML } from './templateLoader';
+import { MediaConfig } from '../config/mediaConfig';
+import { getVideoBlob } from '../services/videoBlobStore';
 
 // AudioManager is now integrated into GiftApp - no separate global needed
 
@@ -21,6 +23,9 @@ export async function buildExportHTML(project: Project, templateMeta: TemplateMe
 
   // Handle repeating structures (galleries, blessings) based on template-meta
   html = injectRepeatingStructures(html, project, templateMeta);
+
+  // Inject videos (fetch blobs and embed data URLs)
+  html = await injectVideos(html, project, templateMeta);
 
   // Add HTML section comments and inject all scripts/styles in organized sections
   html = buildOrganizedHTML(html, project, templateMeta);
@@ -111,6 +116,16 @@ function validateExportSanity(html: string, project: Project): void {
     if (!audio.data.startsWith('data:audio/')) {
       errors.push(`Screen audio for ${screenId} is not embedded as data URL`);
     }
+  }
+
+  // Check that video sources are embedded as data URLs
+  const videoSourcePattern = /<source[^>]+src\s*=\s*['"]([^'"]+)['"][^>]*>/gi;
+  const videoMatches = htmlWithoutComments.matchAll(videoSourcePattern);
+  for (const match of videoMatches) {
+    const src = match[1];
+    if (src.startsWith('data:video/')) continue;
+    if (src.startsWith('data:')) continue;
+    errors.push(`Video source is not embedded as data URL: ${src.substring(0, 50)}...`);
   }
   
   // Validate that GiftApp namespace exists and AudioManager is NOT a global
@@ -409,7 +424,7 @@ function generateGridWithZoomHTML(screenId: string, images: ImageData[]): string
   const gridHTML = `
     <div class="gallery-grid-container" id="${galleryId}">
       <div class="gallery-grid">
-        ${images.map((img, index) => `
+        ${images.map((img) => `
           <div class="gallery-grid-item">
             <img 
               src="${img.data}" 
@@ -595,6 +610,80 @@ function injectRepeatingStructures(html: string, project: Project, templateMeta:
   }
 
   return html;
+}
+
+async function injectVideos(html: string, project: Project, templateMeta: TemplateMeta): Promise<string> {
+  const totalBudgetBytes = MediaConfig.VIDEO_MAX_TOTAL_MB * 1024 * 1024;
+  let accumulatedBytes = 0;
+  const fallbackBlocks: string[] = [];
+
+  for (const screen of templateMeta.screens) {
+    const screenData = project.data.screens[screen.screenId] || {};
+    if (screenData.mediaMode !== 'video' || !screenData.videoId) continue;
+
+    const videoMeta = project.data.videos.find((v) => v.id === screenData.videoId);
+    if (!videoMeta) {
+      throw new Error(`Video metadata missing for screen "${screen.screenId}".`);
+    }
+
+    const blob = await getVideoBlob(project.id, videoMeta.id);
+    if (!blob) {
+      throw new Error(`Video blob is missing for "${videoMeta.filename}". Please re-upload.`);
+    }
+
+    if (blob.size > MediaConfig.VIDEO_MAX_SIZE_MB * 1024 * 1024) {
+      throw new Error(
+        `Video "${videoMeta.filename}" exceeds max size of ${MediaConfig.VIDEO_MAX_SIZE_MB}MB (actual ${(blob.size / (1024 * 1024)).toFixed(1)}MB).`
+      );
+    }
+
+    accumulatedBytes += blob.size;
+    if (accumulatedBytes > totalBudgetBytes) {
+      throw new Error(
+        `Total video size exceeds budget (${(accumulatedBytes / (1024 * 1024)).toFixed(1)}MB > ${MediaConfig.VIDEO_MAX_TOTAL_MB}MB).`
+      );
+    }
+
+    const dataUrl = await blobToDataUrl(blob);
+    const poster = videoMeta.posterDataUrl || '';
+
+    const videoHtml = `
+      <div class="video-block" id="video-${screen.screenId}">
+        <video controls playsinline preload="metadata" poster="${poster}">
+          <source src="${dataUrl}" type="${videoMeta.mime || 'video/mp4'}" />
+        </video>
+      </div>
+    `;
+
+    const placeholder = `{{${screen.screenId}_video}}`;
+    if (html.includes(placeholder)) {
+      html = html.replace(placeholder, videoHtml);
+    } else {
+      fallbackBlocks.push(videoHtml);
+    }
+  }
+
+  if (fallbackBlocks.length > 0) {
+    const container = `<div id="video-fallback-container">\n${fallbackBlocks.join('\n')}\n</div>`;
+    if (html.includes('</main>')) {
+      html = html.replace('</main>', `${container}\n</main>`);
+    } else if (html.includes('</body>')) {
+      html = html.replace('</body>', `${container}\n</body>`);
+    } else {
+      html = `${html}\n${container}`;
+    }
+  }
+
+  return html;
+}
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read video blob for export'));
+    reader.readAsDataURL(blob);
+  });
 }
 
 // Helper for escaping HTML (works in browser context)
@@ -1016,6 +1105,19 @@ function getGalleryStyles(): string {
     font-weight: bold;
     font-size: 18px;
     margin-bottom: 0.5rem;
+  }
+
+  /* ========== Video Block ========== */
+  .video-block {
+    margin: 1rem 0;
+    width: 100%;
+  }
+  .video-block video {
+    width: 100%;
+    max-height: 60vh;
+    border-radius: 10px;
+    background: #0f172a;
+    display: block;
   }`;
 }
 
@@ -1027,7 +1129,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
   const globalAudioData = data.audio.global ? data.audio.global.data : null;
   
   // Build audio data map for screens
-  const screenAudioMap: Record<string, { data: string; extendMusic?: boolean }> = {};
+  const screenAudioMap: Record<string, { data: string; extendMusicToNext?: boolean }> = {};
   for (const screen of templateMeta.screens) {
     if (screen.supportsMusic) {
       const screenData = data.screens[screen.screenId];
@@ -1036,7 +1138,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
         if (audio) {
           screenAudioMap[screen.screenId] = {
             data: audio.data,
-            extendMusic: screenData.extendMusic
+            extendMusicToNext: screenData.extendMusicToNext
           };
         }
       }
@@ -1165,7 +1267,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
         // Handle audio - check if global audio is currently playing
         if (globalAudioData && currentScreenId === 'global') {
           // Global audio continues, don't stop
-        } else if (!currentScreenData || !currentScreenData.extendMusic) {
+        } else if (!currentScreenData || !currentScreenData.extendMusicToNext) {
           if (!globalAudioData) {
             stopAllAudio();
           }
@@ -1545,10 +1647,4 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
 </script>`;
 }
 
-function injectScript(html: string, script: string): string {
-  // Inject before closing </body> tag, or at the end if no body tag
-  if (html.includes('</body>')) {
-    return html.replace('</body>', `${script}\n</body>`);
-  }
-  return html + script;
-}
+// (injectScript removed - not used)

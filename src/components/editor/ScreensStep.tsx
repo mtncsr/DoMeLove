@@ -9,6 +9,7 @@ import { ScreenMusicSelector } from './ScreenMusicSelector';
 import type { ImageData, AudioFile } from '../../types/project';
 import { formatFileSize } from '../../utils/audioProcessor';
 import { Button } from '../ui/Button';
+import { ScreenVideoSelector } from './ScreenVideoSelector';
 
 const GALLERY_LAYOUTS = [
   { value: 'carousel', label: 'Carousel' },
@@ -489,6 +490,8 @@ interface ScreenEditorProps {
 function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isLastScreen, templateMeta }: ScreenEditorProps) {
   const { t } = useTranslation();
   const screenData = project.data.screens[screen.screenId] || {};
+  const mediaMode: 'classic' | 'video' = screenData.mediaMode || 'classic';
+  const isVideoMode = mediaMode === 'video';
 
   const updateScreenField = (field: string, value: any) => {
     updateProject({
@@ -506,7 +509,45 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
     });
   };
 
+  const setMediaMode = (mode: 'classic' | 'video') => {
+    if (mode === 'video') {
+      updateProject({
+        ...project,
+        data: {
+          ...project.data,
+          screens: {
+            ...project.data.screens,
+            [screen.screenId]: {
+              ...screenData,
+              mediaMode: 'video',
+              images: [],
+              audioId: undefined,
+              extendMusicToNext: undefined,
+              galleryLayout: undefined,
+            },
+          },
+        },
+      });
+    } else {
+      updateProject({
+        ...project,
+        data: {
+          ...project.data,
+          screens: {
+            ...project.data.screens,
+            [screen.screenId]: {
+              ...screenData,
+              mediaMode: 'classic',
+              videoId: undefined,
+            },
+          },
+        },
+      });
+    }
+  };
+
   const handleSelectImage = (imageId: string) => {
+    if (isVideoMode) return;
     const currentImages = screenData.images || [];
     if (!currentImages.includes(imageId)) {
       updateScreenField('images', [...currentImages, imageId]);
@@ -514,11 +555,13 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
   };
 
   const handleDeselectImage = (imageId: string) => {
+    if (isVideoMode) return;
     const currentImages = screenData.images || [];
     updateScreenField('images', currentImages.filter((id: string) => id !== imageId));
   };
 
   const handleSelectMusic = (music: AudioFile) => {
+    if (isVideoMode) return;
     // When selecting music, keep it in library (can be reused)
     // But assign a reference to the screen
     updateProject({
@@ -588,7 +631,7 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
     .map((id: string) => project.data.images.find((img: ImageData) => img.id === id))
     .filter((img: ImageData | undefined): img is ImageData => img !== undefined);
 
-  const hasGalleryImages = screenImages.length > 0 && (screen.type === 'gallery' || screenData.images?.length > 0);
+  const hasGalleryImages = !isVideoMode && screenImages.length > 0 && (screen.type === 'gallery' || screenData.images?.length > 0);
 
   const togglePlaceholder = (field: 'title' | 'text') => {
     const placeholders = new Set(screen.placeholders || []);
@@ -618,6 +661,41 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
 
   return (
     <div className="space-y-6">
+      {/* Media mode selector */}
+      <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold">Screen type</h3>
+          <span className="text-xs text-slate-500">Classic = photos/music, Video = single video</span>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name={`mediaMode-${screen.screenId}`}
+              checked={!isVideoMode}
+              onChange={() => setMediaMode('classic')}
+              className="accent-fuchsia-500"
+            />
+            Classic (photos + optional music)
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name={`mediaMode-${screen.screenId}`}
+              checked={isVideoMode}
+              onChange={() => setMediaMode('video')}
+              className="accent-fuchsia-500"
+            />
+            Video (single video only)
+          </label>
+        </div>
+        {isVideoMode && (
+          <p className="text-xs text-amber-600 mt-2">
+            Images, per-screen audio, gallery layout, and extend music are disabled in Video mode.
+          </p>
+        )}
+      </div>
+
       {/* Title and Text */}
       <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
         <div className="flex items-center justify-between gap-3 mb-2">
@@ -697,38 +775,56 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
       </div>
 
       {/* Images */}
-      <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
-        <h3 className="text-lg font-semibold mb-4">{t('editor.screens.images')}</h3>
-        <ScreenImageSelector
-          allImages={project.data.images}
-          selectedImageIds={screenData.images || []}
-          onSelectImage={handleSelectImage}
-          onDeselectImage={handleDeselectImage}
-          screenImages={screenImages}
-          project={project}
-          templateMeta={templateMeta}
-          currentScreenId={screen.screenId}
-        />
-        {hasGalleryImages && (
-          <div className="mt-4 pt-4 border-t">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('editor.screens.galleryLayout')}</label>
-            <select
-              value={screenData.galleryLayout || 'carousel'}
-              onChange={(e) => updateScreenField('galleryLayout', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {GALLERY_LAYOUTS.map((layout) => (
-                <option key={layout.value} value={layout.value}>
-                  {layout.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
+      {!isVideoMode && (
+        <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
+          <h3 className="text-lg font-semibold mb-4">{t('editor.screens.images')}</h3>
+          <ScreenImageSelector
+            allImages={project.data.images}
+            selectedImageIds={screenData.images || []}
+            onSelectImage={handleSelectImage}
+            onDeselectImage={handleDeselectImage}
+            screenImages={screenImages}
+            project={project}
+            templateMeta={templateMeta}
+            currentScreenId={screen.screenId}
+          />
+          {hasGalleryImages && (
+            <div className="mt-4 pt-4 border-t">
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('editor.screens.galleryLayout')}</label>
+              <select
+                value={screenData.galleryLayout || 'carousel'}
+                onChange={(e) => updateScreenField('galleryLayout', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {GALLERY_LAYOUTS.map((layout) => (
+                  <option key={layout.value} value={layout.value}>
+                    {layout.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Video */}
+      {isVideoMode && (
+        <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
+          <h3 className="text-lg font-semibold mb-4">Video</h3>
+          <ScreenVideoSelector
+            videos={project.data.videos || []}
+            selectedVideoId={screenData.videoId}
+            onSelectVideo={(videoId) => updateScreenField('videoId', videoId)}
+            onClearVideo={() => updateScreenField('videoId', undefined)}
+            project={project}
+            templateMeta={templateMeta}
+            currentScreenId={screen.screenId}
+          />
+        </div>
+      )}
 
       {/* Music */}
-      {screen.supportsMusic && (
+      {screen.supportsMusic && !isVideoMode && (
         <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
           <ScreenMusicSelector
             availableMusic={allScreenAudioFiles}

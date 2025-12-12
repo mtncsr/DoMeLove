@@ -2,20 +2,23 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import { useEditor } from '../../contexts/EditorContext';
-import type { ImageData, AudioFile } from '../../types/project';
+import type { ImageData, AudioFile, VideoData } from '../../types/project';
 import type { TemplateMeta } from '../../types/template';
 import { ImageUpload } from '../ui/ImageUpload';
 import { AudioUpload } from '../ui/AudioUpload';
+import { VideoUpload } from '../ui/VideoUpload';
 import { Button } from '../ui/Button';
 import { Tooltip } from '../ui/Tooltip';
 import { formatFileSize } from '../../utils/imageProcessor';
+import { saveVideoBlob, deleteVideoBlob, hasVideoBlob } from '../../services/videoBlobStore';
 
 export function ContentStep() {
   const { t } = useTranslation();
   const { currentProject, updateProject } = useProject();
   const { templateMeta } = useEditor();
-  const [activeTab, setActiveTab] = useState<'images' | 'music'>('images');
+  const [activeTab, setActiveTab] = useState<'images' | 'music' | 'videos'>('images');
   const cleanupDoneRef = useRef<string>('');
+  const [missingVideoBlobs, setMissingVideoBlobs] = useState<Record<string, boolean>>({});
 
   // Clean up stale image references and screens that don't exist in current template
   useEffect(() => {
@@ -85,6 +88,27 @@ export function ContentStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProject?.id, templateMeta?.templateId]);
 
+  // Detect missing video blobs for the current project
+  useEffect(() => {
+    let cancelled = false;
+    async function checkBlobs() {
+      if (!currentProject) return;
+      const entries = await Promise.all(
+        (currentProject.data.videos || []).map(async (vid: VideoData) => {
+          const exists = await hasVideoBlob(currentProject.id, vid.id);
+          return [vid.id, !exists] as const;
+        })
+      );
+      if (!cancelled) {
+        setMissingVideoBlobs(Object.fromEntries(entries));
+      }
+    }
+    checkBlobs();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentProject?.id, currentProject?.data.videos]);
+
   if (!currentProject) return null;
 
   return (
@@ -114,6 +138,16 @@ export function ContentStep() {
           >
             {t('editor.content.music')}
           </button>
+          <button
+            onClick={() => setActiveTab('videos')}
+            className={`px-4 py-2 border-b-2 transition-colors ${
+              activeTab === 'videos'
+                ? 'border-fuchsia-500 text-fuchsia-700 font-semibold'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Videos
+          </button>
         </div>
       </div>
 
@@ -125,10 +159,16 @@ export function ContentStep() {
           updateProject={updateProject}
           templateMeta={templateMeta}
         />
-      ) : (
+      ) : activeTab === 'music' ? (
         <MusicTab
           project={currentProject}
           updateProject={updateProject}
+        />
+      ) : (
+        <VideosTab
+          project={currentProject}
+          updateProject={updateProject}
+          missingVideoBlobs={missingVideoBlobs}
         />
       )}
       </div>
@@ -440,3 +480,109 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
     </div>
   );
 }
+
+interface VideosTabProps {
+  project: any;
+  updateProject: (project: any) => void;
+  missingVideoBlobs: Record<string, boolean>;
+}
+
+function VideosTab({ project, updateProject, missingVideoBlobs }: VideosTabProps) {
+  const handleUpload = async (video: VideoData, blob: Blob) => {
+    await saveVideoBlob(project.id, video.id, blob);
+    updateProject({
+      ...project,
+      data: {
+        ...project.data,
+        videos: [...(project.data.videos || []), video],
+      },
+    });
+  };
+
+  const handleDelete = async (videoId: string) => {
+    await deleteVideoBlob(project.id, videoId).catch((err) => {
+      console.error('Failed to delete video blob', err);
+    });
+    updateProject({
+      ...project,
+      data: {
+        ...project.data,
+        videos: project.data.videos.filter((v: VideoData) => v.id !== videoId),
+        screens: Object.fromEntries(
+          Object.entries(project.data.screens).map(([screenId, screenData]: [string, any]) => {
+            if (screenData.videoId === videoId) {
+              return [
+                screenId,
+                {
+                  ...screenData,
+                  mediaMode: 'classic',
+                  videoId: undefined,
+                },
+              ];
+            }
+            return [screenId, screenData];
+          })
+        ),
+      },
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">Upload Videos</h3>
+        <VideoUpload onUpload={handleUpload} />
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">
+          All Uploaded Videos ({project.data.videos.length})
+        </h3>
+        {project.data.videos.length === 0 ? (
+          <p className="text-slate-500">No videos uploaded yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {project.data.videos.map((video: VideoData) => {
+              const isMissingBlob = missingVideoBlobs[video.id];
+              return (
+                <div key={video.id} className="bg-white/90 dark:bg-[var(--surface-2)] p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] relative shadow-sm">
+                  {isMissingBlob && (
+                    <div className="absolute top-2 right-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+                      Blob missing — re-upload required
+                    </div>
+                  )}
+                  {video.posterDataUrl ? (
+                    <img
+                      src={video.posterDataUrl}
+                      alt={video.filename}
+                      className="w-full h-40 object-cover rounded-lg mb-2 bg-gray-100"
+                    />
+                  ) : (
+                    <div className="w-full h-40 rounded-lg mb-2 bg-gray-100 grid place-items-center text-slate-500 text-sm">
+                      No poster
+                    </div>
+                  )}
+                  <p className="text-sm font-semibold text-slate-900 truncate">{video.filename}</p>
+                  <p className="text-xs text-slate-600">
+                    {(video.size / (1024 * 1024)).toFixed(1)} MB · {video.duration.toFixed(1)}s · {video.mime}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {video.width}×{video.height}px
+                  </p>
+                  <Button
+                    variant="danger"
+                    onClick={() => handleDelete(video.id)}
+                    className="w-full text-sm mt-3"
+                  >
+                    Delete
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

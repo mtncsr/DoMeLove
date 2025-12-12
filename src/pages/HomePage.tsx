@@ -7,7 +7,7 @@ import { Gift } from 'lucide-react';
 const templateCards = [
   {
     title: 'Birthday surprise',
-    description: 'A magical journey through birthday memories with confetti animations and a special video message.',
+    description: 'A magical journey through birthday memories with confetti animations, photos, and video moments.',
     tag: '5 screens',
   },
   {
@@ -64,7 +64,7 @@ export function HomePage() {
             in minutes
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-slate-700 max-w-3xl mx-auto mb-6 leading-relaxed">
-            Create a fully personalized, self-contained HTML file that plays like a mini experience — with photos, music, text, and interactive elements. No app needed, works anywhere, forever yours.
+            Create a fully personalized, self-contained HTML file that plays like a mini experience - with photos, videos, music, text, and interactive elements. No app needed, works anywhere, forever yours.
           </p>
           {/* Features in 2 columns like Base44 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto mb-6 text-sm text-slate-700">
@@ -81,8 +81,8 @@ export function HomePage() {
               <span>Fully offline, privacy friendly</span>
             </div>
             <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-full shadow-sm border border-slate-100 hover:border-fuchsia-200 transition-colors">
-              <span className="text-xl">🔗</span>
-              <span>Share by link, QR or file</span>
+              <span className="text-xl">🎥</span>
+              <span>Photo or single-video screens, all embedded</span>
             </div>
           </div>
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">

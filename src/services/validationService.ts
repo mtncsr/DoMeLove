@@ -22,6 +22,8 @@ class ValidationService {
 
     // Check required screen fields (ERRORS - blocking)
     for (const screen of templateMeta.screens) {
+      const screenData = project.data.screens[screen.screenId];
+
       for (const placeholder of screen.required) {
         if (!this.hasScreenPlaceholderValue(project.data, screen.screenId, placeholder)) {
           errors.push({
@@ -29,6 +31,42 @@ class ValidationService {
             message: `Required field "${placeholder}" is missing for screen "${screen.screenId}"`,
             section: 'screen-texts',
           });
+        }
+      }
+
+      // Video mode validation
+      if (screenData?.mediaMode === 'video') {
+        if (!screenData.videoId) {
+          errors.push({
+            field: `${screen.screenId}.video`,
+            message: `Screen "${screen.screenId}" is set to Video mode but no video is selected`,
+            section: 'videos',
+          });
+        } else {
+          const video = (project.data.videos || []).find((v) => v.id === screenData.videoId);
+          if (!video) {
+            errors.push({
+              field: `${screen.screenId}.video`,
+              message: `Video metadata missing for screen "${screen.screenId}". Re-upload required.`,
+              section: 'videos',
+            });
+          } else {
+            const sizeMb = video.size / (1024 * 1024);
+            if (sizeMb > MediaConfig.VIDEO_MAX_SIZE_MB) {
+              errors.push({
+                field: `${screen.screenId}.video`,
+                message: `Video "${video.filename}" exceeds max size (${sizeMb.toFixed(1)}MB > ${MediaConfig.VIDEO_MAX_SIZE_MB}MB).`,
+                section: 'videos',
+              });
+            }
+            if (video.duration > MediaConfig.VIDEO_MAX_DURATION_SECONDS) {
+              errors.push({
+                field: `${screen.screenId}.video`,
+                message: `Video "${video.filename}" exceeds max duration (${video.duration.toFixed(1)}s > ${MediaConfig.VIDEO_MAX_DURATION_SECONDS}s).`,
+                section: 'videos',
+              });
+            }
+          }
         }
       }
 
@@ -67,6 +105,17 @@ class ValidationService {
           section: 'images',
         });
       }
+    }
+
+    // Video total budget (blocking)
+    const totalVideoBytes = (project.data.videos || []).reduce((acc, vid) => acc + (vid.size || 0), 0);
+    const totalVideoMb = totalVideoBytes / (1024 * 1024);
+    if (totalVideoMb > MediaConfig.VIDEO_MAX_TOTAL_MB) {
+      errors.push({
+        field: 'videos.total',
+        message: `Total video size exceeds budget (${totalVideoMb.toFixed(1)}MB > ${MediaConfig.VIDEO_MAX_TOTAL_MB}MB).`,
+        section: 'videos',
+      });
     }
 
     // Check audio file sizes (WARNINGS - non-blocking)

@@ -494,6 +494,8 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
   const isVideoMode = mediaMode === 'video';
 
   const updateScreenField = (field: string, value: any) => {
+    // Always use the latest screenData from project, not from closure
+    const latestScreenData = project.data.screens[screen.screenId] || {};
     updateProject({
       ...project,
       data: {
@@ -501,7 +503,7 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
         screens: {
           ...project.data.screens,
           [screen.screenId]: {
-            ...screenData,
+            ...latestScreenData,
             [field]: value,
           },
         },
@@ -548,7 +550,9 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
 
   const handleSelectImage = (imageId: string) => {
     if (isVideoMode) return;
-    const currentImages = screenData.images || [];
+    // Use latest screenData from project, not closure
+    const latestScreenData = project.data.screens[screen.screenId] || {};
+    const currentImages = latestScreenData.images || [];
     if (!currentImages.includes(imageId)) {
       updateScreenField('images', [...currentImages, imageId]);
     }
@@ -556,7 +560,9 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
 
   const handleDeselectImage = (imageId: string) => {
     if (isVideoMode) return;
-    const currentImages = screenData.images || [];
+    // Use latest screenData from project, not closure
+    const latestScreenData = project.data.screens[screen.screenId] || {};
+    const currentImages = latestScreenData.images || [];
     updateScreenField('images', currentImages.filter((id: string) => id !== imageId));
   };
 

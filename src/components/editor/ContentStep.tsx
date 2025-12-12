@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import { useEditor } from '../../contexts/EditorContext';
@@ -17,75 +17,11 @@ export function ContentStep() {
   const { currentProject, updateProject } = useProject();
   const { templateMeta } = useEditor();
   const [activeTab, setActiveTab] = useState<'images' | 'music' | 'videos'>('images');
-  const cleanupDoneRef = useRef<string>('');
   const [missingVideoBlobs, setMissingVideoBlobs] = useState<Record<string, boolean>>({});
 
-  // Clean up stale image references and screens that don't exist in current template
+  // Cleanup temporarily disabled to avoid interfering with image assignments during navigation
   useEffect(() => {
-    if (!currentProject || !currentProject.data.images) return;
-
-    // Create a unique key for this cleanup check (include template info)
-    const imageIdsKey = `${currentProject.id}-${templateMeta?.templateId || 'no-template'}-${currentProject.data.images.map(img => img.id).sort().join(',')}`;
-    
-    // Skip if we already cleaned up for this set of images and template
-    if (cleanupDoneRef.current === imageIdsKey) return;
-
-    const validImageIds = new Set(currentProject.data.images.map(img => img.id));
-    
-    // Get valid screen IDs from template (only keep screens that exist in current template)
-    const validScreenIds = templateMeta ? new Set(templateMeta.screens.map(s => s.screenId)) : new Set<string>();
-    
-    let hasStaleReferences = false;
-    const cleanedScreens: Record<string, any> = {};
-
-    // Check and clean up all screens
-    for (const [screenId, screenData] of Object.entries(currentProject.data.screens)) {
-      // Remove screens that don't exist in the current template
-      if (!validScreenIds.has(screenId)) {
-        hasStaleReferences = true;
-        // Don't add this screen to cleanedScreens (effectively removes it)
-        continue;
-      }
-      
-      if (screenData.images && Array.isArray(screenData.images)) {
-        const originalLength = screenData.images.length;
-        const cleanedImages = screenData.images.filter((imageId: string) => validImageIds.has(imageId));
-        if (cleanedImages.length !== originalLength) {
-          hasStaleReferences = true;
-          cleanedScreens[screenId] = {
-            ...screenData,
-            images: cleanedImages,
-          };
-        }
-      }
-    }
-
-    // If we found stale references, clean them up
-    if (hasStaleReferences) {
-      // If we have valid screens to keep, merge them; otherwise only keep cleaned screens
-      const finalScreens = validScreenIds.size > 0
-        ? Object.fromEntries(
-            Object.entries(currentProject.data.screens)
-              .filter(([screenId]) => validScreenIds.has(screenId))
-              .map(([screenId, screenData]) => [
-                screenId,
-                cleanedScreens[screenId] || screenData,
-              ])
-          )
-        : cleanedScreens;
-      
-      updateProject({
-        ...currentProject,
-        data: {
-          ...currentProject.data,
-          screens: finalScreens,
-        },
-      });
-    }
-    
-    // Mark cleanup as done for this set of images and template
-    cleanupDoneRef.current = imageIdsKey;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return;
   }, [currentProject?.id, templateMeta?.templateId]);
 
   // Detect missing video blobs for the current project

@@ -165,8 +165,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
   const setCurrentProject = useCallback((project: Project | null) => {
     if (project) {
-      // Clean up stale image references before setting as current
-      const validImageIds = new Set(project.data.images.map(img => img.id));
+      // Only clean up video mode inconsistencies - preserve images for classic mode screens
+      // Image cleanup happens in storageService.migrateIfNeeded, not here
       const validVideoIds = new Set((project.data.videos || []).map(v => v.id));
       const cleanedScreens = Object.fromEntries(
         Object.entries(project.data.screens).map(([screenId, screenData]) => {
@@ -174,15 +174,19 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
           const isVideoMode = mediaMode === 'video';
           const hasVideo = screenData.videoId && validVideoIds.has(screenData.videoId);
           const nextMediaMode: ScreenData['mediaMode'] = isVideoMode && hasVideo ? 'video' : 'classic';
+          
+          // Only clear images if switching FROM video mode TO classic mode due to invalid video
+          // If already in classic mode, preserve all images
+          const shouldClearImages = isVideoMode && !hasVideo;
+          
           return [
             screenId,
             {
               ...screenData,
               mediaMode: nextMediaMode,
               videoId: nextMediaMode === 'video' ? screenData.videoId : undefined,
-              images: nextMediaMode === 'classic'
-                ? (screenData.images?.filter(imageId => validImageIds.has(imageId)) || [])
-                : [],
+              // Preserve images unless we're correcting a video mode screen without a valid video
+              images: shouldClearImages ? [] : (screenData.images || []),
               audioId: nextMediaMode === 'classic' ? screenData.audioId : undefined,
               extendMusicToNext: nextMediaMode === 'classic' ? screenData.extendMusicToNext : undefined,
               galleryLayout: nextMediaMode === 'classic' ? screenData.galleryLayout : undefined,

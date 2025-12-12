@@ -35,60 +35,61 @@ export function EditorProvider({
   const getScreensStatus = useCallback((proj: Project | null, tmpl: TemplateMeta | null): StepStatus => {
     if (!proj || !tmpl) return 'notStarted';
 
-        // Check gift details (for Main screen)
-    const hasRecipient = !!proj.data.recipientName;
-    const hasSender = !!proj.data.senderName;
-    const required = tmpl.globalPlaceholders.filter((p) => ['recipientName', 'senderName'].includes(p));
-        let giftDetailsComplete = true;
-        if (required.length > 0) {
-      giftDetailsComplete = required.every((p) => {
-            if (p === 'recipientName') return hasRecipient;
-            if (p === 'senderName') return hasSender;
-            return true;
-          });
-        }
+    // Effective screens:
+    // If the project has screen entries, use ONLY those screens (real state), ordered by dynamicScreens if present for this template, else by template order.
+    // Else, fall back to dynamicScreens for this template, else template screens.
+    const templateOrdered = tmpl.screens.slice().sort((a, b) => a.order - b.order);
+    const dynamicScreens = proj.data.dynamicScreens && proj.data.dynamicScreensTemplateId === tmpl.templateId
+      ? proj.data.dynamicScreens.slice().sort((a, b) => a.order - b.order)
+      : null;
+    const screenEntries = Object.keys(proj.data.screens || {});
 
-        // Check screen texts and images
-    const screens = tmpl.screens;
-        let hasAnyScreenContent = false;
-        let hasAllScreenContent = true;
-        let hasAnyImages = false;
-        let hasAllRequiredImages = true;
-        
-        for (const screen of screens) {
-      const screenData = proj.data.screens[screen.screenId];
-          const hasTitle = !!screenData?.title;
-          const hasText = !!screenData?.text;
-          const screenImages = screenData?.images || [];
-          const imageCount = screenImages.length;
-          
-          if (hasTitle || hasText) hasAnyScreenContent = true;
-          for (const required of screen.required) {
-            if (required.includes('title') && !hasTitle) hasAllScreenContent = false;
-            if (required.includes('text') && !hasText) hasAllScreenContent = false;
-          }
-          
-          const requiredImageCount = typeof screen.galleryImageCount === 'number' ? screen.galleryImageCount : 0;
-          if (requiredImageCount > 0) {
-            if (imageCount > 0) hasAnyImages = true;
-            if (imageCount < requiredImageCount) {
-              hasAllRequiredImages = false;
-            }
-          } else if (imageCount > 0) {
-            hasAnyImages = true;
-          }
-        }
+    const getMetaForId = (id: string) => {
+      if (dynamicScreens) {
+        const found = dynamicScreens.find((s) => s.screenId === id);
+        if (found) return found;
+      }
+      return templateOrdered.find((s) => s.screenId === id);
+    };
 
-        if (giftDetailsComplete && hasAllScreenContent && hasAllRequiredImages) return 'complete';
-    if (
-      hasRecipient ||
-      hasSender ||
-      hasAnyScreenContent ||
-      hasAnyImages ||
-      proj.data.overlay.mainText ||
-      proj.data.overlay.buttonText
-    )
-      return 'inProgress';
+    let screens: typeof templateOrdered;
+    if (screenEntries.length > 0) {
+      screens = screenEntries
+        .map((id) => getMetaForId(id))
+        .filter((s): s is typeof templateOrdered[number] => !!s)
+        .sort((a, b) => a.order - b.order);
+    } else if (dynamicScreens) {
+      screens = dynamicScreens;
+    } else {
+      screens = templateOrdered;
+    }
+
+    const overlayOk = !!proj.data.overlay?.type;
+    let allScreensHaveContent = true;
+    let anyContent = false;
+
+    const hasContent = (screenId: string): boolean => {
+      const screenData = proj.data.screens[screenId];
+      if (!screenData) return false;
+      const mediaMode = screenData.mediaMode || 'classic';
+      const hasTitle = !!screenData.title?.trim();
+      const hasText = !!screenData.text?.trim();
+      const hasImages = mediaMode === 'classic' && Array.isArray(screenData.images) && screenData.images.length > 0;
+      const hasVideo = mediaMode === 'video' && !!screenData.videoId;
+      return hasTitle || hasText || hasImages || hasVideo;
+    };
+
+    for (const screen of screens) {
+      const screenHasContent = hasContent(screen.screenId);
+      if (screenHasContent) {
+        anyContent = true;
+      } else {
+        allScreensHaveContent = false;
+      }
+    }
+
+    if (overlayOk && allScreensHaveContent && screens.length > 0) return 'complete';
+    if (overlayOk && anyContent) return 'inProgress';
     return 'notStarted';
   }, []);
 

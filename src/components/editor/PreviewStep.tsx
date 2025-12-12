@@ -24,12 +24,40 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
 
   if (!currentProject || !templateMeta) return null;
 
-  const screens = templateMeta.screens;
-  const currentScreen = screens[currentScreenIndex];
-  const screenData = currentProject.data.screens[currentScreen.screenId] || {};
-  const screenImages = (screenData.images || [])
+  // Effective screens: prefer dynamicScreens; else screens that have data; else template screens
+  const templateOrdered = templateMeta.screens.slice().sort((a, b) => a.order - b.order);
+  const screenIdsWithData = Object.keys(currentProject.data.screens || {});
+  let screens =
+    (currentProject.data.dynamicScreens?.length &&
+      currentProject.data.dynamicScreensTemplateId === templateMeta.templateId)
+      ? currentProject.data.dynamicScreens.slice().sort((a, b) => a.order - b.order)
+      : (screenIdsWithData.length > 0
+          ? templateOrdered.filter((s) => screenIdsWithData.includes(s.screenId))
+          : templateOrdered);
+
+  const contentScreens = screens.filter((s) => {
+    const sd = currentProject.data.screens[s.screenId] || {};
+    const mediaMode = sd.mediaMode || 'classic';
+    const hasImages = mediaMode === 'classic' && Array.isArray(sd.images) && sd.images.length > 0;
+    const hasVideo = mediaMode === 'video' && !!sd.videoId;
+    const hasText = !!sd.text?.trim();
+    const hasTitle = !!sd.title?.trim();
+    return hasImages || hasVideo || hasText || hasTitle;
+  });
+
+  // Clamp screen index to available screens
+  useEffect(() => {
+    if (currentScreenIndex >= contentScreens.length) {
+      setCurrentScreenIndex(contentScreens.length > 0 ? 0 : 0);
+      setCurrentImageIndex(0);
+    }
+  }, [currentScreenIndex, contentScreens.length]);
+
+  const currentScreen = contentScreens[currentScreenIndex];
+  const screenData = currentScreen ? (currentProject.data.screens[currentScreen.screenId] || {}) : {};
+  const screenImages = currentScreen && (screenData.images || [])
     .map(id => currentProject.data.images.find(img => img.id === id))
-    .filter((img): img is typeof currentProject.data.images[0] => img !== undefined);
+    .filter((img): img is typeof currentProject.data.images[0] => img !== undefined) || [];
   const hasImages = screenImages.length > 0;
   const hasMultipleImages = screenImages.length > 1;
   const currentImage = hasImages

@@ -1,6 +1,4 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { getTextDirection } from '../../i18n/config';
 
 const languages = [
   { code: 'en', name: 'English' },
@@ -26,9 +24,6 @@ export function LanguageSelector({ value, onChange, label, subtle = false }: Lan
   const handleChange = (lang: string) => {
     onChange(lang);
     i18n.changeLanguage(lang);
-    const direction = getTextDirection(lang);
-    document.documentElement.dir = direction;
-    document.documentElement.lang = lang;
   };
 
   if (subtle) {

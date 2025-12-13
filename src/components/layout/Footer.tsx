@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-white border-t border-slate-200 mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -17,32 +20,32 @@ export function Footer() {
               </div>
             </Link>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Create beautiful, interactive digital experiences that your loved ones will treasure forever. No apps, no server, just pure emotion in a single HTML file.
+              {t('marketing.footer.brandDescription')}
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h3 className="font-semibold text-slate-900 mb-4">Product</h3>
+            <h3 className="font-semibold text-slate-900 mb-4">{t('marketing.footer.product')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/how-it-works" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  How it work
+                  {t('marketing.nav.howItWorks')}
                 </Link>
               </li>
               <li>
                 <Link to="/templates" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  Templates
+                  {t('marketing.nav.templates')}
                 </Link>
               </li>
               <li>
                 <Link to="/live-examples" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  Live example
+                  {t('marketing.nav.liveExamples')}
                 </Link>
               </li>
               <li>
                 <Link to="/pricing" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  Pricing
+                  {t('marketing.nav.pricing')}
                 </Link>
               </li>
             </ul>
@@ -50,21 +53,21 @@ export function Footer() {
 
           {/* Support */}
           <div>
-            <h3 className="font-semibold text-slate-900 mb-4">Support</h3>
+            <h3 className="font-semibold text-slate-900 mb-4">{t('marketing.footer.support')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/faq" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  FAQ
+                  {t('marketing.nav.faq')}
                 </Link>
               </li>
               <li>
                 <Link to="/contact" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  Contact
+                  {t('marketing.nav.contact')}
                 </Link>
               </li>
               <li>
                 <Link to="/about" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  About
+                  {t('marketing.nav.about')}
                 </Link>
               </li>
             </ul>
@@ -72,16 +75,16 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h3 className="font-semibold text-slate-900 mb-4">Legal</h3>
+            <h3 className="font-semibold text-slate-900 mb-4">{t('marketing.footer.legal')}</h3>
             <ul className="space-y-2">
               <li>
                 <a href="#" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  Privacy Policy
+                  {t('marketing.footer.privacy')}
                 </a>
               </li>
               <li>
                 <a href="#" className="text-sm text-slate-600 hover:text-fuchsia-700 transition-colors">
-                  Terms of Service
+                  {t('marketing.footer.terms')}
                 </a>
               </li>
             </ul>
@@ -89,7 +92,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 pt-8 border-t border-slate-200 text-center text-sm text-slate-600">
-          <p>© {new Date().getFullYear()} LoveMeDo. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} LoveMeDo. {t('marketing.footer.copyright')}</p>
         </div>
       </div>
     </footer>

@@ -14,6 +14,7 @@ import { ScreensStep } from '../components/editor/ScreensStep';
 import { ContentStep } from '../components/editor/ContentStep';
 import { PreviewExportStep } from '../components/editor/PreviewExportStep';
 import { TEMPLATE_CARDS } from '../data/templates';
+import { getTextDirection } from '../i18n/config';
 
 function generateCustomTemplateMeta(project: Project): TemplateMeta {
   const customScreens = project.data.customTemplate?.customScreens || [];
@@ -37,13 +38,15 @@ function generateCustomTemplateMeta(project: Project): TemplateMeta {
 }
 
 function EditorContent() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { currentProject, updateProject, saveCurrentProject } = useProject();
   const { setAutosaveEnabled } = useAppSettings();
   const { currentStep, setCurrentStep, steps } = useEditor();
   const [templateMeta, setTemplateMeta] = useState<TemplateMeta | null>(null);
   const [debugMode, setDebugMode] = useState(false);
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
 
   useEffect(() => {
     if (currentProject?.templateId) {
@@ -126,11 +129,11 @@ function EditorContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-[#0f0a1a] dark:via-[#140a26] dark:to-[#0f0a1a] flex">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-[#0f0a1a] dark:via-[#140a26] dark:to-[#0f0a1a] flex" dir={dir}>
       {/* Sidebar */}
-      <div className="w-64 bg-white/80 dark:bg-[rgba(23,16,34,0.85)] backdrop-blur border-r border-slate-200 dark:border-[rgba(255,255,255,0.08)] p-4 overflow-y-auto shadow-md">
+      <div className={`w-64 bg-white/80 dark:bg-[rgba(23,16,34,0.85)] backdrop-blur ${isRTL ? 'border-l' : 'border-r'} border-slate-200 dark:border-[rgba(255,255,255,0.08)] p-4 overflow-y-auto shadow-md ${isRTL ? 'text-right' : 'text-left'}`}>
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
+          <div className={`flex items-center gap-2 mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold text-base">
               ✨
             </div>
@@ -141,7 +144,7 @@ function EditorContent() {
             onClick={() => navigate('/')}
             className="w-full rounded-xl px-4 py-2 text-sm font-semibold"
           >
-            ← {t('common.back')}
+            {isRTL ? `${t('common.back')} ←` : `← ${t('common.back')}`}
           </Button>
         </div>
 
@@ -166,10 +169,10 @@ function EditorContent() {
               setAutosaveEnabled(true);
             }}
           >
-            Save project
+            {t('editor.sidebar.saveProject')}
           </Button>
           <p className="text-xs text-slate-500 mt-2">
-            Saves now and turns on autosave for future edits.
+            {t('editor.sidebar.saveProjectDescription')}
           </p>
         </div>
 
@@ -184,7 +187,7 @@ function EditorContent() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-6 sm:p-8 overflow-y-auto" style={{ backgroundColor: 'var(--surface)' }}>
+      <div className={`flex-1 p-6 sm:p-8 overflow-y-auto ${isRTL ? 'text-right' : 'text-left'}`} style={{ backgroundColor: 'var(--surface)' }} dir={dir}>
         <div className="max-w-5xl mx-auto glass rounded-2xl p-4 sm:p-6 md:p-8 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)] shadow-xl">
           {renderStepContent()}
         </div>

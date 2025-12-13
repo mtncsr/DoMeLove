@@ -11,13 +11,16 @@ import { Button } from '../ui/Button';
 import { Tooltip } from '../ui/Tooltip';
 import { formatFileSize } from '../../utils/imageProcessor';
 import { saveVideoBlob, deleteVideoBlob, hasVideoBlob } from '../../services/videoBlobStore';
+import { getTextDirection } from '../../i18n/config';
 
 export function ContentStep() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentProject, updateProject } = useProject();
   const { templateMeta } = useEditor();
   const [activeTab, setActiveTab] = useState<'images' | 'music' | 'videos'>('images');
   const [missingVideoBlobs, setMissingVideoBlobs] = useState<Record<string, boolean>>({});
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
 
   // Cleanup temporarily disabled to avoid interfering with image assignments during navigation
   useEffect(() => {
@@ -48,12 +51,12 @@ export function ContentStep() {
   if (!currentProject) return null;
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       <h2 className="text-2xl font-bold text-slate-900">{t('editor.content.title')}</h2>
 
       {/* Tabs */}
       <div className="border-b border-slate-200">
-        <div className="flex gap-1">
+        <div className={`flex gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <button
             onClick={() => setActiveTab('images')}
             className={`px-4 py-2 border-b-2 transition-colors ${
@@ -82,7 +85,7 @@ export function ContentStep() {
                 : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
-            Videos
+            {t('editor.content.videos')}
           </button>
         </div>
       </div>
@@ -424,6 +427,10 @@ interface VideosTabProps {
 }
 
 function VideosTab({ project, updateProject, missingVideoBlobs }: VideosTabProps) {
+  const { t, i18n } = useTranslation();
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
+  
   const handleUpload = async (video: VideoData, blob: Blob) => {
     await saveVideoBlob(project.id, video.id, blob);
     updateProject({
@@ -464,18 +471,18 @@ function VideosTab({ project, updateProject, missingVideoBlobs }: VideosTabProps
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-slate-900 mb-3">Upload Videos</h3>
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">{t('editor.content.uploadVideos')}</h3>
         <VideoUpload onUpload={handleUpload} />
       </div>
 
       <div>
         <h3 className="text-lg font-semibold text-slate-900 mb-3">
-          All Uploaded Videos ({project.data.videos.length})
+          {t('editor.content.allUploadedVideos')} ({project.data.videos.length})
         </h3>
         {project.data.videos.length === 0 ? (
-          <p className="text-slate-500">No videos uploaded yet.</p>
+          <p className="text-slate-500">{t('editor.content.noVideosUploaded')}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {project.data.videos.map((video: VideoData) => {
@@ -483,8 +490,8 @@ function VideosTab({ project, updateProject, missingVideoBlobs }: VideosTabProps
               return (
                 <div key={video.id} className="bg-white/90 dark:bg-[var(--surface-2)] p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] relative shadow-sm">
                   {isMissingBlob && (
-                    <div className="absolute top-2 right-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
-                      Blob missing — re-upload required
+                    <div className={`absolute ${isRTL ? 'top-2 left-2' : 'top-2 right-2'} text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1`}>
+                      {t('editor.content.blobMissing')}
                     </div>
                   )}
                   {video.posterDataUrl ? (
@@ -495,7 +502,7 @@ function VideosTab({ project, updateProject, missingVideoBlobs }: VideosTabProps
                     />
                   ) : (
                     <div className="w-full h-40 rounded-lg mb-2 bg-gray-100 grid place-items-center text-slate-500 text-sm">
-                      No poster
+                      {t('editor.content.noPoster')}
                     </div>
                   )}
                   <p className="text-sm font-semibold text-slate-900 truncate">{video.filename}</p>
@@ -510,7 +517,7 @@ function VideosTab({ project, updateProject, missingVideoBlobs }: VideosTabProps
                     onClick={() => handleDelete(video.id)}
                     className="w-full text-sm mt-3"
                   >
-                    Delete
+                    {t('editor.content.deleteVideo')}
                   </Button>
                 </div>
               );

@@ -1,56 +1,25 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navigation } from '../components/layout/Navigation';
 import { Footer } from '../components/layout/Footer';
 import { useProject } from '../contexts/ProjectContext';
+import { useTranslation } from 'react-i18next';
+import { getTextDirection } from '../i18n/config';
 
 const examples = [
-  {
-    title: 'Birthday Surprise for Mom',
-    description: 'A heartfelt five-screen journey celebrating 60 years of an amazing life.',
-    screens: 5,
-    features: ['with music', 'emojis'],
-    steps: [
-      'A full-screen photo of mom with confetti falling and "Happy 60th Birthday!" appearing letter by letter.',
-      'A collage of childhood memories with gentle pan-and-zoom animations.',
-      'A voice note from the family layered over a slideshow.',
-      'A timeline of special moments with emojis for each milestone.',
-      'A final thank-you message with a heart animation and a "Replay" button.',
-    ],
-  },
-  {
-    title: 'Our Love Story — 10 Years Together',
-    description: 'A romantic seven-screen anniversary gift walking through a decade of love.',
-    screens: 7,
-    features: ['with music'],
-  },
-  {
-    title: 'Save the Date — Sarah & David',
-    description: 'An elegant four-screen wedding invitation that guests actually opened and remembered.',
-    screens: 4,
-    features: ['with music'],
-  },
-  {
-    title: 'Welcome Baby Mia',
-    description: 'A three-screen announcement introducing the newest family member to the world.',
-    screens: 3,
-    features: ['emojis'],
-  },
-  {
-    title: 'Thank You, Coach Mike',
-    description: 'A two-screen gratitude message from the basketball team to their retiring coach.',
-    screens: 2,
-  },
-  {
-    title: "I'm Sorry — Please Forgive Me",
-    description: 'A three-screen sincere apology that helped mend a broken friendship.',
-    screens: 3,
-  },
+  { id: 'birthdayMom', screens: 5, features: ['with music', 'emojis'] },
+  { id: 'loveStory', screens: 7, features: ['with music'] },
+  { id: 'weddingSaveDate', screens: 4, features: ['with music'] },
+  { id: 'welcomeBaby', screens: 3, features: ['emojis'] },
+  { id: 'thankYouCoach', screens: 2, features: [] },
+  { id: 'imSorry', screens: 3, features: [] },
 ];
 
 export function LiveExamplesPage() {
   const navigate = useNavigate();
   const { createProject, setCurrentProject } = useProject();
+  const { t, i18n } = useTranslation();
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
 
   const startNewGift = () => {
     const project = createProject('romantic', 'My interactive gift');
@@ -59,26 +28,33 @@ export function LiveExamplesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" dir={dir}>
       <Navigation />
-      <main className="max-w-6xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <p className="text-sm font-semibold text-fuchsia-700 uppercase tracking-wide mb-3">Live examples</p>
+      <main className={`max-w-6xl mx-auto px-4 py-12 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`text-center mb-12 ${isRTL ? 'rtl' : ''}`}>
+          <p className="text-sm font-semibold text-fuchsia-700 uppercase tracking-wide mb-3">{t('marketing.liveExamples.eyebrow')}</p>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4">
-            Real stories,{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 to-purple-700">real emotions</span>
+            {t('marketing.liveExamples.titlePart1')}{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 to-purple-700">{t('marketing.liveExamples.titleHighlight')}</span>
           </h1>
           <p className="text-lg text-slate-700 max-w-3xl mx-auto">
-            Explore interactive gifts created by real people for real moments. Click any example to experience it yourself.
+            {t('marketing.liveExamples.subtitle')}
           </p>
         </div>
 
         <div className="space-y-8">
-          {examples.map((example, idx) => (
-            <div key={idx} className="glass rounded-3xl p-6 md:p-8">
-              <div className="flex flex-wrap gap-3 mb-4">
+          {examples.map((example, idx) => {
+            const title = t(`marketing.liveExamples.examples.${example.id}.title`, { defaultValue: example.id });
+            const description = t(`marketing.liveExamples.examples.${example.id}.description`, { defaultValue: '' });
+            const steps = t(`marketing.liveExamples.examples.${example.id}.steps`, {
+              returnObjects: true,
+              defaultValue: [],
+            }) as string[];
+            return (
+            <div key={idx} className={`glass rounded-3xl p-6 md:p-8 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
+              <div className={`flex flex-wrap gap-3 mb-4 ${isRTL ? 'justify-end flex-row-reverse' : ''}`}>
                 <span className="px-3 py-1 rounded-full bg-fuchsia-100 text-fuchsia-700 text-sm font-semibold">
-                  {example.screens} screens
+                  {example.screens} {t('marketing.liveExamples.screensSuffix')}
                 </span>
                 {example.features?.map((feature, fIdx) => (
                   <span
@@ -89,21 +65,21 @@ export function LiveExamplesPage() {
                         : 'bg-amber-100 text-amber-700'
                     }`}
                   >
-                    {feature}
+                    {feature === 'with music' ? t('marketing.liveExamples.featureWithMusic') : t('marketing.liveExamples.featureEmojis')}
                   </span>
                 ))}
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">{example.title}</h3>
-              <p className="text-slate-700 mb-4">{example.description}</p>
-              {example.steps && (
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">{title}</h3>
+              <p className="text-slate-700 mb-4">{description}</p>
+              {steps.length > 0 && (
                 <div className="space-y-3 mb-4">
-                  <p className="font-semibold text-slate-900">What happens:</p>
-                  {example.steps.map((step, sIdx) => (
-                    <div key={sIdx} className="flex gap-3">
+                  <p className="font-semibold text-slate-900">{t('marketing.liveExamples.whatHappens')}</p>
+                  {steps.map((step, sIdx) => (
+                    <div key={sIdx} className={`flex gap-3 items-start ${isRTL ? 'flex-row-reverse text-right' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+                      <p className="text-slate-700 flex-1">{step}</p>
                       <span className="h-8 w-8 rounded-full bg-fuchsia-100 text-fuchsia-700 grid place-items-center font-bold flex-shrink-0">
                         {sIdx + 1}
                       </span>
-                      <p className="text-slate-700">{step}</p>
                     </div>
                   ))}
                 </div>
@@ -112,20 +88,21 @@ export function LiveExamplesPage() {
                 className="gradient-button rounded-full px-5 py-2 text-sm font-semibold text-white"
                 onClick={startNewGift}
               >
-                View this example →
+                {t('marketing.liveExamples.ctaView')}
               </button>
             </div>
-          ))}
+          );
+          })}
         </div>
 
         <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Ready to create your own story?</h2>
-          <p className="text-slate-700 mb-6">Your moments deserve to be remembered beautifully</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">{t('marketing.liveExamples.ctaTitle')}</h2>
+          <p className="text-slate-700 mb-6">{t('marketing.liveExamples.ctaSubtitle')}</p>
           <button
             className="gradient-button rounded-full px-6 py-3 text-base font-semibold text-white"
             onClick={startNewGift}
           >
-            Start creating now
+            {t('marketing.liveExamples.ctaStart')}
           </button>
         </div>
       </main>

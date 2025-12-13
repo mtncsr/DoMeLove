@@ -10,66 +10,26 @@ import type { ImageData, AudioFile } from '../../types/project';
 import { formatFileSize } from '../../utils/audioProcessor';
 import { Button } from '../ui/Button';
 import { ScreenVideoSelector } from './ScreenVideoSelector';
+import { getTextDirection } from '../../i18n/config';
 
-const GALLERY_LAYOUTS = [
-  { value: 'carousel', label: 'Carousel' },
-  { value: 'gridWithZoom', label: 'Grid with Zoom' },
-  { value: 'fullscreenSlideshow', label: 'Fullscreen Slideshow' },
-  { value: 'heroWithThumbnails', label: 'Hero with Thumbnails' },
-  { value: 'timeline', label: 'Timeline' },
-];
+// GALLERY_LAYOUTS moved to use translations in TemplateStep
 
 interface ScreensStepProps {
   templateMeta: TemplateMeta | null;
 }
 
-const MAIN_DETAIL_HINTS: Record<string, { heading?: string; subtitle?: string; titlePlaceholder?: string; textPlaceholder?: string }> = {
-  romantic: {
-    heading: 'Main Screen Details',
-    subtitle: 'Set the opener for your couple story (names, date, or special line).',
-    titlePlaceholder: 'Our Love Story',
-    textPlaceholder: 'A short opener to pull them in...',
-  },
-  wedding: {
-    heading: 'Main Screen Details',
-    subtitle: 'Save the date intro — couple names, date, venue.',
-    titlePlaceholder: 'Sarah & David — Save the Date',
-    textPlaceholder: 'Join us on June 12th at The Garden Venue...',
-  },
-  'new-baby': {
-    heading: 'Main Screen Details',
-    subtitle: 'Welcome your little one — name, birth date, sweet note.',
-    titlePlaceholder: 'Welcome baby Noah',
-    textPlaceholder: 'Born May 4th, 7 lbs 3 oz — we are so in love!',
-  },
-  'adult-birthday': {
-    heading: 'Main Screen Details',
-    subtitle: 'Birthday opener — name, age, warm greeting.',
-    titlePlaceholder: 'Happy Birthday, Mom!',
-    textPlaceholder: 'Celebrating 60 years of magic and love.',
-  },
-  'kids-birthday': {
-    heading: 'Main Screen Details',
-    subtitle: 'Fun opener — kid name, age, playful line.',
-    titlePlaceholder: 'Ava turns 7!',
-    textPlaceholder: 'Join the adventure — balloons, cake, and surprises!',
-  },
-  'single-screen': {
-    heading: 'Main Screen Details',
-    subtitle: 'Single screen announcement — headline and body.',
-    titlePlaceholder: 'Big Announcement',
-    textPlaceholder: 'A concise message with your key details.',
-  },
-};
+// Main detail hints are now handled via translations in editor.screens.mainScreenDetails
 
 const EMOJIS = ['🎉', '💖', '🥳', '🎁', '😊', '🌟', '💍', '👶', '✨', '🎈'];
 
 export function ScreensStep({ templateMeta }: ScreensStepProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentProject, updateProject } = useProject();
   const [activeScreenIndex, setActiveScreenIndex] = useState(0);
   const [editingTabName, setEditingTabName] = useState<string | null>(null);
   const [editingTabValue, setEditingTabValue] = useState('');
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
 
   if (!currentProject || !templateMeta) return null;
 
@@ -184,12 +144,12 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       <h2 className="text-2xl font-bold text-slate-900">{t('editor.screens.title')}</h2>
 
       {/* Screen Tabs */}
-      <div className="border-b border-slate-200 pb-1 flex items-center gap-2 flex-wrap">
-        <div className="flex gap-1 overflow-x-auto">
+      <div className={`border-b border-slate-200 pb-1 flex items-center gap-2 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex gap-1 overflow-x-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
           {screens.map((screen, index) => {
             const displayName = getScreenDisplayName(screen.screenId, index);
             const isEditing = editingTabName === screen.screenId;
@@ -257,8 +217,8 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
             );
           })}
         </div>
-        <Button variant="secondary" onClick={handleAddScreen} className="ml-auto px-3 py-1.5 text-sm">
-          + Add screen
+        <Button variant="secondary" onClick={handleAddScreen} className={`${isRTL ? 'mr-auto' : 'ml-auto'} px-3 py-1.5 text-sm`}>
+          + {t('editor.screens.addScreen')}
         </Button>
       </div>
 
@@ -292,11 +252,9 @@ interface MainScreenEditorProps {
 }
 
 function MainScreenEditor({ project, updateProject, templateId }: MainScreenEditorProps) {
-  const { t } = useTranslation();
-  const hint = MAIN_DETAIL_HINTS[templateId] || {
-    heading: 'Main Screen Details',
-    subtitle: 'Set the opener for your gift.',
-  };
+  const { t, i18n } = useTranslation();
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
 
   // Get all available audio files (library + already assigned to other screens)
   const allAvailableAudioFiles: AudioFile[] = [
@@ -354,13 +312,13 @@ function MainScreenEditor({ project, updateProject, templateId }: MainScreenEdit
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       {/* Main Screen Details */}
       <div className="bg-white/90 dark:bg-[var(--surface-2)] p-6 rounded-2xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] shadow-sm">
-        <div className="flex items-start justify-between gap-3 mb-2">
+        <div className={`flex items-start justify-between gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{hint.heading}</h3>
-            {hint.subtitle && <p className="text-sm text-slate-600">{hint.subtitle}</p>}
+            <h3 className="text-lg font-semibold text-slate-900">{t('editor.screens.mainScreenDetails')}</h3>
+            <p className="text-sm text-slate-600">{t('editor.screens.mainScreenDetailsSubtitle')}</p>
           </div>
           <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
             {templateId}
@@ -371,7 +329,6 @@ function MainScreenEditor({ project, updateProject, templateId }: MainScreenEdit
             label={t('editor.giftDetails.recipientName')}
             value={project.data.recipientName || ''}
             onChange={(e) => updateField('recipientName', e.target.value)}
-            placeholder={hint.titlePlaceholder}
           />
           <Input
             label={t('editor.giftDetails.senderName')}
@@ -382,17 +339,16 @@ function MainScreenEditor({ project, updateProject, templateId }: MainScreenEdit
             label={t('editor.giftDetails.eventTitle')}
             value={project.data.eventTitle || ''}
             onChange={(e) => updateField('eventTitle', e.target.value)}
-            placeholder={hint.titlePlaceholder}
           />
           <Textarea
             label={t('editor.giftDetails.mainGreeting')}
             value={project.data.mainGreeting || ''}
             onChange={(e) => updateField('mainGreeting', e.target.value)}
             rows={4}
-            placeholder={hint.textPlaceholder || t('editor.giftDetails.mainGreeting')}
+            placeholder={t('editor.giftDetails.mainGreeting')}
             footer={
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <span>Add emoji:</span>
+              <div className={`flex items-center gap-2 text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span>{t('editor.screens.addEmoji')}</span>
                 <div className="flex gap-1">
                   {EMOJIS.map((emoji) => (
                     <button
@@ -488,7 +444,9 @@ interface ScreenEditorProps {
 }
 
 function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isLastScreen, templateMeta }: ScreenEditorProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
   const screenData = project.data.screens[screen.screenId] || {};
   const mediaMode: 'classic' | 'video' = screenData.mediaMode || 'classic';
   const isVideoMode = mediaMode === 'video';
@@ -666,15 +624,15 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
   const showText = (screen.placeholders || []).includes('text');
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       {/* Media mode selector */}
       <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">Screen type</h3>
-          <span className="text-xs text-slate-500">Classic = photos/music, Video = single video</span>
+        <div className={`flex items-center justify-between mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h3 className="text-lg font-semibold">{t('editor.screens.screenType')}</h3>
+          <span className="text-xs text-slate-500">{t('editor.screens.screenTypeDescription')}</span>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <label className="flex items-center gap-2 cursor-pointer">
+        <div className={`flex flex-wrap gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <label className={`flex items-center gap-2 cursor-pointer ${isRTL ? 'flex-row-reverse' : ''}`}>
             <input
               type="radio"
               name={`mediaMode-${screen.screenId}`}
@@ -682,9 +640,9 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
               onChange={() => setMediaMode('classic')}
               className="accent-fuchsia-500"
             />
-            Classic (photos + optional music)
+            {t('editor.screens.classicMode')}
           </label>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className={`flex items-center gap-2 cursor-pointer ${isRTL ? 'flex-row-reverse' : ''}`}>
             <input
               type="radio"
               name={`mediaMode-${screen.screenId}`}
@@ -692,38 +650,38 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
               onChange={() => setMediaMode('video')}
               className="accent-fuchsia-500"
             />
-            Video (single video only)
+            {t('editor.screens.videoMode')}
           </label>
         </div>
         {isVideoMode && (
           <p className="text-xs text-amber-600 mt-2">
-            Images, per-screen audio, gallery layout, and extend music are disabled in Video mode.
+            {t('editor.screens.videoModeWarning')}
           </p>
         )}
       </div>
 
       {/* Title and Text */}
       <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
-        <div className="flex items-center justify-between gap-3 mb-2">
+        <div className={`flex items-center justify-between gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <h3 className="text-lg font-semibold">{t('editor.screens.content')}</h3>
-          <div className="flex items-center gap-2 text-xs text-slate-600">
-            <label className="flex items-center gap-1 cursor-pointer">
+          <div className={`flex items-center gap-2 text-xs text-slate-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <label className={`flex items-center gap-1 cursor-pointer ${isRTL ? 'flex-row-reverse' : ''}`}>
               <input
                 type="checkbox"
                 checked={showTitle}
                 onChange={() => togglePlaceholder('title')}
                 className="accent-fuchsia-500"
               />
-              Title field
+              {t('editor.screens.titleField')}
             </label>
-            <label className="flex items-center gap-1 cursor-pointer">
+            <label className={`flex items-center gap-1 cursor-pointer ${isRTL ? 'flex-row-reverse' : ''}`}>
               <input
                 type="checkbox"
                 checked={showText}
                 onChange={() => togglePlaceholder('text')}
                 className="accent-fuchsia-500"
               />
-              Text field
+              {t('editor.screens.textField')}
             </label>
           </div>
         </div>
@@ -759,9 +717,9 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
               onChange={(e) => updateScreenField('text', e.target.value)}
               rows={4}
               footer={
-                <div className="flex items-center gap-1 text-xs text-slate-500">
-                  <span>Add emoji:</span>
-                  <div className="flex gap-1">
+                <div className={`flex items-center gap-1 text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span>{t('editor.screens.addEmoji')}</span>
+                  <div className={`flex gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     {EMOJIS.map((emoji) => (
                       <button
                         key={emoji}
@@ -802,11 +760,11 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
                 onChange={(e) => updateScreenField('galleryLayout', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {GALLERY_LAYOUTS.map((layout) => (
-                  <option key={layout.value} value={layout.value}>
-                    {layout.label}
-                  </option>
-                ))}
+                <option value="carousel">{t('editor.template.galleryLayouts.carousel')}</option>
+                <option value="gridWithZoom">{t('editor.template.galleryLayouts.gridWithZoom')}</option>
+                <option value="fullscreenSlideshow">{t('editor.template.galleryLayouts.fullscreenSlideshow')}</option>
+                <option value="heroWithThumbnails">{t('editor.template.galleryLayouts.heroWithThumbnails')}</option>
+                <option value="timeline">{t('editor.template.galleryLayouts.timeline')}</option>
               </select>
             </div>
           )}
@@ -816,7 +774,7 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
       {/* Video */}
       {isVideoMode && (
         <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
-          <h3 className="text-lg font-semibold mb-4">Video</h3>
+          <h3 className="text-lg font-semibold mb-4">{t('editor.screens.video')}</h3>
           <ScreenVideoSelector
             videos={project.data.videos || []}
             selectedVideoId={screenData.videoId}

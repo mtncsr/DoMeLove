@@ -1,40 +1,28 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navigation } from '../components/layout/Navigation';
 import { Footer } from '../components/layout/Footer';
 import { useProject } from '../contexts/ProjectContext';
-
-const plans = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: 'forever',
-    description: 'Perfect for trying the editor and creating personal gifts.',
-    cta: 'Get started free',
-    features: ['Watermarked exports', 'All templates', 'Basic features'],
-  },
-  {
-    name: 'One-Time Pro',
-    price: '$29',
-    period: 'one-time',
-    description: 'Pay once, create watermark-free gifts forever. No subscription.',
-    cta: 'Unlock Pro forever',
-    popular: true,
-    features: ['No watermarks', 'All templates', 'All features', 'Lifetime access'],
-  },
-  {
-    name: 'Team',
-    price: '$79',
-    period: 'one-time',
-    description: 'For professionals and businesses creating gifts for clients.',
-    cta: 'Start team trial',
-    features: ['Commercial use', 'Priority support', 'Team features', 'All Pro features'],
-  },
-];
+import { useTranslation } from 'react-i18next';
+import { getTextDirection } from '../i18n/config';
 
 export function PricingPage() {
   const navigate = useNavigate();
   const { createProject, setCurrentProject } = useProject();
+  const { t, i18n } = useTranslation();
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
+
+  const planIds = ['free', 'pro', 'team'] as const;
+  const plans = planIds.map((id) => ({
+    id,
+    name: t(`marketing.pricing.plans.${id}.name`, { defaultValue: id }),
+    price: t(`marketing.pricing.plans.${id}.price`, { defaultValue: '$0' }),
+    period: t(`marketing.pricing.plans.${id}.period`, { defaultValue: '' }),
+    description: t(`marketing.pricing.plans.${id}.description`, { defaultValue: '' }),
+    cta: t(`marketing.pricing.plans.${id}.cta`, { defaultValue: '' }),
+    features: t(`marketing.pricing.plans.${id}.features`, { returnObjects: true, defaultValue: [] }) as string[],
+    popular: id === 'pro',
+  }));
 
   const startNewGift = () => {
     const project = createProject('romantic', 'My interactive gift');
@@ -43,22 +31,21 @@ export function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" dir={dir}>
       <Navigation />
-      <main className="max-w-6xl mx-auto px-4 py-12">
+      <main className={`max-w-6xl mx-auto px-4 py-12 ${isRTL ? 'text-right' : 'text-left'}`}>
         <div className="text-center mb-12">
-          <p className="text-sm font-semibold text-fuchsia-700 uppercase tracking-wide mb-3">Pricing</p>
+          <p className="text-sm font-semibold text-fuchsia-700 uppercase tracking-wide mb-3">{t('marketing.pricing.eyebrow')}</p>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4">
-            Simple,{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 to-purple-700">honest pricing</span>
+            {t('marketing.pricing.title')}
           </h1>
           <p className="text-lg text-slate-700 max-w-3xl mx-auto mb-6">
-            No subscription required. Pay once, own forever. Start free and upgrade when you're ready.
+            {t('marketing.pricing.subtitle')}
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm text-slate-700">
-            <span className="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">✅ 14-day money back</span>
-            <span className="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">🔒 Secure payment</span>
-            <span className="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">♾️ Lifetime access</span>
+            <span className="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">{t('marketing.pricing.badgeMoneyBack')}</span>
+            <span className="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">{t('marketing.pricing.badgeSecure')}</span>
+            <span className="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">{t('marketing.pricing.badgeLifetime')}</span>
           </div>
         </div>
 
@@ -72,14 +59,14 @@ export function PricingPage() {
             >
               {plan.popular && (
                 <span className="self-start px-3 py-1 rounded-full bg-gradient-to-r from-fuchsia-100 to-purple-100 text-fuchsia-700 text-xs font-semibold mb-4">
-                  ★ Most Popular
+                  {t('marketing.pricing.mostPopular')}
                 </span>
               )}
               <h3 className="text-2xl font-bold text-slate-900 mb-2">{plan.name}</h3>
               <div className="mb-2">
                 <span className="text-4xl font-extrabold text-slate-900">{plan.price}</span>
                 {plan.period && (
-                  <span className="text-slate-600 ml-2">/{plan.period}</span>
+                  <span className="text-slate-600 ml-2">{t('marketing.pricing.periodSuffix')}{plan.period}</span>
                 )}
               </div>
               <p className="text-slate-700 mb-6">{plan.description}</p>
@@ -104,13 +91,13 @@ export function PricingPage() {
         </div>
 
         <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Start creating for free today</h2>
-          <p className="text-slate-700 mb-6">No credit card required. Upgrade whenever you're ready.</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">{t('marketing.pricing.startFreeTitle')}</h2>
+          <p className="text-slate-700 mb-6">{t('marketing.pricing.startFreeSubtitle')}</p>
           <button
             className="gradient-button rounded-full px-6 py-3 text-base font-semibold text-white"
             onClick={startNewGift}
           >
-            Get started free
+            {t('marketing.pricing.ctaStartFree')}
           </button>
         </div>
       </main>

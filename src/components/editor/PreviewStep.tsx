@@ -309,11 +309,13 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             }}
           >
             <h3 className="text-3xl font-bold mb-2" style={{ color: 'white' }}>
-              {currentProject.data.overlay.mainText || 'Welcome'}
+              {currentProject.data.overlay.mainText || ''}
             </h3>
-            <p className="text-xl mb-4" style={{ color: 'white' }}>
-              {currentProject.data.overlay.subText || 'To your special gift'}
-            </p>
+            {currentProject.data.overlay.subText && (
+              <p className="text-xl mb-4" style={{ color: 'white' }}>
+                {currentProject.data.overlay.subText}
+              </p>
+            )}
             <button 
               className="px-6 py-3 rounded-lg font-semibold shadow-sm"
               style={{ 

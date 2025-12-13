@@ -15,12 +15,15 @@
   "editor": {
     "steps": {
       "template": "Plantilla",
+      "screens": "Pantallas",
+      "content": "Contenido",
+      "previewExport": "Vista previa y exportación",
       "giftDetails": "Detalles del Regalo",
       "screenTexts": "Textos",
       "images": "Imágenes",
       "music": "Música",
       "overlay": "Superposición",
-      "preview": "Vista Previa",
+      "preview": "Vista previa",
       "export": "Exportar"
     },
     "status": {
@@ -36,7 +39,44 @@
       "newBaby": "Bebé Nuevo / Nacimiento",
       "barMitzvah": "Bar/Bat Mitzvá",
       "wedding": "Boda / Guarda la Fecha",
-      "singleScreen": "Pantalla Única"
+      "singleScreen": "Pantalla Única",
+      "customTemplate": "Plantilla personalizada",
+      "customTemplateDescription": "Diseña tu propia plantilla desde cero",
+      "customTemplateSelected": "Se seleccionó una plantilla personalizada",
+      "editCustomTemplate": "Editar plantilla personalizada",
+      "customBuilderTitle": "Creador de plantilla personalizada",
+      "backToTemplates": "Volver a plantillas",
+      "predefinedThemes": "Temas predefinidos",
+      "customTheme": "Tema personalizado",
+      "customThemeDescription": "Define tus propios colores y fuentes",
+      "customThemeSettings": "Configuración de tema personalizado",
+      "textColor": "Color de texto",
+      "backgroundColor": "Color de fondo",
+      "accentColor": "Color de acento",
+      "buttonColor": "Color de botón",
+      "screensTitle": "Pantallas",
+      "addScreen": "Agregar pantalla",
+      "screenLabel": "Pantalla {{index}}",
+      "galleryLayout": "Diseño de galería",
+      "supportsMusic": "Soporta música",
+      "moveUp": "Mover arriba",
+      "moveDown": "Mover abajo",
+      "removeScreen": "Eliminar pantalla",
+      "galleryLayouts": {
+        "carousel": "Carrusel",
+        "gridWithZoom": "Cuadrícula con zoom",
+        "fullscreenSlideshow": "Presentación a pantalla completa",
+        "heroWithThumbnails": "Hero con miniaturas",
+        "timeline": "Línea de tiempo"
+      },
+      "screenTypes": {
+        "intro": "Introducción",
+        "text": "Solo texto",
+        "gallery": "Galería",
+        "single": "Contenido único",
+        "blessings": "Bendiciones"
+      },
+      "customThemeName": "Personalizado"
     },
     "giftDetails": {
       "recipientName": "Nombre del Destinatario",
@@ -70,6 +110,40 @@
       "subText": "Texto Secundario",
       "buttonText": "Texto del Botón"
     },
+    "screens": {
+      "title": "Pantallas",
+      "giftDetails": "Detalles del regalo",
+      "backgroundMusic": "Música de fondo",
+      "content": "Contenido",
+      "screenTitle": "Título de pantalla",
+      "screenText": "Texto de pantalla",
+      "images": "Imágenes",
+      "galleryLayout": "Diseño de galería",
+      "rename": "Renombrar",
+      "remove": "Eliminar",
+      "selectFromUploaded": "Selecciona de los archivos subidos:",
+      "noMusicUploaded": "No hay música subida. Sube música en la pestaña Contenido primero.",
+      "defaultNames": {
+        "main": "Principal",
+        "first": "Primera",
+        "second": "Segunda",
+        "third": "Tercera",
+        "fourth": "Cuarta",
+        "fifth": "Quinta",
+        "sixth": "Sexta",
+        "seventh": "Séptima",
+        "eighth": "Octava",
+        "ninth": "Novena",
+        "tenth": "Décima"
+      }
+    },
+    "screenTexts": {
+      "title": "Título",
+      "text": "Texto",
+      "blessings": "Bendiciones",
+      "addBlessing": "Agregar bendición",
+      "sender": "Remitente"
+    },
     "preview": {
       "previewGift": "Vista Previa de tu Regalo",
       "mobileView": "Vista Móvil",
@@ -78,12 +152,417 @@
       "next": "Siguiente",
       "previous": "Anterior"
     },
+    "content": {
+      "title": "Contenido",
+      "images": "Imágenes",
+      "music": "Música",
+      "videos": "Videos",
+      "uploadImages": "Subir Imágenes",
+      "allUploadedImages": "Todas las imágenes subidas",
+      "noImagesUploaded": "Aún no se han subido imágenes.",
+      "uploadMusic": "Subir Música",
+      "allUploadedMusic": "Toda la música subida",
+      "noMusicUploaded": "Aún no se han subido archivos de música.",
+      "usedInScreen": "Usada en al menos una pantalla",
+      "globalPlaysOnStart": "Global (reproduce al inicio)",
+      "unassignedAssignInScreens": "No asignada - asigna en la pestaña Pantallas",
+      "assignedTo": "Asignada a"
+    },
     "export": {
       "createGift": "Crear Regalo",
       "validating": "Validando...",
       "generating": "Generando HTML...",
       "downloadReady": "¡Tu regalo está listo!",
-      "download": "Descargar Archivo HTML"
+      "download": "Descargar Archivo HTML",
+      "fixErrorsBeforeExport": "Por favor corrige estos errores antes de exportar.",
+      "recommendations": "Recomendaciones",
+      "recommendationsNote": "Puedes exportar, pero estas recomendaciones pueden mejorar la experiencia.",
+      "exportAvailable": "La exportación está disponible a pesar de las recomendaciones",
+      "exportFailed": "No se pudo generar el regalo. Inténtalo de nuevo."
+    }
+  },
+  "marketing": {
+    "nav": {
+      "home": "Inicio",
+      "howItWorks": "Cómo funciona",
+      "templates": "Plantillas",
+      "liveExamples": "Ejemplos en vivo",
+      "pricing": "Precios",
+      "faq": "FAQ",
+      "about": "Acerca de",
+      "contact": "Contacto",
+      "profile": "Perfil",
+      "startCreating": "Comenzar a crear"
+    },
+    "footer": {
+      "brandDescription": "Crea experiencias digitales hermosas e interactivas que tus seres queridos atesorarán para siempre. Sin apps, sin servidor, solo un archivo HTML.",
+      "product": "Producto",
+      "support": "Soporte",
+      "legal": "Legal",
+      "privacy": "Política de privacidad",
+      "terms": "Términos de servicio",
+      "copyright": "Todos los derechos reservados."
+    },
+    "home": {
+      "heroTitlePart1": "Convierte tus recuerdos en un",
+      "heroHighlight": "regalo HTML interactivo",
+      "heroTitlePart2": "en minutos",
+      "heroSubtitle": "Crea un archivo HTML personalizado que se reproduce como una mini experiencia: fotos, videos, música, texto y elementos interactivos. Sin app, funciona en cualquier lugar, para siempre.",
+      "featureNoApp": "Sin app para instalar",
+      "featureWorksEverywhere": "Funciona en cualquier navegador",
+      "featureOffline": "Totalmente offline y privado",
+      "featureMedia": "Fotos o un solo video por pantalla, embebidos",
+      "screensSuffix": "pantallas",
+      "templateCards": {
+        "birthdaySurprise": {
+          "title": "Sorpresa de cumpleaños",
+          "description": "Un viaje mágico por recuerdos de cumpleaños con confetti, fotos y video.",
+          "screens": 5
+        },
+        "anniversaryLove": {
+          "title": "Historia de amor",
+          "description": "Una línea de tiempo romántica desde la primera cita hasta hoy.",
+          "screens": 7
+        },
+        "weddingSaveDate": {
+          "title": "Invitación Save the Date",
+          "description": "Invitación elegante con detalles del lugar, cuenta regresiva y RSVP.",
+          "screens": 4
+        },
+        "newBaby": {
+          "title": "Bienvenida al bebé",
+          "description": "Anuncia al pequeño con fotos adorables, datos y mensajes cariñosos.",
+          "screens": 3
+        },
+        "thankYou": {
+          "title": "Gracias de corazón",
+          "description": "Expresa gratitud con un mensaje personal, fotos y un video emotivo.",
+          "screens": 2
+        },
+        "imSorry": {
+          "title": "Lo siento",
+          "description": "Una disculpa sincera con una promesa para el futuro.",
+          "screens": 3
+        }
+      },
+      "ctaStart": "Comienza a crear tu regalo",
+      "ctaExample": "Ver un ejemplo",
+      "templatesLabel": "Plantillas",
+      "templatesHeadingPart1": "Plantillas hermosas para",
+      "templatesHeadingHighlight": "cada ocasión",
+      "templatesSubheading": "Empieza con un diseño profesional y personalízalo para que sea tuyo.",
+      "viewAllTemplates": "Ver todas las plantillas →",
+      "ctaSectionTitle": "¿Listo para crear tu primer regalo interactivo?",
+      "ctaSectionBody": "Empieza a crear recuerdos que duren para siempre. Sin instalación ni registro para probar el editor.",
+      "ctaStartNow": "Empezar ahora",
+      "ctaSeePricing": "Ver precios",
+      "ctaBadges": "Gratis para probar • Sin tarjeta • Toma 5 minutos"
+    },
+    "howItWorks": {
+      "eyebrow": "Paso a paso",
+      "titlePart1": "Cómo crear tu",
+      "titleHighlight1": "regalo interactivo",
+      "titleHighlight2": "",
+      "subtitle": "Desde elegir la plantilla hasta compartir, todo lo que necesitas para crear regalos HTML memorables.",
+      "steps": {
+        "chooseTemplateTitle": "Elige una plantilla",
+        "chooseTemplateDescription": "Explora nuestra colección para cada ocasión. Cada plantilla tiene diseños, animaciones y colores únicos.",
+        "makeItYoursTitle": "Hazlo tuyo",
+        "makeItYoursDescription": "Añade fotos, música, texto, botones y momentos interactivos. Todo en un archivo HTML.",
+        "shareTitle": "Comparte al instante",
+        "shareDescription": "Exporta un archivo único para enviar como enlace, QR o adjunto. Sin apps ni instalaciones."
+      },
+      "cta": "Comienza a crear tu regalo"
+    },
+    "templates": {
+      "eyebrow": "Plantillas",
+      "titlePart1": "Plantillas hermosas para",
+      "titleHighlight1": "cada",
+      "titleHighlight2": "ocasión",
+      "subtitle": "Empieza con una plantilla profesional y personalízala.",
+      "rtlBanner": "Todas las plantillas soportan idiomas LTR y RTL",
+      "badges": {
+        "withMusic": "con música",
+        "emojis": "emojis"
+      },
+      "cards": {
+        "birthday-mom": {
+          "title": "Sorpresa de cumpleaños para mamá",
+          "description": "Un viaje de cinco pantallas celebrando 60 años de una vida increíble.",
+          "bullets": {
+            "0": "Intro de confeti con “Feliz cumpleaños!”",
+            "1": "Collage de recuerdos de infancia con zoom",
+            "2": "Nota de voz familiar sobre la presentación"
+          }
+        },
+        "kids-birthday": {
+          "title": "Aventura de cumpleaños infantil",
+          "description": "Experiencia colorida y divertida con stickers y sonidos.",
+          "bullets": {
+            "0": "Intro de globos con campanas",
+            "1": "Galería estilo sticker con zoom",
+            "2": "Pantalla de pista de búsqueda del tesoro"
+          }
+        },
+        "adult-birthday": {
+          "title": "Recuerdos de cumpleaños adulto",
+          "description": "Línea de tiempo elegante con brindis, fotos y música.",
+          "bullets": {
+            "0": "Foto hero con deseo estilo máquina de escribir",
+            "1": "Hitos con íconos",
+            "2": "Mensaje de audio de brindis"
+          }
+        },
+        "anniversary-love": {
+          "title": "Historia de amor",
+          "description": "Línea de tiempo romántica de momentos compartidos, de la primera cita hasta hoy.",
+          "bullets": {
+            "0": "Foto de la primera cita",
+            "1": "Hitos con emojis",
+            "2": "Galería lenta con su canción"
+          }
+        },
+        "proposal-countdown": {
+          "title": "Cuenta regresiva para la propuesta",
+          "description": "Cuenta regresiva dramática hacia la gran pregunta.",
+          "bullets": {
+            "0": "Intro de cuenta regresiva",
+            "1": "Por qué te amo",
+            "2": "Pantalla final con CTA de propuesta"
+          }
+        },
+        "wedding-save-date": {
+          "title": "Save the Date — Sarah & David",
+          "description": "Invitación elegante con detalles del lugar, cuenta regresiva y RSVP.",
+          "bullets": {
+            "0": "Foto de la pareja en portada",
+            "1": "Mapa del lugar y agenda",
+            "2": "Cuenta regresiva + RSVP"
+          }
+        },
+        "wedding-thankyou": {
+          "title": "Agradecimiento de boda",
+          "description": "Comparte momentos destacados y gratitud después del gran día.",
+          "bullets": {
+            "0": "Fotos destacadas",
+            "1": "Nota de agradecimiento",
+            "2": "Enlace para descargar la galería"
+          }
+        },
+        "new-baby": {
+          "title": "Bienvenida al bebé",
+          "description": "Anuncia al bebé con fotos adorables, datos y mensajes cálidos.",
+          "bullets": {
+            "0": "Tarjeta de datos (peso/altura)",
+            "1": "Cuadrícula de fotos lindas",
+            "2": "Mensaje de los padres"
+          }
+        },
+        "baby-shower": {
+          "title": "Invitación Baby Shower",
+          "description": "Invitación dulce con fecha, hora, registro y RSVP.",
+          "bullets": {
+            "0": "Portada con detalles de invitación",
+            "1": "Enlaces de registro",
+            "2": "Cuenta regresiva + mapa"
+          }
+        },
+        "thank-you": {
+          "title": "Gracias de corazón",
+          "description": "Expresa gratitud con mensaje personal, fotos y video emotivo.",
+          "bullets": {
+            "0": "Tarjeta de nota personal",
+            "1": "Foto destacada + enlace de video"
+          }
+        },
+        "im-sorry": {
+          "title": "Lo siento",
+          "description": "Disculpa sincera con promesa para el futuro.",
+          "bullets": {
+            "0": "Pantalla inicial de disculpa",
+            "1": "Contexto y sentimientos",
+            "2": "Promesa y próximos pasos"
+          }
+        },
+        "single-screen": {
+          "title": "Anuncio de una sola pantalla",
+          "description": "Mensaje conciso de una pantalla con foto y CTA.",
+          "bullets": {
+            "0": "Foto hero",
+            "1": "Texto breve",
+            "2": "CTA o enlace"
+          }
+        }
+      },
+      "categories": {
+        "all": "Todas las plantillas",
+        "birthday": "Cumpleaños",
+        "wedding": "Boda",
+        "anniversary": "Aniversario",
+        "baby": "Bebé",
+        "thankYou": "Gracias",
+        "other": "Otra"
+      },
+      "categoriesLabel": "Categorías",
+      "screensSuffix": "pantallas",
+      "useTemplate": "Usar esta plantilla →",
+      "readyTitle": "¿Listo para empezar?",
+      "readySubtitle": "Crea tu primer regalo interactivo en minutos",
+      "ctaStart": "Empieza ahora"
+    },
+    "pricing": {
+      "eyebrow": "Precios",
+      "title": "Precios simples y honestos",
+      "subtitle": "Sin suscripción. Pago único y es tuyo para siempre. Empieza gratis y mejora cuando quieras.",
+      "badgeMoneyBack": "✅ 14 días de garantía",
+      "badgeSecure": "🔒 Pago seguro",
+      "badgeLifetime": "♾️ Acceso de por vida",
+      "mostPopular": "★ Más popular",
+      "periodSuffix": "/",
+      "startFreeTitle": "Empieza gratis hoy",
+      "startFreeSubtitle": "Sin tarjeta. Mejora cuando quieras.",
+      "ctaStartFree": "Comienza gratis"
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "titlePart1": "Preguntas",
+      "titleHighlight": "frecuentes",
+      "subtitle": "Todo lo que necesitas saber sobre los regalos HTML interactivos.",
+      "searchPlaceholder": "Buscar preguntas...",
+      "whatHappens": "Qué ocurre:",
+      "startFreeTitle": "Empieza gratis hoy",
+      "startFreeSubtitle": "Sin tarjeta. Mejora cuando quieras.",
+      "ctaStartFree": "Comienza gratis"
+    },
+    "about": {
+      "eyebrow": "Acerca de",
+      "titlePart1": "Donde",
+      "titleHighlight": "el arte se une al código",
+      "body1": "Los regalos HTML interactivos nacen de la idea de que los momentos importantes merecen más que un mensaje de texto.",
+      "body2": "Una herramienta creada por un artista que aprendió a programar. Cada decisión busca ayudar a expresar mejor el amor.",
+      "cardTitle": "Hecho para momentos que importan",
+      "cardBody": "Cada detalle está diseñado para ayudarte a crear algo verdaderamente especial.",
+      "ctaStart": "Comienza a crear"
+    },
+    "contact": {
+      "eyebrow": "Contacto",
+      "titlePart1": "Hablemos",
+      "titleHighlight": "",
+      "subtitle": "¿Tienes una pregunta o idea? Nos encantará escucharte.",
+      "nameLabel": "Tu nombre",
+      "emailLabel": "Correo electrónico",
+      "reasonLabel": "¿Qué quieres crear?",
+      "reasonPlaceholder": "Elige un motivo...",
+      "reasonStart": "Iniciar un proyecto",
+      "reasonQuestion": "Hacer una pregunta",
+      "reasonPartnership": "Colaboración",
+      "reasonOther": "Otro",
+      "messageLabel": "Tu mensaje",
+      "messagePlaceholder": "Cuéntanos cómo podemos ayudar...",
+      "submit": "Enviar mensaje",
+      "ctaStart": "Comienza a crear",
+      "submitSuccess": "¡Gracias por tu mensaje! Te contactaremos pronto."
+    },
+    "liveExamples": {
+      "eyebrow": "Ejemplos en vivo",
+      "titlePart1": "Historias reales,",
+      "titleHighlight": "emociones reales",
+      "subtitle": "Explora regalos interactivos creados por personas para momentos reales.",
+      "whatHappens": "Qué ocurre:",
+      "ctaView": "Ver este ejemplo →",
+      "ctaTitle": "¿Listo para crear tu historia?",
+      "ctaSubtitle": "Tus momentos merecen ser recordados hermosamente",
+      "ctaStart": "Empieza ahora",
+      "screensSuffix": "pantallas",
+      "featureWithMusic": "con música",
+      "featureEmojis": "emojis",
+      "examples": {
+        "birthdayMom": {
+          "title": "Sorpresa de cumpleaños para mamá",
+          "description": "Un viaje conmovedor de cinco pantallas que celebra 60 años de una vida increíble.",
+          "steps": [
+            "Una foto de pantalla completa de mamá con confeti cayendo y \"¡Feliz 60 cumpleaños!\" apareciendo letra por letra.",
+            "Un collage de recuerdos de la infancia con animaciones suaves de paneo y zoom.",
+            "Una nota de voz de la familia superpuesta sobre una presentación de diapositivas.",
+            "Una línea de tiempo de momentos especiales con emojis para cada hito.",
+            "Un mensaje final de agradecimiento con una animación de corazón y un botón \"Reproducir de nuevo\"."
+          ]
+        },
+        "loveStory": {
+          "title": "Nuestra historia de amor — 10 años juntos",
+          "description": "Un regalo de aniversario romántico de siete pantallas que recorre una década de amor.",
+          "steps": [
+            "Pantalla de apertura con \"10 años juntos\" y un montaje de fotos de la pareja.",
+            "La primera cita: donde todo comenzó, con fotos y recuerdos.",
+            "Momentos importantes: mudarse juntos, primera vacación, compromiso.",
+            "El día de la boda: hermosas fotos de la ceremonia y votos.",
+            "Construyendo un hogar: casa, mascotas y vida juntos.",
+            "Aventuras y viajes: todos los lugares que han explorado juntos.",
+            "Un mensaje conmovedor con \"Aquí está para siempre\" y un botón de repetir."
+          ]
+        },
+        "weddingSaveDate": {
+          "title": "Reserva la fecha — Sarah y David",
+          "description": "Una elegante invitación de boda de cuatro pantallas que los invitados realmente abrieron y recordaron.",
+          "steps": [
+            "Apertura elegante con los nombres de la pareja y la fecha de la boda.",
+            "Detalles del lugar con una hermosa foto del lugar y dirección.",
+            "Contador regresivo que muestra los días hasta el gran día.",
+            "Sección de confirmación con un enlace para confirmar asistencia."
+          ]
+        },
+        "welcomeBaby": {
+          "title": "Bienvenida bebé Mia",
+          "description": "Un anuncio de tres pantallas que presenta al nuevo miembro de la familia al mundo.",
+          "steps": [
+            "Foto adorable del bebé con nombre, fecha de nacimiento y estadísticas (peso, longitud).",
+            "Presentación familiar: fotos de los padres y hermanos conociendo al bebé.",
+            "Mensaje de agradecimiento con una invitación a visitar y conocer la nueva incorporación."
+          ]
+        },
+        "thankYouCoach": {
+          "title": "Gracias, entrenador Mike",
+          "description": "Un mensaje de gratitud de dos pantallas del equipo de baloncesto a su entrenador retirado.",
+          "steps": [
+            "Foto del equipo con un mensaje conmovedor agradeciendo al entrenador Mike por años de dedicación.",
+            "Resumen de momentos memorables y logros, terminando con \"Siempre serás nuestro entrenador\"."
+          ]
+        },
+        "imSorry": {
+          "title": "Lo siento — por favor perdóname",
+          "description": "Una disculpa sincera de tres pantallas que ayudó a reparar una amistad rota.",
+          "steps": [
+            "Apertura con \"Lo siento\" y reconocimiento del error.",
+            "Un mensaje personal explicando lo que pasó y asumiendo responsabilidad.",
+            "Una promesa para el futuro y una solicitud de perdón con un mensaje de esperanza."
+          ]
+        }
+      }
+    },
+    "profile": {
+      "title": "Perfil",
+      "subtitle": "Administra tu plan y proyectos.",
+      "currentPlan": "Plan actual: Gratis",
+      "projectsLabel": "Proyectos",
+      "openSettings": "Abrir ajustes",
+      "yourProjects": "Tus proyectos",
+      "importProject": "Importar proyecto",
+      "noProjects": "Sin proyectos todavía. Crea uno desde el inicio.",
+      "templatePrefix": "Plantilla:",
+      "edit": "Editar en el editor",
+      "exportJson": "Exportar JSON",
+      "delete": "Eliminar",
+      "settingsTitle": "Ajustes",
+      "closeSettings": "Cerrar ajustes",
+      "autosaveTitle": "Guardado automático",
+      "autosaveDescription": "Guardar automáticamente mientras editas.",
+      "themeLabel": "Tema",
+      "themeLight": "Claro",
+      "themeDark": "Oscuro",
+      "upgradeTitle": "Mejora tu plan",
+      "upgradeDescription": "Desbloquea más proyectos y funciones.",
+      "upgrade": "Mejorar",
+      "close": "Cerrar"
     }
   },
   "validation": {
@@ -100,7 +579,8 @@
     "close": "Cerrar",
     "loading": "Cargando...",
     "error": "Error",
-    "success": "Éxito"
+    "success": "Éxito",
+    "remove": "Eliminar"
   }
 }
 

@@ -37,7 +37,40 @@
       "customTemplate": "Custom Template",
       "customTemplateDescription": "Design your own template from scratch",
       "customTemplateSelected": "Custom Template is selected",
-      "editCustomTemplate": "Edit Custom Template"
+      "editCustomTemplate": "Edit Custom Template",
+      "customBuilderTitle": "Custom Template Builder",
+      "backToTemplates": "Back to Templates",
+      "predefinedThemes": "Predefined Themes",
+      "customTheme": "Custom Theme",
+      "customThemeDescription": "Define your own colors and fonts",
+      "customThemeSettings": "Custom Theme Settings",
+      "textColor": "Text Color",
+      "backgroundColor": "Background Color",
+      "accentColor": "Accent Color",
+      "buttonColor": "Button Color",
+      "screensTitle": "Screens",
+      "addScreen": "Add Screen",
+      "screenLabel": "Screen {{index}}",
+      "galleryLayout": "Gallery Layout",
+      "supportsMusic": "Supports Music",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "removeScreen": "Remove screen",
+      "galleryLayouts": {
+        "carousel": "Carousel",
+        "gridWithZoom": "Grid with Zoom",
+        "fullscreenSlideshow": "Fullscreen Slideshow",
+        "heroWithThumbnails": "Hero with Thumbnails",
+        "timeline": "Timeline"
+      },
+      "screenTypes": {
+        "intro": "Introduction",
+        "text": "Text Only",
+        "gallery": "Gallery",
+        "single": "Single Content",
+        "blessings": "Blessings"
+      },
+      "customThemeName": "Custom"
     },
     "giftDetails": {
       "recipientName": "Recipient Name",
@@ -92,6 +125,18 @@
       "remove": "Remove",
       "selectFromUploaded": "Select from uploaded files:",
       "noMusicUploaded": "No music files uploaded. Upload music in the Content tab first.",
+      "screenType": "Screen type",
+      "screenTypeDescription": "Classic = photos/music, Video = single video",
+      "classicMode": "Classic (photos + optional music)",
+      "videoMode": "Video (single video only)",
+      "videoModeWarning": "Images, per-screen audio, gallery layout, and extend music are disabled in Video mode.",
+      "titleField": "Title field",
+      "textField": "Text field",
+      "addScreen": "Add screen",
+      "addEmoji": "Add emoji:",
+      "video": "Video",
+      "mainScreenDetails": "Main Screen Details",
+      "mainScreenDetailsSubtitle": "Set the opener for your gift.",
       "defaultNames": {
         "main": "Main",
         "first": "First",
@@ -127,6 +172,7 @@
       "title": "Content",
       "images": "Images",
       "music": "Music",
+      "videos": "Videos",
       "uploadImages": "Upload Images",
       "allUploadedImages": "All Uploaded Images",
       "noImagesUploaded": "No images uploaded yet.",
@@ -136,7 +182,13 @@
       "usedInScreen": "Used in at least one screen",
       "globalPlaysOnStart": "Global (plays on start)",
       "unassignedAssignInScreens": "Unassigned - assign in Screens tab",
-      "assignedTo": "Assigned to"
+      "assignedTo": "Assigned to",
+      "uploadVideos": "Upload Videos",
+      "allUploadedVideos": "All Uploaded Videos",
+      "noVideosUploaded": "No videos uploaded yet.",
+      "blobMissing": "Blob missing — re-upload required",
+      "noPoster": "No poster",
+      "deleteVideo": "Delete"
     },
     "export": {
       "createGift": "Create Gift",
@@ -149,6 +201,489 @@
       "recommendationsNote": "You can still export, but these recommendations may improve the experience.",
       "exportAvailable": "Export is available despite recommendations above",
       "exportFailed": "Failed to generate gift. Please try again."
+    },
+    "sidebar": {
+      "saveProject": "Save project",
+      "saveProjectDescription": "Saves now and turns on autosave for future edits."
+    }
+  },
+  "marketing": {
+    "nav": {
+      "home": "Home",
+      "howItWorks": "How it works",
+      "templates": "Templates",
+      "liveExamples": "Live examples",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "about": "About",
+      "contact": "Contact",
+      "profile": "Profile",
+      "startCreating": "Start creating"
+    },
+    "footer": {
+      "brandDescription": "Create beautiful, interactive digital experiences that your loved ones will treasure forever. No apps, no server, just pure emotion in a single HTML file.",
+      "product": "Product",
+      "support": "Support",
+      "legal": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "copyright": "All rights reserved."
+    },
+    "home": {
+      "heroTitlePart1": "Turn your memories into an",
+      "heroHighlight": "interactive HTML gift",
+      "heroTitlePart2": "in minutes",
+      "heroSubtitle": "Create a fully personalized, self-contained HTML file that plays like a mini experience - with photos, videos, music, text, and interactive elements. No app needed, works anywhere, forever yours.",
+      "featureNoApp": "No app to install",
+      "featureWorksEverywhere": "Works on any browser",
+      "featureOffline": "Fully offline, privacy friendly",
+      "featureMedia": "Photo or single-video screens, all embedded",
+      "ctaStart": "Start creating your gift",
+      "ctaExample": "Watch an example",
+      "screensSuffix": "screens",
+      "templateCards": {
+        "birthdaySurprise": {
+          "title": "Birthday surprise",
+          "description": "A magical journey through birthday memories with confetti animations, photos, and video moments.",
+          "screens": 5
+        },
+        "anniversaryLove": {
+          "title": "Anniversary love story",
+          "description": "A romantic timeline of shared moments, from the first date to years of togetherness.",
+          "screens": 7
+        },
+        "weddingSaveDate": {
+          "title": "Save the date wedding invite",
+          "description": "An elegant invitation with venue details, countdown, and RSVP link.",
+          "screens": 4
+        },
+        "newBaby": {
+          "title": "New baby welcome",
+          "description": "Announce your little one with adorable photos, stats, and heartwarming messages.",
+          "screens": 3
+        },
+        "thankYou": {
+          "title": "Thank you from the heart",
+          "description": "Express gratitude with a personal message, photos, and a heartfelt video.",
+          "screens": 2
+        },
+        "imSorry": {
+          "title": "I am sorry",
+          "description": "A sincere apology with a personal promise for the future.",
+          "screens": 3
+        }
+      },
+      "templatesLabel": "Templates",
+      "templatesHeadingPart1": "Beautiful templates for",
+      "templatesHeadingHighlight": "every occasion",
+      "templatesSubheading": "Start with a professionally designed template and customize it to make it uniquely yours.",
+      "viewAllTemplates": "View all templates →",
+      "ctaSectionTitle": "Ready to create your first interactive gift?",
+      "ctaSectionBody": "Start making memories that last forever. No installation, no registration required to try the editor.",
+      "ctaStartNow": "Start creating now",
+      "ctaSeePricing": "See pricing",
+      "ctaBadges": "Free to try • No credit card needed • Takes just 5 minutes"
+    },
+    "howItWorks": {
+      "eyebrow": "Step by step",
+      "titlePart1": "How to create your",
+      "titleHighlight1": "interactive",
+      "titleHighlight2": "gift",
+      "subtitle": "From selecting a template to sharing your creation, here's everything you need to know about making memorable interactive HTML gifts.",
+      "steps": {
+        "chooseTemplateTitle": "Choose a template",
+        "chooseTemplateDescription": "Browse our collection of professionally designed templates for every occasion. Each template comes with unique layouts, animations, and color schemes.",
+        "makeItYoursTitle": "Make it yours",
+        "makeItYoursDescription": "Add photos, music, text, buttons, and interactive moments. Everything lives in one HTML file.",
+        "shareTitle": "Share instantly",
+        "shareDescription": "Export a single file you can send as a link, QR, or attachment. No apps, no installs, forever yours."
+      },
+      "cta": "Start creating your gift"
+    },
+    "templates": {
+      "eyebrow": "Templates",
+      "titlePart1": "Beautiful templates for",
+      "titleHighlight1": "every",
+      "titleHighlight2": "occasion",
+      "subtitle": "Start with a professionally designed template and customize it to make it uniquely yours.",
+      "rtlBanner": "All templates support both LTR and RTL languages",
+      "categories": {
+        "all": "All templates",
+        "birthday": "Birthday",
+        "wedding": "Wedding",
+        "anniversary": "Anniversary",
+        "baby": "Baby",
+        "thankYou": "Thank you",
+        "other": "Other"
+      },
+      "categoriesLabel": "Categories",
+      "screensSuffix": "screens",
+      "badges": {
+        "withMusic": "with music",
+        "emojis": "emojis"
+      },
+      "cards": {
+        "birthday-mom": {
+          "title": "Birthday Surprise for Mom",
+          "description": "A heartfelt five-screen journey celebrating 60 years of an amazing life.",
+          "bullets": {
+            "0": "Confetti intro with “Happy Birthday!” reveal",
+            "1": "Collage of childhood memories with zoom",
+            "2": "Voice note from the family over slideshow"
+          }
+        },
+        "kids-birthday": {
+          "title": "Kids Birthday Adventure",
+          "description": "Colorful and playful experience with stickers and fun sounds.",
+          "bullets": {
+            "0": "Balloon intro with playful chimes",
+            "1": "Sticker-style gallery with zoom",
+            "2": "Treasure hunt clue screen"
+          }
+        },
+        "adult-birthday": {
+          "title": "Adult Birthday Memories",
+          "description": "Elegant timeline with toasts, photos, and music.",
+          "bullets": {
+            "0": "Hero photo with typewriter wish",
+            "1": "Milestone timeline with icons",
+            "2": "Toast audio message"
+          }
+        },
+        "anniversary-love": {
+          "title": "Anniversary Love Story",
+          "description": "A romantic timeline of shared moments, from the first date to years of togetherness.",
+          "bullets": {
+            "0": "First-date photo opener",
+            "1": "Timeline of milestones with emojis",
+            "2": "Slow-pan gallery with your song"
+          }
+        },
+        "proposal-countdown": {
+          "title": "Proposal Countdown",
+          "description": "Dramatic countdown leading to the big question.",
+          "bullets": {
+            "0": "Countdown intro",
+            "1": "Why I love you highlights",
+            "2": "Final screen with proposal CTA"
+          }
+        },
+        "wedding-save-date": {
+          "title": "Save the Date — Sarah & David",
+          "description": "Elegant wedding invitation with venue details, countdown, and RSVP link.",
+          "bullets": {
+            "0": "Hero with couple photo",
+            "1": "Venue map and schedule",
+            "2": "Countdown + RSVP link"
+          }
+        },
+        "wedding-thankyou": {
+          "title": "Wedding Thank You",
+          "description": "Share highlights and gratitude after the big day.",
+          "bullets": {
+            "0": "Highlight reel photos",
+            "1": "Thank-you note",
+            "2": "Link to gallery download"
+          }
+        },
+        "new-baby": {
+          "title": "New Baby Welcome",
+          "description": "Announce your little one with adorable photos, stats, and heartwarming messages.",
+          "bullets": {
+            "0": "Stats card (weight/height)",
+            "1": "Cute photo grid",
+            "2": "Message from parents"
+          }
+        },
+        "baby-shower": {
+          "title": "Baby Shower Invite",
+          "description": "Sweet invitation with date, time, registry, and RSVP.",
+          "bullets": {
+            "0": "Hero with invite details",
+            "1": "Registry links",
+            "2": "Countdown + map"
+          }
+        },
+        "thank-you": {
+          "title": "Thank You from the Heart",
+          "description": "Express gratitude with a personal message, photos, and a heartfelt video.",
+          "bullets": {
+            "0": "Personal note card",
+            "1": "Highlight photo + video link"
+          }
+        },
+        "im-sorry": {
+          "title": "I'm Sorry — Please Forgive Me",
+          "description": "A sincere apology with a personal promise for the future.",
+          "bullets": {
+            "0": "Opening apology screen",
+            "1": "Context and feelings",
+            "2": "Promise and next steps"
+          }
+        },
+        "single-screen": {
+          "title": "Single Screen Announcement",
+          "description": "A concise one-screen message with photo and CTA.",
+          "bullets": {
+            "0": "Hero photo",
+            "1": "Short copy",
+            "2": "CTA link or button"
+          }
+        }
+      },
+      "useTemplate": "Use this template →",
+      "readyTitle": "Ready to get started?",
+      "readySubtitle": "Create your first interactive gift in just a few minutes",
+      "ctaStart": "Start creating now"
+    },
+    "pricing": {
+      "eyebrow": "Pricing",
+      "title": "Simple, honest pricing",
+      "subtitle": "No subscription required. Pay once, own forever. Start free and upgrade when you're ready.",
+      "badgeMoneyBack": "✅ 14-day money back",
+      "badgeSecure": "🔒 Secure payment",
+      "badgeLifetime": "♾️ Lifetime access",
+      "mostPopular": "★ Most Popular",
+      "periodSuffix": "/",
+      "plans": {
+        "free": {
+          "name": "Free",
+          "price": "$0",
+          "period": "forever",
+          "description": "Perfect for trying the editor and creating personal gifts.",
+          "cta": "Get started free",
+          "features": ["Watermarked exports", "All templates", "Basic features"]
+        },
+        "pro": {
+          "name": "One-Time Pro",
+          "price": "$29",
+          "period": "one-time",
+          "description": "Pay once, create watermark-free gifts forever. No subscription.",
+          "cta": "Unlock Pro forever",
+          "features": ["No watermarks", "All templates", "All features", "Lifetime access"]
+        },
+        "team": {
+          "name": "Team",
+          "price": "$79",
+          "period": "one-time",
+          "description": "For professionals and businesses creating gifts for clients.",
+          "cta": "Start team trial",
+          "features": ["Commercial use", "Priority support", "Team features", "All Pro features"]
+        }
+      },
+      "startFreeTitle": "Start creating for free today",
+      "startFreeSubtitle": "No credit card required. Upgrade whenever you're ready.",
+      "ctaStartFree": "Get started free"
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "titlePart1": "Frequently asked",
+      "titleHighlight": "questions",
+      "subtitle": "Everything you need to know about Interactive HTML Gifts.",
+      "searchPlaceholder": "Search questions...",
+      "whatHappens": "What happens:",
+      "startFreeTitle": "Start creating for free today",
+      "startFreeSubtitle": "No credit card required. Upgrade whenever you're ready.",
+      "ctaStartFree": "Get started free",
+      "items": [
+        {
+          "category": "Basics",
+          "questions": [
+            {
+              "q": "What is an interactive HTML gift?",
+              "a": "An interactive HTML gift is a self-contained HTML file that plays like a mini experience. It includes photos, music, text, animations, and interactive elements. No app or server needed — just open the file in any browser."
+            },
+            {
+              "q": "How do I send the HTML gift to someone?",
+              "a": "You can share it as a link, QR code, or send the HTML file directly via email, messaging apps, or any file-sharing method. The recipient just opens it in their browser — no installation required."
+            }
+          ]
+        },
+        {
+          "category": "Pricing",
+          "questions": [
+            {
+              "q": "Is the Pro plan really one-time payment?",
+              "a": "Yes. Pay once and export unlimited watermark-free gifts forever."
+            },
+            {
+              "q": "What does \"commercial use\" mean?",
+              "a": "You can create gifts for clients or sell the experiences you design."
+            },
+            {
+              "q": "How many gifts can I create?",
+              "a": "Unlimited. Create as many as you like and export anytime."
+            },
+            {
+              "q": "Can I upgrade from Free to Pro later?",
+              "a": "Absolutely. Start free and upgrade when you are ready with one click."
+            },
+            {
+              "q": "Do you offer refunds?",
+              "a": "We offer a 14-day money-back guarantee for Pro and Team purchases."
+            },
+            {
+              "q": "What payment methods do you accept?",
+              "a": "Major credit cards and popular wallets are supported for secure checkout."
+            }
+          ]
+        },
+        {
+          "category": "Technical",
+          "questions": [
+            {
+              "q": "What image formats can I upload?",
+              "a": "We support JPG, PNG, and WebP formats. Images are automatically optimized for the best balance of quality and file size."
+            },
+            {
+              "q": "What audio formats are supported?",
+              "a": "MP3 and WAV formats are supported. Audio files are embedded directly into the HTML file."
+            },
+            {
+              "q": "Can I edit the gift after exporting?",
+              "a": "Yes, you can always come back to edit your project and export a new version."
+            },
+            {
+              "q": "How many screens can I add?",
+              "a": "You can add as many screens as you need. Most templates come with 2-7 screens, but you can customize this."
+            },
+            {
+              "q": "Can I use the editor on my phone?",
+              "a": "The editor works best on desktop and tablet devices. Mobile editing is coming soon."
+            }
+          ]
+        }
+      ]
+    },
+    "about": {
+      "eyebrow": "About",
+      "titlePart1": "Where",
+      "titleHighlight": "art meets code",
+      "body1": "Interactive HTML Gifts was born from a simple belief: the most meaningful moments in life deserve more than a text message or a generic e-card. They deserve experiences that feel personal, that tell a story, that make people feel something.",
+      "body2": "This is a tool built by an artist who learned to code — not a tech company that forgot about the human side. Every design decision, every feature, every pixel is guided by one question: will this help someone express their love better?",
+      "cardTitle": "Built for moments that matter",
+      "cardBody": "Every interaction, every animation, every detail is crafted to help you create something truly special.",
+      "ctaStart": "Start creating"
+    },
+    "contact": {
+      "eyebrow": "Contact",
+      "titlePart1": "Let’s",
+      "titleHighlight": "talk",
+      "subtitle": "Have a question, idea, or just want to say hello? We'd love to hear from you.",
+      "nameLabel": "Your name",
+      "emailLabel": "Email address",
+      "reasonLabel": "What do you want to create?",
+      "reasonPlaceholder": "Select a reason...",
+      "reasonStart": "Start a project",
+      "reasonQuestion": "Ask a question",
+      "reasonPartnership": "Partnership",
+      "reasonOther": "Something else",
+      "messageLabel": "Your message",
+      "messagePlaceholder": "Tell us how we can help you...",
+      "submit": "Send message",
+      "ctaStart": "Start creating",
+      "submitSuccess": "Thank you for your message! We'll get back to you soon."
+    },
+    "liveExamples": {
+      "eyebrow": "Live examples",
+      "titlePart1": "Real stories,",
+      "titleHighlight": "real emotions",
+      "subtitle": "Explore interactive gifts created by real people for real moments. Click any example to experience it yourself.",
+      "whatHappens": "What happens:",
+      "ctaView": "View this example →",
+      "ctaTitle": "Ready to create your own story?",
+      "ctaSubtitle": "Your moments deserve to be remembered beautifully",
+      "ctaStart": "Start creating now",
+      "screensSuffix": "screens",
+      "featureWithMusic": "with music",
+      "featureEmojis": "emojis",
+      "examples": {
+        "birthdayMom": {
+          "title": "Birthday Surprise for Mom",
+          "description": "A heartfelt five-screen journey celebrating 60 years of an amazing life.",
+          "steps": [
+            "A full-screen photo of mom with confetti falling and \"Happy 60th Birthday!\" appearing letter by letter.",
+            "A collage of childhood memories with gentle pan-and-zoom animations.",
+            "A voice note from the family layered over a slideshow.",
+            "A timeline of special moments with emojis for each milestone.",
+            "A final thank-you message with a heart animation and a \"Replay\" button."
+          ]
+        },
+        "loveStory": {
+          "title": "Our Love Story — 10 Years Together",
+          "description": "A romantic seven-screen anniversary gift walking through a decade of love.",
+          "steps": [
+            "Opening screen with \"10 Years Together\" and a photo montage of the couple.",
+            "The first date: where it all began, with photos and memories.",
+            "Milestone moments: moving in together, first vacation, engagement.",
+            "The wedding day: beautiful ceremony photos and vows.",
+            "Building a home: house, pets, and life together.",
+            "Adventures and travels: all the places they've explored together.",
+            "A heartfelt message with \"Here's to forever\" and a replay button."
+          ]
+        },
+        "weddingSaveDate": {
+          "title": "Save the Date — Sarah & David",
+          "description": "An elegant four-screen wedding invitation that guests actually opened and remembered.",
+          "steps": [
+            "Elegant opening with the couple's names and wedding date.",
+            "Venue details with a beautiful location photo and address.",
+            "Countdown timer showing days until the big day.",
+            "RSVP section with a link to confirm attendance."
+          ]
+        },
+        "welcomeBaby": {
+          "title": "Welcome Baby Mia",
+          "description": "A three-screen announcement introducing the newest family member to the world.",
+          "steps": [
+            "Adorable baby photo with name, birth date, and stats (weight, length).",
+            "Family introduction: photos of parents and siblings meeting the baby.",
+            "Thank you message with a call to visit and meet the new addition."
+          ]
+        },
+        "thankYouCoach": {
+          "title": "Thank You, Coach Mike",
+          "description": "A two-screen gratitude message from the basketball team to their retiring coach.",
+          "steps": [
+            "Team photo with a heartfelt message thanking Coach Mike for years of dedication.",
+            "Highlights reel of memorable moments and achievements, ending with \"You'll always be our coach.\""
+          ]
+        },
+        "imSorry": {
+          "title": "I'm Sorry — Please Forgive Me",
+          "description": "A three-screen sincere apology that helped mend a broken friendship.",
+          "steps": [
+            "Opening with \"I'm sorry\" and acknowledging the mistake.",
+            "A personal message explaining what happened and taking responsibility.",
+            "A promise for the future and a request for forgiveness with a hopeful message."
+          ]
+        }
+      }
+    },
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Manage your plan and projects.",
+      "currentPlan": "Current plan: Free",
+      "projectsLabel": "Projects",
+      "openSettings": "Open settings",
+      "yourProjects": "Your Projects",
+      "importProject": "Import project",
+      "noProjects": "No projects yet. Create one from the homepage.",
+      "templatePrefix": "Template:",
+      "edit": "Edit in editor",
+      "exportJson": "Export JSON",
+      "delete": "Delete",
+      "settingsTitle": "Settings",
+      "closeSettings": "Close settings",
+      "autosaveTitle": "Autosave",
+      "autosaveDescription": "Automatically save while editing.",
+      "themeLabel": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "upgradeTitle": "Upgrade your plan",
+      "upgradeDescription": "Unlock more projects and features.",
+      "upgrade": "Upgrade",
+      "close": "Close"
     }
   },
   "validation": {

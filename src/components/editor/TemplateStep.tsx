@@ -5,34 +5,37 @@ import type { ScreenData, CustomScreenConfig, ThemeConfig } from '../../types/pr
 import { Button } from '../ui/Button';
 import { PREDEFINED_THEMES, getDefaultTheme } from '../../utils/themes';
 import { TEMPLATE_CARDS } from '../../data/templates';
+import { getTextDirection } from '../../i18n/config';
 
-const getTemplates = () =>
-  TEMPLATE_CARDS.map((t) => ({
-    id: t.templateId, // actual template id used to load metadata
-    displayId: t.id,  // card id for UI selection
-    name: t.title,
+const getTemplates = (t: (key: string, options?: any) => string) =>
+  TEMPLATE_CARDS.map((template) => ({
+    id: template.templateId, // actual template id used to load metadata
+    displayId: template.id,  // card id for UI selection
+    name: t(`marketing.templates.cards.${template.id}.title`, { defaultValue: template.title }),
   }));
 
-const GALLERY_LAYOUTS = [
-  { value: 'carousel', label: 'Carousel' },
-  { value: 'gridWithZoom', label: 'Grid with Zoom' },
-  { value: 'fullscreenSlideshow', label: 'Fullscreen Slideshow' },
-  { value: 'heroWithThumbnails', label: 'Hero with Thumbnails' },
-  { value: 'timeline', label: 'Timeline' },
-];
-
-const SCREEN_TYPES = [
-  { value: 'intro', label: 'Introduction' },
-  { value: 'text', label: 'Text Only' },
-  { value: 'gallery', label: 'Gallery' },
-  { value: 'single', label: 'Single Content' },
-  { value: 'blessings', label: 'Blessings' },
-];
-
 export function TemplateStep() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentProject, updateProject } = useProject();
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
+
+  const galleryLayouts = [
+    { value: 'carousel', label: t('editor.template.galleryLayouts.carousel') },
+    { value: 'gridWithZoom', label: t('editor.template.galleryLayouts.gridWithZoom') },
+    { value: 'fullscreenSlideshow', label: t('editor.template.galleryLayouts.fullscreenSlideshow') },
+    { value: 'heroWithThumbnails', label: t('editor.template.galleryLayouts.heroWithThumbnails') },
+    { value: 'timeline', label: t('editor.template.galleryLayouts.timeline') },
+  ];
+
+  const screenTypes = [
+    { value: 'intro', label: t('editor.template.screenTypes.intro') },
+    { value: 'text', label: t('editor.template.screenTypes.text') },
+    { value: 'gallery', label: t('editor.template.screenTypes.gallery') },
+    { value: 'single', label: t('editor.template.screenTypes.single') },
+    { value: 'blessings', label: t('editor.template.screenTypes.blessings') },
+  ];
 
   if (!currentProject) return null;
 
@@ -40,7 +43,7 @@ export function TemplateStep() {
   
   // Resolve which card should appear active. Prefer the stored selection; otherwise fall back
   // to the first card whose template id matches the project's templateId to avoid highlighting multiple cards.
-  const templates = getTemplates();
+  const templates = getTemplates(t);
   const fallbackSelectedCard = templates.find((t) => t.id === currentProject.templateId)?.displayId;
   const selectedTemplateCardId = currentProject.data.selectedTemplateCardId ?? fallbackSelectedCard;
   
@@ -93,14 +96,12 @@ export function TemplateStep() {
   };
 
   if (isCustomTemplate && showCustomBuilder) {
-    return <CustomTemplateBuilder project={currentProject} onUpdate={updateProject} onBack={() => setShowCustomBuilder(false)} />;
+    return <CustomTemplateBuilder project={currentProject} onUpdate={updateProject} onBack={() => setShowCustomBuilder(false)} galleryLayouts={galleryLayouts} screenTypes={screenTypes} />;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">{t('editor.template.selectTemplate')}</h2>
-      </div>
+    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
+      <h2 className="text-2xl font-bold text-slate-900">{t('editor.template.selectTemplate')}</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {templates.map((template) => {
@@ -115,7 +116,7 @@ export function TemplateStep() {
             }`}
             onClick={() => handleSelectTemplate(template.id, template.displayId)}
           >
-              <h3 className="text-lg font-semibold text-slate-900">{template.name}</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{template.name}</h3>
           </div>
           );
         })}
@@ -148,9 +149,14 @@ interface CustomTemplateBuilderProps {
   project: any;
   onUpdate: (project: any) => void;
   onBack: () => void;
+  galleryLayouts: { value: string; label: string }[];
+  screenTypes: { value: string; label: string }[];
 }
 
-function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuilderProps) {
+function CustomTemplateBuilder({ project, onUpdate, onBack, galleryLayouts, screenTypes }: CustomTemplateBuilderProps) {
+  const { t, i18n } = useTranslation();
+  const dir = getTextDirection(i18n.language);
+  const isRTL = dir === 'rtl';
   const customScreens = project.data.customTemplate?.customScreens || [];
   const theme = project.data.customTemplate?.theme || getDefaultTheme();
 
@@ -273,20 +279,20 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
   const sortedScreens = [...customScreens].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Custom Template Builder</h2>
+    <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
+      <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <h2 className="text-2xl font-bold text-slate-900">{t('editor.template.customBuilderTitle')}</h2>
         <Button onClick={onBack} variant="secondary">
-          Back to Templates
+          {t('editor.template.backToTemplates')}
         </Button>
       </div>
 
       {/* Theme Selection */}
       <div className="glass rounded-2xl p-6 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)] space-y-4">
-        <h3 className="text-lg font-semibold text-slate-900">Theme</h3>
+        <h3 className="text-lg font-semibold text-slate-900">{t('editor.template.customTheme')}</h3>
         
         <div>
-          <label className="block text-sm font-semibold text-slate-800 mb-2">Predefined Themes</label>
+          <label className="block text-sm font-semibold text-slate-800 mb-2">{t('editor.template.predefinedThemes')}</label>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {PREDEFINED_THEMES.map((predefinedTheme) => (
               <div
@@ -305,27 +311,27 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-800 mb-2">Custom Theme</label>
+          <label className="block text-sm font-semibold text-slate-800 mb-2">{t('editor.template.customTheme')}</label>
           <div
             className={`p-3 rounded-xl cursor-pointer border transition-all ${
               theme.type === 'custom'
                 ? 'border-fuchsia-300 bg-fuchsia-50 shadow-md'
                 : 'border-slate-200 bg-white dark:bg-[var(--surface-2)] dark:border-[rgba(255,255,255,0.12)] hover:border-fuchsia-200 hover:shadow-sm'
             }`}
-            onClick={() => handleSelectTheme({ ...getDefaultTheme(), type: 'custom', name: 'Custom' })}
+            onClick={() => handleSelectTheme({ ...getDefaultTheme(), type: 'custom', name: t('editor.template.customThemeName') })}
           >
-            <div className="text-sm font-semibold text-slate-900">Custom Theme</div>
-            <p className="text-xs text-slate-600 mt-1">Define your own colors and fonts</p>
+            <div className="text-sm font-semibold text-slate-900">{t('editor.template.customTheme')}</div>
+            <p className="text-xs text-slate-600 mt-1">{t('editor.template.customThemeDescription')}</p>
           </div>
         </div>
 
         {theme.type === 'custom' && (
           <div className="mt-2 p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] bg-white/70 dark:bg-[var(--surface-2)]">
-            <h4 className="font-semibold text-slate-900 mb-3">Custom Theme Settings</h4>
+            <h4 className="font-semibold text-slate-900 mb-3">{t('editor.template.customThemeSettings')}</h4>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-700 mb-1">Text Color</label>
+                <label className="block text-sm text-slate-700 mb-1">{t('editor.template.textColor')}</label>
                 <input
                   type="color"
                   value={theme.colors?.text || '#333333'}
@@ -334,7 +340,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-700 mb-1">Background Color</label>
+                <label className="block text-sm text-slate-700 mb-1">{t('editor.template.backgroundColor')}</label>
                 <input
                   type="color"
                   value={theme.colors?.background || '#ffffff'}
@@ -343,7 +349,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-700 mb-1">Accent Color</label>
+                <label className="block text-sm text-slate-700 mb-1">{t('editor.template.accentColor')}</label>
                 <input
                   type="color"
                   value={theme.colors?.accent || '#a21caf'}
@@ -352,7 +358,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-700 mb-1">Button Color</label>
+                <label className="block text-sm text-slate-700 mb-1">{t('editor.template.buttonColor')}</label>
                 <input
                   type="color"
                   value={theme.colors?.button || '#e11d8d'}
@@ -367,26 +373,26 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
 
       {/* Screens Management */}
       <div className="glass rounded-2xl p-6 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)] space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Screens</h3>
+        <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h3 className="text-lg font-semibold text-slate-900">{t('editor.template.screensTitle')}</h3>
           <Button onClick={handleAddScreen} variant="primary">
-            + Add Screen
+            + {t('editor.template.addScreen')}
           </Button>
         </div>
 
         <div className="space-y-4">
           {sortedScreens.map((screen: CustomScreenConfig, index: number) => (
             <div key={screen.id} className="bg-white/90 dark:bg-[var(--surface-2)] rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] p-4 shadow-sm">
-              <div className="flex items-start justify-between mb-3">
+              <div className={`flex items-start justify-between mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-sm font-semibold text-slate-700">Screen {index + 1}</span>
+                  <div className={`flex items-center gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <span className="text-sm font-semibold text-slate-700">{t('editor.template.screenLabel', { index: index + 1 })}</span>
                     <select
                       value={screen.type}
                       onChange={(e) => handleUpdateScreen(screen.id, { type: e.target.value as any })}
                       className="text-sm border border-slate-200 rounded px-2 py-1"
                     >
-                      {SCREEN_TYPES.map((st) => (
+                      {screenTypes.map((st) => (
                         <option key={st.value} value={st.value}>
                           {st.label}
                         </option>
@@ -396,13 +402,13 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                   
                   {screen.type === 'gallery' && (
                     <div className="mb-2">
-                      <label className="block text-sm text-slate-700 mb-1">Gallery Layout</label>
+                      <label className="block text-sm text-slate-700 mb-1">{t('editor.template.galleryLayout')}</label>
                       <select
                         value={project.data.screens[screen.id]?.galleryLayout || 'carousel'}
                         onChange={(e) => handleUpdateScreenData(screen.id, { galleryLayout: e.target.value as any })}
                         className="text-sm border border-slate-200 rounded px-2 py-1 w-full"
                       >
-                        {GALLERY_LAYOUTS.map((layout) => (
+                        {galleryLayouts.map((layout) => (
                           <option key={layout.value} value={layout.value}>
                             {layout.label}
                           </option>
@@ -419,7 +425,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                         onChange={(e) => handleUpdateScreen(screen.id, { supportsMusic: e.target.checked })}
                         className="rounded border-slate-300"
                       />
-                      Supports Music
+                      {t('editor.template.supportsMusic')}
                     </label>
                   </div>
                 </div>
@@ -429,7 +435,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                     <button
                       onClick={() => handleUpdateScreen(screen.id, { order: screen.order - 1 })}
                       className="hover:text-slate-800"
-                      title="Move up"
+                      title={t('editor.template.moveUp')}
                     >
                       ↑
                     </button>
@@ -438,7 +444,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                     <button
                       onClick={() => handleUpdateScreen(screen.id, { order: screen.order + 1 })}
                       className="hover:text-slate-800"
-                      title="Move down"
+                      title={t('editor.template.moveDown')}
                     >
                       ↓
                     </button>
@@ -447,7 +453,7 @@ function CustomTemplateBuilder({ project, onUpdate, onBack }: CustomTemplateBuil
                     <button
                       onClick={() => handleRemoveScreen(screen.id)}
                       className="text-red-500 hover:text-red-700"
-                      title="Remove screen"
+                      title={t('editor.template.removeScreen')}
                     >
                       ×
                     </button>

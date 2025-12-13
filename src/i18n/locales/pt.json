@@ -15,6 +15,9 @@
   "editor": {
     "steps": {
       "template": "Modelo",
+      "screens": "Telas",
+      "content": "Conteúdo",
+      "previewExport": "Prévia e exportação",
       "giftDetails": "Detalhes do Presente",
       "screenTexts": "Textos",
       "images": "Imagens",
@@ -36,7 +39,44 @@
       "newBaby": "Bebê Novo / Nascimento",
       "barMitzvah": "Bar/Bat Mitzvá",
       "wedding": "Casamento / Salve a Data",
-      "singleScreen": "Tela Única"
+      "singleScreen": "Tela Única",
+      "customTemplate": "Modelo personalizado",
+      "customTemplateDescription": "Crie seu próprio modelo do zero",
+      "customTemplateSelected": "Modelo personalizado selecionado",
+      "editCustomTemplate": "Editar modelo personalizado",
+      "customBuilderTitle": "Construtor de modelo personalizado",
+      "backToTemplates": "Voltar para modelos",
+      "predefinedThemes": "Temas predefinidos",
+      "customTheme": "Tema personalizado",
+      "customThemeDescription": "Defina suas cores e fontes",
+      "customThemeSettings": "Configurações do tema personalizado",
+      "textColor": "Cor do texto",
+      "backgroundColor": "Cor de fundo",
+      "accentColor": "Cor de destaque",
+      "buttonColor": "Cor do botão",
+      "screensTitle": "Telas",
+      "addScreen": "Adicionar tela",
+      "screenLabel": "Tela {{index}}",
+      "galleryLayout": "Layout da galeria",
+      "supportsMusic": "Suporta música",
+      "moveUp": "Mover para cima",
+      "moveDown": "Mover para baixo",
+      "removeScreen": "Remover tela",
+      "galleryLayouts": {
+        "carousel": "Carrossel",
+        "gridWithZoom": "Grade com zoom",
+        "fullscreenSlideshow": "Apresentação em tela cheia",
+        "heroWithThumbnails": "Hero com miniaturas",
+        "timeline": "Linha do tempo"
+      },
+      "screenTypes": {
+        "intro": "Introdução",
+        "text": "Apenas texto",
+        "gallery": "Galeria",
+        "single": "Conteúdo único",
+        "blessings": "Bênçãos"
+      },
+      "customThemeName": "Personalizado"
     },
     "giftDetails": {
       "recipientName": "Nome do Destinatário",
@@ -70,6 +110,40 @@
       "subText": "Texto Secundário",
       "buttonText": "Texto do Botão"
     },
+    "screens": {
+      "title": "Telas",
+      "giftDetails": "Detalhes do presente",
+      "backgroundMusic": "Música de fundo",
+      "content": "Conteúdo",
+      "screenTitle": "Título da tela",
+      "screenText": "Texto da tela",
+      "images": "Imagens",
+      "galleryLayout": "Layout da galeria",
+      "rename": "Renomear",
+      "remove": "Remover",
+      "selectFromUploaded": "Selecione dos arquivos enviados:",
+      "noMusicUploaded": "Nenhuma música enviada. Envie música na aba Conteúdo primeiro.",
+      "defaultNames": {
+        "main": "Principal",
+        "first": "Primeira",
+        "second": "Segunda",
+        "third": "Terceira",
+        "fourth": "Quarta",
+        "fifth": "Quinta",
+        "sixth": "Sexta",
+        "seventh": "Sétima",
+        "eighth": "Oitava",
+        "ninth": "Nona",
+        "tenth": "Décima"
+      }
+    },
+    "screenTexts": {
+      "title": "Título",
+      "text": "Texto",
+      "blessings": "Bênçãos",
+      "addBlessing": "Adicionar bênção",
+      "sender": "Remetente"
+    },
     "preview": {
       "previewGift": "Visualizar Seu Presente",
       "mobileView": "Visualização Mobile",
@@ -78,12 +152,417 @@
       "next": "Próximo",
       "previous": "Anterior"
     },
+    "content": {
+      "title": "Conteúdo",
+      "images": "Imagens",
+      "music": "Música",
+      "videos": "Vídeos",
+      "uploadImages": "Enviar Imagens",
+      "allUploadedImages": "Todas as Imagens Enviadas",
+      "noImagesUploaded": "Nenhuma imagem enviada ainda.",
+      "uploadMusic": "Enviar Música",
+      "allUploadedMusic": "Toda a Música Enviada",
+      "noMusicUploaded": "Nenhum arquivo de música enviado ainda.",
+      "usedInScreen": "Usado em pelo menos uma tela",
+      "globalPlaysOnStart": "Global (reproduz ao iniciar)",
+      "unassignedAssignInScreens": "Não atribuído - atribua na aba Telas",
+      "assignedTo": "Atribuído a"
+    },
     "export": {
       "createGift": "Criar Presente",
       "validating": "Validando...",
       "generating": "Gerando HTML...",
       "downloadReady": "Seu presente está pronto!",
-      "download": "Baixar Arquivo HTML"
+      "download": "Baixar Arquivo HTML",
+      "fixErrorsBeforeExport": "Corrija estes erros antes de exportar.",
+      "recommendations": "Recomendações",
+      "recommendationsNote": "Você pode exportar, mas estas recomendações podem melhorar a experiência.",
+      "exportAvailable": "Exportação disponível apesar das recomendações",
+      "exportFailed": "Falha ao gerar o presente. Tente novamente."
+    }
+  },
+  "marketing": {
+    "nav": {
+      "home": "Início",
+      "howItWorks": "Como funciona",
+      "templates": "Modelos",
+      "liveExamples": "Exemplos ao vivo",
+      "pricing": "Preços",
+      "faq": "FAQ",
+      "about": "Sobre",
+      "contact": "Contato",
+      "profile": "Perfil",
+      "startCreating": "Começar a criar"
+    },
+    "footer": {
+      "brandDescription": "Crie experiências digitais belas e interativas que seus queridos vão guardar para sempre. Sem apps, sem servidor, apenas um arquivo HTML.",
+      "product": "Produto",
+      "support": "Suporte",
+      "legal": "Jurídico",
+      "privacy": "Política de Privacidade",
+      "terms": "Termos de Serviço",
+      "copyright": "Todos os direitos reservados."
+    },
+    "home": {
+      "heroTitlePart1": "Transforme suas memórias em um",
+      "heroHighlight": "presente HTML interativo",
+      "heroTitlePart2": "em minutos",
+      "heroSubtitle": "Crie um arquivo HTML personalizado que funciona como uma mini experiência: fotos, vídeos, música, texto e interações. Sem app, funciona em qualquer lugar, para sempre.",
+      "featureNoApp": "Sem app para instalar",
+      "featureWorksEverywhere": "Funciona em qualquer navegador",
+      "featureOffline": "Totalmente offline e privado",
+      "featureMedia": "Fotos ou vídeo único por tela, incorporados",
+      "screensSuffix": "telas",
+      "templateCards": {
+        "birthdaySurprise": {
+          "title": "Surpresa de aniversário",
+          "description": "Uma jornada mágica por memórias de aniversário com confete, fotos e vídeo.",
+          "screens": 5
+        },
+        "anniversaryLove": {
+          "title": "História de amor",
+          "description": "Uma linha do tempo romântica de momentos compartilhados, do primeiro encontro até hoje.",
+          "screens": 7
+        },
+        "weddingSaveDate": {
+          "title": "Convite Save the Date",
+          "description": "Convite elegante com detalhes do local, contagem regressiva e RSVP.",
+          "screens": 4
+        },
+        "newBaby": {
+          "title": "Bem-vindo bebê",
+          "description": "Anuncie o bebê com fotos fofas, dados e mensagens carinhosas.",
+          "screens": 3
+        },
+        "thankYou": {
+          "title": "Obrigado de coração",
+          "description": "Expresse gratidão com mensagem pessoal, fotos e vídeo emocionante.",
+          "screens": 2
+        },
+        "imSorry": {
+          "title": "Me desculpe",
+          "description": "Um pedido de desculpas sincero com promessa para o futuro.",
+          "screens": 3
+        }
+      },
+      "ctaStart": "Comece a criar seu presente",
+      "ctaExample": "Ver um exemplo",
+      "templatesLabel": "Modelos",
+      "templatesHeadingPart1": "Modelos lindos para",
+      "templatesHeadingHighlight": "toda ocasião",
+      "templatesSubheading": "Comece com um design profissional e personalize para ficar com a sua cara.",
+      "viewAllTemplates": "Ver todos os modelos →",
+      "ctaSectionTitle": "Pronto para criar seu primeiro presente interativo?",
+      "ctaSectionBody": "Comece a criar memórias que duram para sempre. Sem instalação ou cadastro para testar o editor.",
+      "ctaStartNow": "Começar agora",
+      "ctaSeePricing": "Ver preços",
+      "ctaBadges": "Grátis para testar • Sem cartão • Leva 5 minutos"
+    },
+    "howItWorks": {
+      "eyebrow": "Passo a passo",
+      "titlePart1": "Como criar seu",
+      "titleHighlight1": "presente interativo",
+      "titleHighlight2": "",
+      "subtitle": "Do modelo ao compartilhamento, tudo que precisa para criar presentes HTML memoráveis.",
+      "steps": {
+        "chooseTemplateTitle": "Escolha um modelo",
+        "chooseTemplateDescription": "Explore nossa coleção para cada ocasião. Cada modelo tem layouts, animações e cores únicas.",
+        "makeItYoursTitle": "Deixe com a sua cara",
+        "makeItYoursDescription": "Adicione fotos, música, texto, botões e momentos interativos. Tudo em um único HTML.",
+        "shareTitle": "Compartilhe na hora",
+        "shareDescription": "Exporte um arquivo para enviar como link, QR ou anexo. Sem apps ou instalações."
+      },
+      "cta": "Comece a criar seu presente"
+    },
+    "templates": {
+      "eyebrow": "Modelos",
+      "titlePart1": "Modelos lindos para",
+      "titleHighlight1": "toda",
+      "titleHighlight2": "ocasião",
+      "subtitle": "Comece com um modelo profissional e personalize.",
+      "rtlBanner": "Todos os modelos suportam idiomas LTR e RTL",
+      "badges": {
+        "withMusic": "com música",
+        "emojis": "emojis"
+      },
+      "cards": {
+        "birthday-mom": {
+          "title": "Surpresa de aniversário para a mãe",
+          "description": "Uma jornada emocionante de cinco telas celebrando 60 anos incríveis.",
+          "bullets": {
+            "0": "Intro com confete e “Feliz aniversário!”",
+            "1": "Colagem de memórias de infância com zoom",
+            "2": "Mensagem de voz da família no slideshow"
+          }
+        },
+        "kids-birthday": {
+          "title": "Aventura de aniversário infantil",
+          "description": "Experiência colorida e divertida com stickers e sons.",
+          "bullets": {
+            "0": "Intro de balões com sinos",
+            "1": "Galeria estilo sticker com zoom",
+            "2": "Tela de pista de caça ao tesouro"
+          }
+        },
+        "adult-birthday": {
+          "title": "Memórias de aniversário adulto",
+          "description": "Linha do tempo elegante com brindes, fotos e música.",
+          "bullets": {
+            "0": "Foto hero com desejo estilo máquina de escrever",
+            "1": "Linha de tempo de marcos com ícones",
+            "2": "Mensagem de áudio de brinde"
+          }
+        },
+        "anniversary-love": {
+          "title": "História de amor",
+          "description": "Linha do tempo romântica de momentos juntos, do primeiro encontro até hoje.",
+          "bullets": {
+            "0": "Foto do primeiro encontro",
+            "1": "Marcos com emojis",
+            "2": "Galeria lenta com sua música"
+          }
+        },
+        "proposal-countdown": {
+          "title": "Contagem regressiva para o pedido",
+          "description": "Contagem dramática até a grande pergunta.",
+          "bullets": {
+            "0": "Intro de contagem regressiva",
+            "1": "Por que eu te amo",
+            "2": "Tela final com CTA de pedido"
+          }
+        },
+        "wedding-save-date": {
+          "title": "Save the Date — Sarah & David",
+          "description": "Convite elegante com detalhes do local, contagem regressiva e RSVP.",
+          "bullets": {
+            "0": "Foto do casal no hero",
+            "1": "Mapa do local e agenda",
+            "2": "Contagem regressiva + RSVP"
+          }
+        },
+        "wedding-thankyou": {
+          "title": "Agradecimento de casamento",
+          "description": "Compartilhe destaques e gratidão após o grande dia.",
+          "bullets": {
+            "0": "Fotos de destaque",
+            "1": "Nota de agradecimento",
+            "2": "Link para baixar a galeria"
+          }
+        },
+        "new-baby": {
+          "title": "Bem-vindo bebê",
+          "description": "Anuncie o bebê com fotos fofas, dados e mensagens carinhosas.",
+          "bullets": {
+            "0": "Cartão de dados (peso/altura)",
+            "1": "Grade de fotos fofa",
+            "2": "Mensagem dos pais"
+          }
+        },
+        "baby-shower": {
+          "title": "Convite de chá de bebê",
+          "description": "Convite doce com data, hora, lista de presentes e RSVP.",
+          "bullets": {
+            "0": "Hero com detalhes do convite",
+            "1": "Links de lista de presentes",
+            "2": "Contagem regressiva + mapa"
+          }
+        },
+        "thank-you": {
+          "title": "Obrigado de coração",
+          "description": "Expresse gratidão com mensagem pessoal, fotos e vídeo emocionante.",
+          "bullets": {
+            "0": "Cartão de agradecimento pessoal",
+            "1": "Foto destaque + link de vídeo"
+          }
+        },
+        "im-sorry": {
+          "title": "Me desculpe",
+          "description": "Um pedido de desculpas sincero com promessa para o futuro.",
+          "bullets": {
+            "0": "Tela inicial de pedido de desculpas",
+            "1": "Contexto e sentimentos",
+            "2": "Promessa e próximos passos"
+          }
+        },
+        "single-screen": {
+          "title": "Anúncio de uma tela",
+          "description": "Mensagem concisa em uma tela com foto e CTA.",
+          "bullets": {
+            "0": "Foto hero",
+            "1": "Texto curto",
+            "2": "CTA ou link"
+          }
+        }
+      },
+      "categories": {
+        "all": "Todos os modelos",
+        "birthday": "Aniversário",
+        "wedding": "Casamento",
+        "anniversary": "Aniversário de casamento",
+        "baby": "Bebê",
+        "thankYou": "Obrigado",
+        "other": "Outro"
+      },
+      "categoriesLabel": "Categorias",
+      "screensSuffix": "telas",
+      "useTemplate": "Usar este modelo →",
+      "readyTitle": "Pronto para começar?",
+      "readySubtitle": "Crie seu primeiro presente interativo em minutos",
+      "ctaStart": "Começar agora"
+    },
+    "pricing": {
+      "eyebrow": "Preços",
+      "title": "Preços simples e honestos",
+      "subtitle": "Sem assinatura. Pagamento único, seu para sempre. Comece grátis e atualize quando quiser.",
+      "badgeMoneyBack": "✅ 14 dias de garantia",
+      "badgeSecure": "🔒 Pagamento seguro",
+      "badgeLifetime": "♾️ Acesso vitalício",
+      "mostPopular": "★ Mais popular",
+      "periodSuffix": "/",
+      "startFreeTitle": "Comece grátis hoje",
+      "startFreeSubtitle": "Sem cartão. Atualize quando quiser.",
+      "ctaStartFree": "Começar grátis"
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "titlePart1": "Perguntas",
+      "titleHighlight": "frequentes",
+      "subtitle": "Tudo sobre presentes HTML interativos.",
+      "searchPlaceholder": "Buscar perguntas...",
+      "whatHappens": "O que acontece:",
+      "startFreeTitle": "Comece grátis hoje",
+      "startFreeSubtitle": "Sem cartão. Atualize quando quiser.",
+      "ctaStartFree": "Começar grátis"
+    },
+    "about": {
+      "eyebrow": "Sobre",
+      "titlePart1": "Onde",
+      "titleHighlight": "arte encontra código",
+      "body1": "Presentes HTML interativos nascem da ideia de que momentos importantes merecem mais que uma mensagem.",
+      "body2": "Uma ferramenta feita por um artista que aprendeu a programar. Cada decisão ajuda a expressar melhor o amor.",
+      "cardTitle": "Feito para momentos que importam",
+      "cardBody": "Cada detalhe foi pensado para você criar algo realmente especial.",
+      "ctaStart": "Começar a criar"
+    },
+    "contact": {
+      "eyebrow": "Contato",
+      "titlePart1": "Vamos",
+      "titleHighlight": "conversar",
+      "subtitle": "Tem uma pergunta ou ideia? Vamos adorar ouvir.",
+      "nameLabel": "Seu nome",
+      "emailLabel": "E-mail",
+      "reasonLabel": "O que quer criar?",
+      "reasonPlaceholder": "Escolha um motivo...",
+      "reasonStart": "Começar um projeto",
+      "reasonQuestion": "Fazer uma pergunta",
+      "reasonPartnership": "Parceria",
+      "reasonOther": "Outra coisa",
+      "messageLabel": "Sua mensagem",
+      "messagePlaceholder": "Conte como podemos ajudar...",
+      "submit": "Enviar mensagem",
+      "ctaStart": "Começar a criar",
+      "submitSuccess": "Obrigado pela mensagem! Responderemos em breve."
+    },
+    "liveExamples": {
+      "eyebrow": "Exemplos ao vivo",
+      "titlePart1": "Histórias reais,",
+      "titleHighlight": "emoções reais",
+      "subtitle": "Explore presentes interativos criados para momentos reais.",
+      "whatHappens": "O que acontece:",
+      "ctaView": "Ver este exemplo →",
+      "ctaTitle": "Pronto para criar sua história?",
+      "ctaSubtitle": "Seus momentos merecem ser lembrados lindamente",
+      "ctaStart": "Começar agora",
+      "screensSuffix": "telas",
+      "featureWithMusic": "com música",
+      "featureEmojis": "emojis",
+      "examples": {
+        "birthdayMom": {
+          "title": "Surpresa de aniversário para mamãe",
+          "description": "Uma jornada emocionante de cinco telas celebrando 60 anos de uma vida incrível.",
+          "steps": [
+            "Uma foto em tela cheia da mamãe com confetes caindo e \"Feliz 60º aniversário!\" aparecendo letra por letra.",
+            "Uma colagem de memórias da infância com animações suaves de panorâmica e zoom.",
+            "Uma nota de voz da família sobreposta a uma apresentação de slides.",
+            "Uma linha do tempo de momentos especiais com emojis para cada marco.",
+            "Uma mensagem final de agradecimento com uma animação de coração e um botão \"Repetir\"."
+          ]
+        },
+        "loveStory": {
+          "title": "Nossa história de amor — 10 anos juntos",
+          "description": "Um presente de aniversário romântico de sete telas percorrendo uma década de amor.",
+          "steps": [
+            "Tela de abertura com \"10 anos juntos\" e uma montagem de fotos do casal.",
+            "O primeiro encontro: onde tudo começou, com fotos e memórias.",
+            "Momentos marcantes: morar juntos, primeira viagem, noivado.",
+            "O dia do casamento: belas fotos da cerimônia e votos.",
+            "Construindo um lar: casa, animais de estimação e vida juntos.",
+            "Aventuras e viagens: todos os lugares que exploraram juntos.",
+            "Uma mensagem comovente com \"Aqui está para sempre\" e um botão de repetir."
+          ]
+        },
+        "weddingSaveDate": {
+          "title": "Reserve a data — Sarah e David",
+          "description": "Um convite de casamento elegante de quatro telas que os convidados realmente abriram e lembraram.",
+          "steps": [
+            "Abertura elegante com os nomes do casal e a data do casamento.",
+            "Detalhes do local com uma bela foto do local e endereço.",
+            "Contador regressivo mostrando os dias até o grande dia.",
+            "Seção de confirmação com um link para confirmar presença."
+          ]
+        },
+        "welcomeBaby": {
+          "title": "Bem-vinda bebê Mia",
+          "description": "Um anúncio de três telas apresentando o mais novo membro da família ao mundo.",
+          "steps": [
+            "Foto adorável do bebê com nome, data de nascimento e estatísticas (peso, comprimento).",
+            "Apresentação da família: fotos dos pais e irmãos conhecendo o bebê.",
+            "Mensagem de agradecimento com um convite para visitar e conhecer a nova adição."
+          ]
+        },
+        "thankYouCoach": {
+          "title": "Obrigado, treinador Mike",
+          "description": "Uma mensagem de gratidão de duas telas da equipe de basquete para seu treinador aposentado.",
+          "steps": [
+            "Foto da equipe com uma mensagem comovente agradecendo ao treinador Mike por anos de dedicação.",
+            "Destaques de momentos memoráveis e conquistas, terminando com \"Você sempre será nosso treinador\"."
+          ]
+        },
+        "imSorry": {
+          "title": "Sinto muito — por favor me perdoe",
+          "description": "Um pedido de desculpas sincero de três telas que ajudou a reparar uma amizade quebrada.",
+          "steps": [
+            "Abertura com \"Sinto muito\" e reconhecimento do erro.",
+            "Uma mensagem pessoal explicando o que aconteceu e assumindo responsabilidade.",
+            "Uma promessa para o futuro e um pedido de perdão com uma mensagem de esperança."
+          ]
+        }
+      }
+    },
+    "profile": {
+      "title": "Perfil",
+      "subtitle": "Gerencie seu plano e projetos.",
+      "currentPlan": "Plano atual: Grátis",
+      "projectsLabel": "Projetos",
+      "openSettings": "Abrir configurações",
+      "yourProjects": "Seus projetos",
+      "importProject": "Importar projeto",
+      "noProjects": "Nenhum projeto ainda. Crie um na página inicial.",
+      "templatePrefix": "Modelo:",
+      "edit": "Editar no editor",
+      "exportJson": "Exportar JSON",
+      "delete": "Excluir",
+      "settingsTitle": "Configurações",
+      "closeSettings": "Fechar configurações",
+      "autosaveTitle": "Salvamento automático",
+      "autosaveDescription": "Salvar automaticamente durante a edição.",
+      "themeLabel": "Tema",
+      "themeLight": "Claro",
+      "themeDark": "Escuro",
+      "upgradeTitle": "Atualize seu plano",
+      "upgradeDescription": "Desbloqueie mais projetos e recursos.",
+      "upgrade": "Atualizar",
+      "close": "Fechar"
     }
   },
   "validation": {
@@ -100,7 +579,8 @@
     "close": "Fechar",
     "loading": "Carregando...",
     "error": "Erro",
-    "success": "Sucesso"
+    "success": "Sucesso",
+    "remove": "Remover"
   }
 }
 

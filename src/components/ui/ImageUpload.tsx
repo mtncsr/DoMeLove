@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import type { ImageData } from '../../types/project';
-import { processImage, formatFileSize } from '../../utils/imageProcessor';
+import { processImage } from '../../utils/imageProcessor';
 
 interface ImageUploadProps {
   onUpload: (image: ImageData) => void;
@@ -10,74 +10,88 @@ interface ImageUploadProps {
   label?: string;
 }
 
-export function ImageUpload({ onUpload, onMultipleUpload, multiple = false, accept = 'image/*', label }: ImageUploadProps) {
+// Concurrency limit: process this many images simultaneously
+const CONCURRENT_LIMIT = 8;
+
+export function ImageUpload({ onUpload, onMultipleUpload: _onMultipleUpload, multiple = false, accept = 'image/*', label }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Process images with concurrency limiting - upload each image immediately as it's processed
+  const processImagesProgressively = async (files: File[]) => {
+    const total = files.length;
+    let processed = 0;
+    let successful = 0;
+    let failed = 0;
+    const failedFiles: Array<{ filename: string; error: string }> = [];
+
+    // Process files in batches to limit concurrency
+    for (let i = 0; i < files.length; i += CONCURRENT_LIMIT) {
+      const batch = files.slice(i, i + CONCURRENT_LIMIT);
+
+      // Process batch in parallel
+      const batchPromises = batch.map(async (file) => {
+        try {
+          const imageData = await processImage(file);
+          processed++;
+          successful++;
+          setProgress({ current: processed, total });
+
+          // Upload image immediately as it's processed - images will appear progressively
+          // The queue system in handleImageUpload will handle concurrent updates safely
+          onUpload(imageData);
+
+          return { success: true, imageData, filename: file.name };
+        } catch (error) {
+          processed++;
+          failed++;
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          failedFiles.push({ filename: file.name, error: errorMessage });
+          setProgress({ current: processed, total });
+
+          console.error(`Error processing image ${file.name}:`, error);
+          return { success: false, error: errorMessage, filename: file.name };
+        }
+      });
+
+      // Wait for batch to complete
+      await Promise.all(batchPromises);
+
+      // Yield to browser between batches for better responsiveness
+      if (i + CONCURRENT_LIMIT < files.length) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    }
+
+    // Show summary of failures
+    if (failedFiles.length > 0) {
+      const errorMessage = failedFiles.length === 1
+        ? `Failed to process "${failedFiles[0].filename}": ${failedFiles[0].error}`
+        : `${failedFiles.length} images failed to process. Check console for details.`;
+      console.error('Failed images:', failedFiles);
+      alert(errorMessage);
+    }
+
+    return { successful, failed };
+  };
 
   const handleFiles = async (files: FileList) => {
     if (files.length === 0) return;
-    
+
     setIsProcessing(true);
+    setProgress({ current: 0, total: files.length });
     const fileArray = Array.from(files);
-    
+
     try {
-      // Process all files in parallel and collect results
-      const imagePromises = fileArray.map((file) => 
-        processImage(file)
-          .then((imageData) => ({ success: true, imageData, filename: file.name }))
-          .catch((error) => ({ 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Unknown error',
-            filename: file.name 
-          }))
-      );
-      
-      const results = await Promise.all(imagePromises);
-      
-      // Separate successful and failed images
-      const successfulImages: ImageData[] = [];
-      const failedFiles: Array<{ filename: string; error: string }> = [];
-      
-      results.forEach((result) => {
-        if (result.success && result.imageData) {
-          successfulImages.push(result.imageData);
-        } else {
-          failedFiles.push({ filename: result.filename, error: result.error });
-        }
-      });
-      
-      // Show errors for failed files
-      if (failedFiles.length > 0) {
-        failedFiles.forEach(({ filename, error }) => {
-          console.error(`Error processing image ${filename}:`, error);
-          alert(`Failed to process "${filename}": ${error}`);
-        });
-      }
-      
-      // Upload all successful images at once
-      if (successfulImages.length > 0) {
-        if (onMultipleUpload && successfulImages.length > 1) {
-          // Batch upload for multiple images
-          onMultipleUpload(successfulImages);
-        } else {
-          // Single upload for one image or if batch not available
-          successfulImages.forEach(img => onUpload(img));
-        }
-      }
-      
-      const successCount = successfulImages.length;
-      const failCount = failedFiles.length;
-      
-      if (failCount > 0 && successCount > 0) {
-        console.log(`Processed ${successCount} image(s) successfully, ${failCount} failed`);
-      } else if (failCount > 0 && successCount === 0) {
-        console.log(`All ${failCount} image(s) failed to process`);
-      }
+      await processImagesProgressively(fileArray);
     } catch (error) {
       console.error('Error in handleFiles:', error);
+      alert('An unexpected error occurred while processing images.');
     } finally {
       setIsProcessing(false);
+      setProgress(null);
     }
   };
 
@@ -134,7 +148,22 @@ export function ImageUpload({ onUpload, onMultipleUpload, multiple = false, acce
           className="hidden"
           disabled={isProcessing}
         />
-        {isProcessing ? (
+        {isProcessing && progress ? (
+          <div className="space-y-2">
+            <p className="text-gray-600 font-medium">
+              Processing images... {progress.current} / {progress.total}
+            </p>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-500">
+              Images will appear as they are processed...
+            </p>
+          </div>
+        ) : isProcessing ? (
           <p className="text-gray-500">Processing image...</p>
         ) : (
           <>
@@ -150,5 +179,3 @@ export function ImageUpload({ onUpload, onMultipleUpload, multiple = false, acce
     </div>
   );
 }
-
-

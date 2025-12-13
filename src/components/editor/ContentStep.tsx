@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import { useEditor } from '../../contexts/EditorContext';
-import type { ImageData, AudioFile, VideoData } from '../../types/project';
+import type { ImageData, AudioFile, VideoData, Project } from '../../types/project';
 import type { TemplateMeta } from '../../types/template';
 import { ImageUpload } from '../ui/ImageUpload';
 import { AudioUpload } from '../ui/AudioUpload';
@@ -160,22 +160,54 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
   };
 
   const handleImageUpload = (image: ImageData) => {
-    updateProject({
-      ...project,
-      data: {
-        ...project.data,
-        images: [...project.data.images, image],
-      },
+    // Use functional update to read the latest state and prevent race conditions
+    updateProject((prevProject: Project) => {
+      // Check if image already exists
+      const existingIndex = prevProject.data.images.findIndex((img: ImageData) => img.id === image.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing image
+        const updatedImages = [...prevProject.data.images];
+        updatedImages[existingIndex] = image;
+        return {
+          ...prevProject,
+          data: {
+            ...prevProject.data,
+            images: updatedImages,
+          },
+        };
+      } else {
+        // Add new image - append to the array
+        return {
+          ...prevProject,
+          data: {
+            ...prevProject.data,
+            images: [...prevProject.data.images, image],
+          },
+        };
+      }
     });
   };
 
   const handleMultipleImageUpload = (images: ImageData[]) => {
-    updateProject({
-      ...project,
-      data: {
-        ...project.data,
-        images: [...project.data.images, ...images],
-      },
+    if (images.length === 0) return;
+    
+    // Use functional update to read the latest state and prevent race conditions
+    updateProject((prevProject: Project) => {
+      const currentImages = [...prevProject.data.images];
+      
+      // Filter out any images that already exist (by ID)
+      const existingImageIds = new Set(currentImages.map(img => img.id));
+      const imagesToAdd = images.filter(img => !existingImageIds.has(img.id));
+      
+      // Add all new images
+      return {
+        ...prevProject,
+        data: {
+          ...prevProject.data,
+          images: [...currentImages, ...imagesToAdd],
+        },
+      };
     });
   };
 

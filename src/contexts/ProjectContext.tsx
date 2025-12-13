@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import type { Project, ScreenData } from '../types/project';
 import { storageService } from '../services/storageService';
 import { validationService } from '../services/validationService';
@@ -10,7 +11,7 @@ interface ProjectContextType {
   projects: Project[];
   currentProject: Project | null;
   createProject: (templateId: string, name: string) => Project;
-  updateProject: (project: Project) => void;
+  updateProject: (project: Project | ((prev: Project) => Project)) => void;
   deleteProject: (projectId: string) => void;
   setCurrentProject: (project: Project | null) => void;
   exportProject: (project: Project) => string;
@@ -134,22 +135,35 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     return newProject;
   }, [projects]);
 
-  const updateProject = useCallback((project: Project) => {
-    const updated = {
-      ...project,
+  const updateProject = useCallback((projectOrUpdater: Project | ((prev: Project) => Project)) => {
+    // Get the updated project - either use the provided project or call the updater function
+    const updated = typeof projectOrUpdater === 'function' 
+      ? projectOrUpdater(currentProjectRef.current || currentProject!)
+      : projectOrUpdater;
+    
+    const updatedWithTimestamp = {
+      ...updated,
       updatedAt: new Date().toISOString(),
     };
-    setCurrentProjectState(updated);
+    
+    // Use flushSync to force immediate state update and prevent React from batching
+    // This ensures each image update is processed immediately before the next one
+    flushSync(() => {
+      // Update ref synchronously so queued updates can read the latest state immediately
+      currentProjectRef.current = updatedWithTimestamp;
+      setCurrentProjectState(updatedWithTimestamp);
+    });
+    
     // Update projects array but don't save to storage immediately
     // The debounced auto-save effect will handle storage writes
     setProjects(prevProjects => {
       const updatedProjects = prevProjects.map(p => 
-        p.id === updated.id ? updated : p
+        p.id === updatedWithTimestamp.id ? updatedWithTimestamp : p
       );
       projectsRef.current = updatedProjects;
       return updatedProjects;
     });
-  }, []);
+  }, [currentProject]);
 
   const deleteProject = useCallback((projectId: string) => {
     const updatedProjects = projects.filter(p => p.id !== projectId);

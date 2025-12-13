@@ -94,8 +94,11 @@ export async function processImage(file: File): Promise<ImageData> {
           // Calculate size
           const size = Math.round((base64Data.length * 3) / 4);
           
+          // Generate a truly unique ID using timestamp, random string, and performance counter
+          const uniqueId = `img_${Date.now()}_${performance.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
           const imageData: ImageData = {
-            id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: uniqueId,
             data: dataUrl, // Full data URL for easy use
             filename: file.name,
             size,

@@ -114,11 +114,13 @@ export interface ScreenData {
 
 export interface ImageData {
   id: string;
-  data: string; // Base64
+  data: string; // Base64 or object URL (temporary during processing)
   filename: string;
   size: number; // Size in bytes
   width?: number;
   height?: number;
+  isProcessing?: boolean; // True while compression/conversion is in progress
+  previewUrl?: string; // Object URL for instant preview (revoked after processing)
 }
 
 export interface VideoData {

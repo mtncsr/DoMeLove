@@ -1,7 +1,17 @@
 {
   "templateId": "wedding",
   "templateName": "Wedding / Save the Date",
+  "shortName": "Save the Date",
   "overlayType": "save_the_date",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)",
+    "defaultEmojis": ["👰‍♀️", "🤵‍♂️", "💍", "💒", "🌟", "🥂", "🎉", "❤️"],
+    "textPlaceholders": {
+      "title": "You're Invited",
+      "text": "Join us for the celebration of our love...",
+      "mainGreeting": "Save the Date!"
+    }
+  },
   "screens": [
     {
       "screenId": "saveDate",

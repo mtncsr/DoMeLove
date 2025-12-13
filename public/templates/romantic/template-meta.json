@@ -1,7 +1,17 @@
 {
   "templateId": "romantic",
   "templateName": "Romantic / Couple",
+  "shortName": "Anniversary",
   "overlayType": "heart",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)",
+    "defaultEmojis": ["💕", "🌹", "💑", "❤️", "💍", "🌟", "😍", "🥰"],
+    "textPlaceholders": {
+      "title": "Our Love Story",
+      "text": "Every moment with you is a treasure I hold dear...",
+      "mainGreeting": "Happy Anniversary, my love!"
+    }
+  },
   "screens": [
     {
       "screenId": "intro",

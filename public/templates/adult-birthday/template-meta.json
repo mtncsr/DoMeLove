@@ -1,7 +1,17 @@
 {
   "templateId": "adult-birthday",
   "templateName": "Adult Birthday",
+  "shortName": "Birthday Surprise for Mom",
   "overlayType": "birthday",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)",
+    "defaultEmojis": ["🎂", "🎉", "🥳", "🎁", "🌟", "❤️", "👩‍👧‍👦", "🎈"],
+    "textPlaceholders": {
+      "title": "Happy Birthday!",
+      "text": "Another year of wonderful memories and adventures...",
+      "mainGreeting": "Happy Birthday, Mom!"
+    }
+  },
   "screens": [
     {
       "screenId": "intro",

@@ -128,7 +128,7 @@ export function EditorProvider({
   );
 
   const steps: StepInfo[] = useMemo(() => {
-    const stepIds: EditorStep[] = ['template', 'screens', 'content', 'previewExport'];
+    const stepIds: EditorStep[] = ['template', 'content', 'screens', 'previewExport'];
     return stepIds.map(id => ({
       id,
       status: calculateStepStatus(id, project, templateMeta),

@@ -6,18 +6,18 @@
   <title>New Baby Gift</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Georgia', serif; background: {{theme_bgColor}}; color: #333; }
+    body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #a7f3d0 100%); color: #333; }
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; }
     .overlay h1 { color: white; font-size: 3rem; margin-bottom: 1rem; }
     .overlay button { padding: 1rem 2rem; font-size: 1.2rem; background: white; color: #3b82f6; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
     .screen { min-height: 100vh; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-    .screen h2 { font-size: 2.5rem; margin-bottom: 2rem; color: {{theme_accentColor}}; }
+    .screen h2 { font-size: 2.5rem; margin-bottom: 2rem; color: #3b82f6; }
     .screen p { font-size: 1.2rem; line-height: 1.8; max-width: 800px; margin-bottom: 2rem; }
     .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 1200px; margin: 2rem 0; }
     .gallery img { width: 100%; height: 200px; object-fit: cover; border-radius: 10px; }
     .blessing-card { background: #f9fafb; padding: 2rem; border-radius: 10px; margin: 1rem 0; max-width: 600px; }
     .navigation { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1rem; }
-    .nav-button { padding: 0.75rem 1.5rem; background: {{theme_accentColor}}; color: white; border: none; border-radius: 25px; cursor: pointer; }
+    .nav-button { padding: 0.75rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 25px; cursor: pointer; }
     .hidden { display: none; }
   </style>
 </head>

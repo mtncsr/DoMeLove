@@ -88,6 +88,25 @@ function EditorContent() {
     }
   }, [templateMeta?.templateId, currentProject, updateProject]);
 
+  // Update project name when template changes
+  useEffect(() => {
+    if (!currentProject || !currentProject.data.selectedTemplateCardId) return;
+
+    const selectedCard = TEMPLATE_CARDS.find(
+      (card) => card.id === currentProject.data.selectedTemplateCardId
+    );
+
+    if (selectedCard?.shortName) {
+      const newName = `my interactive ${selectedCard.shortName}`;
+      if (currentProject.name !== newName) {
+        updateProject({
+          ...currentProject,
+          name: newName,
+        });
+      }
+    }
+  }, [currentProject?.data.selectedTemplateCardId, currentProject, updateProject]);
+
   // Debug mode toggle (Ctrl+D)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

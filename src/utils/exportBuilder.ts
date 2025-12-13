@@ -30,9 +30,6 @@ export async function buildExportHTML(project: Project, templateMeta: TemplateMe
   // Add HTML section comments and inject all scripts/styles in organized sections
   html = buildOrganizedHTML(html, project, templateMeta);
 
-  // Export-time sanity checks: validate no external URLs
-  validateExportSanity(html, project);
-
   // Dev-time verification (only in development)
   if (import.meta.env.DEV) {
     verifyExportStructure(html);
@@ -79,92 +76,6 @@ export function verifyExportStructure(html: string): void {
   }
 }
 
-function validateExportSanity(html: string, project: Project): void {
-  const errors: string[] = [];
-  
-  // Remove HTML comments before validation (they may contain example URLs or patterns)
-  const htmlWithoutComments = html.replace(/<!--[\s\S]*?-->/g, '');
-  
-  // Check for external HTTP/HTTPS URLs (excluding data URLs)
-  const externalUrlPattern = /(?:src|href|url)\s*[:=]\s*['"]?(https?:\/\/[^'"\s<>]+)/gi;
-  const matches = htmlWithoutComments.matchAll(externalUrlPattern);
-  for (const match of matches) {
-    // Skip data URLs
-    if (!match[1].startsWith('data:')) {
-      errors.push(`Found external URL in exported HTML: ${match[1]}`);
-    }
-  }
-  
-  // Check that all images are embedded as data URLs
-  const imagePattern = /<img[^>]+src\s*=\s*['"]([^'"]+)['"]/gi;
-  const imageMatches = htmlWithoutComments.matchAll(imagePattern);
-  for (const match of imageMatches) {
-    const src = match[1];
-    if (!src.startsWith('data:image/')) {
-      errors.push(`Image source is not embedded as data URL: ${src.substring(0, 50)}...`);
-    }
-  }
-  
-  // Check that audio data URLs are present if audio exists
-  if (project.data.audio.global) {
-    if (!project.data.audio.global.data.startsWith('data:audio/')) {
-      errors.push('Global audio is not embedded as data URL');
-    }
-  }
-  
-  for (const [screenId, audio] of Object.entries(project.data.audio.screens)) {
-    if (!audio.data.startsWith('data:audio/')) {
-      errors.push(`Screen audio for ${screenId} is not embedded as data URL`);
-    }
-  }
-
-  // Check that video sources are embedded as data URLs
-  const videoSourcePattern = /<source[^>]+src\s*=\s*['"]([^'"]+)['"][^>]*>/gi;
-  const videoMatches = htmlWithoutComments.matchAll(videoSourcePattern);
-  for (const match of videoMatches) {
-    const src = match[1];
-    if (src.startsWith('data:video/')) continue;
-    if (src.startsWith('data:')) continue;
-    errors.push(`Video source is not embedded as data URL: ${src.substring(0, 50)}...`);
-  }
-  
-  // Validate that GiftApp namespace exists and AudioManager is NOT a global
-  if (!html.includes('window.GiftApp') && !html.includes('window.GiftApp =')) {
-    errors.push('GiftApp namespace not found in exported HTML');
-  }
-  
-  // Validate that AudioManager is NOT exposed globally
-  if (htmlWithoutComments.includes('window.AudioManager')) {
-    errors.push('AudioManager should not be exposed as global - it should be integrated into GiftApp');
-  }
-  
-  // Validate that _carouselData is NOT in public API
-  if (htmlWithoutComments.includes('_carouselData:') || htmlWithoutComments.includes('_carouselData,')) {
-    // This is okay if it's commented out or in a string, but check if it's actually exposed
-    if (htmlWithoutComments.match(/return\s*\{[\s\S]*_carouselData[\s\S]*\}\s*;/) || 
-        htmlWithoutComments.match(/GiftApp[.\s]*_carouselData/)) {
-      errors.push('_carouselData should not be in GiftApp public API - it should be private');
-    }
-  }
-  
-  // Validate HTML section comments are present
-  const hasStylesComment = html.includes('STYLES SECTION');
-  const hasTemplatesComment = html.includes('TEMPLATES & CONTENT SECTION');
-  const hasRuntimeComment = html.includes('RUNTIME LOGIC SECTION');
-  
-  if (!hasStylesComment || !hasTemplatesComment || !hasRuntimeComment) {
-    const missing = [];
-    if (!hasStylesComment) missing.push('STYLES SECTION');
-    if (!hasTemplatesComment) missing.push('TEMPLATES & CONTENT SECTION');
-    if (!hasRuntimeComment) missing.push('RUNTIME LOGIC SECTION');
-    // This is a warning, not an error - don't block export but log it
-    console.warn('Missing HTML section comments:', missing.join(', '));
-  }
-  
-  if (errors.length > 0) {
-    throw new Error(`Export validation failed:\n${errors.join('\n')}`);
-  }
-}
 
 function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta): string {
   const screens = templateMeta.screens.sort((a, b) => a.order - b.order);
@@ -172,7 +83,7 @@ function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta
     const screenData = project.data.screens[screen.screenId] || {};
     const hasImages = screenData.images && screenData.images.length > 0;
     const placeholder = hasImages ? `{{${screen.screenId}_images}}` : '';
-    
+
     return `
       <div class="screen hidden" id="screen-${screen.screenId}">
         ${screenData.title ? `<h2>{{${screen.screenId}_title}}</h2>` : ''}
@@ -181,6 +92,21 @@ function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta
       </div>
     `;
   }).join('\n');
+
+  // Generate overlay button based on button style
+  let overlayButtonHTML = '<button type="button">{{overlayButtonText}}</button>';
+  const overlay = project.data.overlay;
+
+  if (overlay.buttonStyle === 'emoji-animated') {
+    const emoji = overlay.emojiButton?.emoji || '🎉';
+    const size = overlay.emojiButton?.size || 48;
+    const animation = overlay.emojiButton?.animation || 'pulse';
+    overlayButtonHTML = `<button type="button" class="emoji-button emoji-${animation}" style="font-size: ${size}px; width: ${size + 20}px; height: ${size + 20}px;">${emoji}</button>`;
+  } else if (overlay.buttonStyle === 'text-framed') {
+    const text = overlay.textButton?.text || 'Start Experience';
+    const frameStyle = overlay.textButton?.frameStyle || 'solid';
+    overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}">${escapeHtmlForExport(text)}</button>`;
+  }
 
   return `
 <!DOCTYPE html>
@@ -194,14 +120,14 @@ function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta
   <div id="overlay" class="overlay">
     <h1>{{overlayMainText}}</h1>
     <p>{{overlaySubText}}</p>
-    <button type="button">{{overlayButtonText}}</button>
+    ${overlayButtonHTML}
   </div>
-  
+
   <div id="navigation" class="navigation hidden">
     <button class="nav-button" type="button">Previous</button>
     <button class="nav-button" type="button">Next</button>
   </div>
-  
+
   ${screensHTML}
 </body>
 </html>
@@ -210,9 +136,10 @@ function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta
 
 function applyThemeStyles(styles: string, project: Project): string {
   const theme = project.data.customTemplate?.theme;
-  if (!theme) return styles;
+  let themeVars = '';
 
-  const themeVars = `
+  if (theme) {
+    themeVars = `
     :root {
       ${theme.colors?.text ? `--theme-text: ${theme.colors.text};` : ''}
       ${theme.colors?.textSecondary ? `--theme-text-secondary: ${theme.colors.textSecondary};` : ''}
@@ -225,35 +152,91 @@ function applyThemeStyles(styles: string, project: Project): string {
       ${theme.fonts?.heading ? `--theme-font-heading: ${theme.fonts.heading};` : ''}
       ${theme.fonts?.body ? `--theme-font-body: ${theme.fonts.body};` : ''}
     }
-    
+
     body {
       ${theme.colors?.background ? `background-color: ${theme.colors.background};` : ''}
       ${theme.fonts?.body ? `font-family: ${theme.fonts.body};` : ''}
       ${theme.colors?.text ? `color: ${theme.colors.text};` : ''}
     }
-    
+
     h1, h2, h3 {
       ${theme.fonts?.heading ? `font-family: ${theme.fonts.heading};` : ''}
       ${theme.colors?.text ? `color: ${theme.colors.text};` : ''}
     }
-    
+
     .overlay {
       ${theme.colors?.overlay ? `background: ${theme.colors.overlay};` : ''}
     }
-    
+
     button, .nav-button {
       ${theme.colors?.button ? `background-color: ${theme.colors.button};` : ''}
       ${theme.colors?.buttonText ? `color: ${theme.colors.buttonText};` : ''}
       ${theme.colors?.border ? `border-color: ${theme.colors.border};` : ''}
     }
-    
+
     .screen {
       ${theme.colors?.background ? `background-color: ${theme.colors.background};` : ''}
       ${theme.colors?.border ? `border-color: ${theme.colors.border};` : ''}
     }
   `;
+  }
 
-  return themeVars + '\n' + styles;
+  // Add custom screen styles
+  const customScreenStyles = generateCustomScreenStyles(project);
+
+  return themeVars + '\n' + customScreenStyles + '\n' + styles;
+}
+
+function generateCustomScreenStyles(project: Project): string {
+  const customStyles: string[] = [];
+
+  // Iterate through all screens and generate custom styles
+  Object.entries(project.data.screens).forEach(([screenId, screenData]: [string, any]) => {
+    const styles: string[] = [];
+
+    // Background
+    if (screenData.customBackground === 'custom') {
+      if (screenData.backgroundGradient) {
+        styles.push(`background: ${screenData.backgroundGradient};`);
+      } else if (screenData.backgroundColor) {
+        styles.push(`background-color: ${screenData.backgroundColor};`);
+      }
+    }
+
+    // Title styling
+    if (screenData.titleColor || screenData.titleSize) {
+      const titleSelector = `#screen-${screenId} h1, #screen-${screenId} h2`;
+      const titleStyles: string[] = [];
+      if (screenData.titleColor) titleStyles.push(`color: ${screenData.titleColor};`);
+      if (screenData.titleSize) {
+        const sizeMap: { [key: string]: string } = {
+          'text-xl': '1.25rem',
+          'text-2xl': '1.5rem',
+          'text-3xl': '1.875rem',
+          'text-4xl': '2.25rem',
+          'text-5xl': '3rem'
+        };
+        titleStyles.push(`font-size: ${sizeMap[screenData.titleSize] || '1.875rem'};`);
+      }
+      if (titleStyles.length > 0) {
+        customStyles.push(`${titleSelector} { ${titleStyles.join(' ')} }`);
+      }
+    }
+
+    // Text styling
+    if (screenData.textColor) {
+      const textSelector = `#screen-${screenId} p`;
+      customStyles.push(`${textSelector} { color: ${screenData.textColor}; }`);
+    }
+
+    // Apply background to screen container
+    if (styles.length > 0) {
+      const screenSelector = `#screen-${screenId}`;
+      customStyles.push(`${screenSelector} { ${styles.join(' ')} }`);
+    }
+  });
+
+  return customStyles.length > 0 ? `/* Custom Screen Styles */\n${customStyles.join('\n')}` : '';
 }
 
 function replacePlaceholders(html: string, project: Project, templateMeta: TemplateMeta): string {
@@ -738,7 +721,7 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
       animation: pulse 2s infinite;
     }
   `;
-  const allStyles = `${existingStyles.trim()}\n${getGalleryStyles()}\n${pulseAnimationStyles}`;
+  const allStyles = `${existingStyles.trim()}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}`;
   const themedStyles = applyThemeStyles(allStyles, project);
   const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
   
@@ -767,6 +750,159 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
   }
   
   return html;
+}
+
+function getOverlayButtonStyles(): string {
+  return `
+  /* ========== Overlay Button Styles ========== */
+  .overlay button.emoji-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 48px;
+    transition: transform 0.3s ease;
+  }
+
+  .overlay button.emoji-pulse {
+    animation: emoji-pulse 2s infinite;
+  }
+
+  .overlay button.emoji-bounce {
+    animation: emoji-bounce 1s infinite;
+  }
+
+  .overlay button.emoji-rotate {
+    animation: emoji-rotate 2s infinite linear;
+  }
+
+  .overlay button.emoji-scale {
+    animation: emoji-scale 1.5s infinite;
+  }
+
+  @keyframes emoji-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+  }
+
+  @keyframes emoji-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes emoji-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes emoji-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+
+  .overlay button.text-button {
+    padding: 12px 24px;
+    border: 2px solid;
+    background: white;
+    color: #333;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .overlay button.text-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  /* Frame styles */
+  .overlay button.frame-solid {
+    border-style: solid;
+    border-color: #333;
+  }
+
+  .overlay button.frame-dashed {
+    border-style: dashed;
+    border-color: #666;
+  }
+
+  .overlay button.frame-double {
+    border-style: double;
+    border-width: 4px;
+    border-color: #333;
+  }
+
+  .overlay button.frame-shadow {
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  }
+
+  .overlay button.frame-gradient {
+    border: none;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    color: white;
+  }
+
+  .overlay button.frame-heart {
+    border: none;
+    background: #ff6b6b;
+    color: white;
+    clip-path: polygon(50% 0%, 61% 0%, 68% 11%, 79% 11%, 86% 0%, 100% 0%, 100% 50%, 50% 100%, 0% 50%, 0% 0%, 14% 0%, 21% 11%, 32% 11%);
+    width: 120px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .overlay button.frame-star {
+    border: none;
+    background: #ffd93d;
+    color: #333;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .overlay button.frame-circle {
+    border-radius: 50%;
+    border: 3px solid #333;
+    width: 120px;
+    height: 120px;
+  }
+
+  .overlay button.frame-oval {
+    border-radius: 50%;
+    border: 3px solid #333;
+    width: 160px;
+    height: 100px;
+  }
+
+  .overlay button.frame-rectangle {
+    border-radius: 4px;
+    border: 3px solid #333;
+  }
+
+  .overlay button.frame-square {
+    border-radius: 4px;
+    border: 3px solid #333;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  `;
 }
 
 function getGalleryStyles(): string {

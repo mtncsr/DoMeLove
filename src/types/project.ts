@@ -102,6 +102,14 @@ export interface ScreenData {
   galleryLayout?: 'carousel' | 'gridWithZoom' | 'fullscreenSlideshow' | 'heroWithThumbnails' | 'timeline'; // Gallery layout type for screens with images
   mediaMode?: 'classic' | 'video'; // classic allows images/audio; video allows a single video only
   videoId?: string; // Only valid when mediaMode === 'video'
+
+  // Custom styling properties
+  customBackground?: 'template' | 'custom';
+  backgroundColor?: string;
+  backgroundGradient?: string;
+  titleColor?: string;
+  textColor?: string;
+  titleSize?: string;
 }
 
 export interface ImageData {
@@ -143,6 +151,16 @@ export interface OverlayConfig {
   mainText?: string;
   subText?: string;
   buttonText?: string;
+  buttonStyle?: 'emoji-animated' | 'text-framed';
+  emojiButton?: {
+    emoji: string;
+    size: number;
+    animation: 'pulse' | 'bounce' | 'rotate' | 'scale';
+  };
+  textButton?: {
+    text: string;
+    frameStyle: 'solid' | 'dashed' | 'double' | 'shadow' | 'gradient' | 'heart' | 'star' | 'circle' | 'oval' | 'rectangle' | 'square';
+  };
 }
 
 export interface Blessing {

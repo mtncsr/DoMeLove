@@ -1,7 +1,17 @@
 {
   "templateId": "single-screen",
   "templateName": "Single Screen",
+  "shortName": "Single Screen",
   "overlayType": "custom",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 50%, #d1d5db 100%)",
+    "defaultEmojis": ["✨", "🎉", "🌟", "💫", "🎊", "🎈", "❤️", "😊"],
+    "textPlaceholders": {
+      "title": "Special Message",
+      "text": "A moment to remember, a memory to cherish...",
+      "mainGreeting": "Hello there!"
+    }
+  },
   "screens": [
     {
       "screenId": "single",

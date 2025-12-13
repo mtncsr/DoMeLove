@@ -1,7 +1,17 @@
 {
   "templateId": "kids-birthday",
   "templateName": "Kids Birthday",
+  "shortName": "Kids Birthday",
   "overlayType": "birthday",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%)",
+    "defaultEmojis": ["🎂", "🎈", "🎉", "🧸", "🎪", "🌈", "🍭", "🎨"],
+    "textPlaceholders": {
+      "title": "Happy Birthday!",
+      "text": "Another year of fun, laughter, and adventures...",
+      "mainGreeting": "Happy Birthday, little one!"
+    }
+  },
   "screens": [
     {
       "screenId": "intro",

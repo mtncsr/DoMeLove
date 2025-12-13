@@ -2,10 +2,22 @@
 export interface TemplateMeta {
   templateId: string;
   templateName: string;
+  shortName?: string;
   overlayType: 'heart' | 'birthday' | 'save_the_date' | 'custom';
   screens: ScreenConfig[];
   globalPlaceholders: string[];
+  designConfig?: DesignConfig;
   designVariables?: DesignVariable[];
+}
+
+export interface DesignConfig {
+  background: string; // CSS background (gradient or color)
+  defaultEmojis: string[];
+  textPlaceholders: {
+    title?: string;
+    text?: string;
+    mainGreeting?: string;
+  };
 }
 
 export interface ScreenConfig {

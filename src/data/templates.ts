@@ -5,6 +5,7 @@ export type TemplateCard = {
   description: string;
   screens: number;
   category: string;
+  shortName: string;
   badges?: string[];
   bullets?: string[];
   icon?: string;
@@ -15,6 +16,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'birthday-mom',
     templateId: 'adult-birthday',
     title: 'Birthday Surprise for Mom',
+    shortName: 'Birthday Surprise for Mom',
     description: 'A heartfelt five-screen journey celebrating 60 years of an amazing life.',
     screens: 5,
     category: 'Birthday',
@@ -30,6 +32,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'kids-birthday',
     templateId: 'kids-birthday',
     title: 'Kids Birthday Adventure',
+    shortName: 'Kids Birthday',
     description: 'Colorful and playful experience with stickers and fun sounds.',
     screens: 4,
     category: 'Birthday',
@@ -45,6 +48,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'adult-birthday',
     templateId: 'adult-birthday',
     title: 'Adult Birthday Memories',
+    shortName: 'Adult Birthday',
     description: 'Elegant timeline with toasts, photos, and music.',
     screens: 5,
     category: 'Birthday',
@@ -60,6 +64,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'anniversary-love',
     templateId: 'romantic',
     title: 'Anniversary Love Story',
+    shortName: 'Anniversary',
     description: 'A romantic timeline of shared moments, from the first date to years of togetherness.',
     screens: 7,
     category: 'Anniversary',
@@ -75,6 +80,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'proposal-countdown',
     templateId: 'romantic',
     title: 'Proposal Countdown',
+    shortName: 'Proposal Countdown',
     description: 'Dramatic countdown leading to the big question.',
     screens: 4,
     category: 'Anniversary',
@@ -90,6 +96,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'wedding-save-date',
     templateId: 'wedding',
     title: 'Save the Date — Sarah & David',
+    shortName: 'Save the Date',
     description: 'Elegant wedding invitation with venue details, countdown, and RSVP link.',
     screens: 4,
     category: 'Wedding',
@@ -105,6 +112,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'wedding-thankyou',
     templateId: 'wedding',
     title: 'Wedding Thank You',
+    shortName: 'Wedding',
     description: 'Share highlights and gratitude after the big day.',
     screens: 3,
     category: 'Wedding',
@@ -119,6 +127,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'new-baby',
     templateId: 'new-baby',
     title: 'New Baby Welcome',
+    shortName: 'New Baby',
     description: 'Announce your little one with adorable photos, stats, and heartwarming messages.',
     screens: 3,
     category: 'Baby',
@@ -133,6 +142,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'baby-shower',
     templateId: 'new-baby',
     title: 'Baby Shower Invite',
+    shortName: 'Baby Shower',
     description: 'Sweet invitation with date, time, registry, and RSVP.',
     screens: 3,
     category: 'Baby',
@@ -147,6 +157,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'thank-you',
     templateId: 'romantic',
     title: 'Thank You from the Heart',
+    shortName: 'Thank You',
     description: 'Express gratitude with a personal message, photos, and a heartfelt video.',
     screens: 2,
     category: 'Thank you',
@@ -157,6 +168,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'im-sorry',
     templateId: 'romantic',
     title: "I'm Sorry — Please Forgive Me",
+    shortName: "I'm Sorry",
     description: 'A sincere apology with a personal promise for the future.',
     screens: 3,
     category: 'Other',
@@ -167,6 +179,7 @@ export const TEMPLATE_CARDS: TemplateCard[] = [
     id: 'single-screen',
     templateId: 'single-screen',
     title: 'Single Screen Announcement',
+    shortName: 'Single Screen',
     description: 'A concise one-screen message with photo and CTA.',
     screens: 1,
     category: 'Other',

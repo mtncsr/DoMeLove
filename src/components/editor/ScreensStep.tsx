@@ -264,19 +264,11 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-slate-900">Live Preview</h3>
           <div className="glass rounded-2xl p-4 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)]">
-            {isMainScreen ? (
-              <div className="text-center text-gray-500 py-12">
-                <div className="text-4xl mb-4">🏠</div>
-                <div className="text-lg">Main Screen Preview</div>
-                <div className="text-sm mt-2">Configure overlay and global settings in the right panel</div>
-              </div>
-            ) : (
-              <ScreenPreview
-                screen={currentScreen}
-                project={currentProject}
-                templateMeta={templateMeta}
-              />
-            )}
+            <ScreenPreview
+              screen={currentScreen}
+              project={currentProject}
+              templateMeta={templateMeta}
+            />
           </div>
         </div>
 

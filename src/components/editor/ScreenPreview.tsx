@@ -1,5 +1,6 @@
 import type { Project } from '../../types/project';
 import type { TemplateMeta, ScreenConfig } from '../../types/template';
+import { GalleryPreview } from './GalleryPreview';
 
 interface ScreenPreviewProps {
   screen: ScreenConfig;
@@ -66,25 +67,14 @@ export function ScreenPreview({ screen, project, templateMeta, className = '' }:
 
         {/* Images/Gallery */}
         {!isVideoMode && screenImages.length > 0 && (
-          <div className="w-full max-w-md">
-            {screenImages.length === 1 ? (
-              <img
-                src={screenImages[0].data}
-                alt={screenImages[0].filename}
-                className="w-full h-64 object-cover rounded-lg shadow-lg"
-              />
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {screenImages.slice(0, 4).map((img) => (
-                  <img
-                    key={img.id}
-                    src={img.data}
-                    alt={img.filename}
-                    className="w-full h-32 object-cover rounded-lg shadow-md"
-                  />
-                ))}
-              </div>
-            )}
+          <div className="w-full max-w-2xl">
+            <GalleryPreview
+              images={screenImages}
+              galleryLayout={screenData.galleryLayout || 'carousel'}
+              onImageClick={(image, index) => {
+                // Optional: Add zoom functionality here if needed
+              }}
+            />
           </div>
         )}
 

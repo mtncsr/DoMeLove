@@ -8,8 +8,17 @@ class ValidationService {
     const errors: ValidationError[] = [];
     const warnings: ValidationError[] = [];
 
+    // Text/title placeholders that should never be required (user can export with just images)
+    const textPlaceholders = ['recipientName', 'senderName', 'eventTitle', 'mainGreeting'];
+    const textScreenPlaceholders = ['title', 'text'];
+
     // Check required global placeholders (ERRORS - blocking)
+    // Skip text-related placeholders - they are no longer required
     for (const placeholder of templateMeta.globalPlaceholders) {
+      // Skip all text/title placeholders - allow export without them
+      if (textPlaceholders.includes(placeholder)) {
+        continue;
+      }
       const isRequired = this.isPlaceholderRequired(placeholder, templateMeta);
       if (isRequired && !this.hasPlaceholderValue(project.data, placeholder)) {
         errors.push({
@@ -21,10 +30,15 @@ class ValidationService {
     }
 
     // Check required screen fields (ERRORS - blocking)
+    // Skip text/title fields - they are no longer required
     for (const screen of templateMeta.screens) {
       const screenData = project.data.screens[screen.screenId];
 
       for (const placeholder of screen.required) {
+        // Skip text/title placeholders - allow export without them
+        if (textScreenPlaceholders.some(tp => placeholder.startsWith(tp))) {
+          continue;
+        }
         if (!this.hasScreenPlaceholderValue(project.data, screen.screenId, placeholder)) {
           errors.push({
             field: `${screen.screenId}.${placeholder}`,

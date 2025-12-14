@@ -4,6 +4,7 @@ import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
 import { audioManager } from '../../services/audioManager';
 import { Button } from '../ui/Button';
+import { GalleryPreview } from './GalleryPreview';
 
 interface PreviewStepProps {
   templateMeta: TemplateMeta | null;
@@ -393,72 +394,19 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                   )}
 
                   <div className="flex flex-col flex-1 min-h-0 gap-3 overflow-hidden">
-                    {/* Main Image fills remaining space */}
-                    <div className="relative flex-1 min-h-0 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
-                      {currentImage ? (
-                        <img
-                          src={currentImage.data}
-                          alt={currentImage.filename}
-                          className="w-full h-full object-contain cursor-pointer"
-                          onClick={() => setZoomedImage(currentImage.data)}
-                        />
-                      ) : (
+                    {hasImages ? (
+                      <GalleryPreview
+                        images={screenImages}
+                        galleryLayout={screenData.galleryLayout || 'carousel'}
+                        currentIndex={currentImageIndex}
+                        onIndexChange={setCurrentImageIndex}
+                        onImageClick={(image) => setZoomedImage(image.data)}
+                        isMobile={isMobileView}
+                        className="flex-1 min-h-0"
+                      />
+                    ) : (
+                      <div className="flex-1 min-h-0 rounded-lg bg-gray-100 flex items-center justify-center">
                         <span className="text-gray-400 text-sm">No image selected</span>
-                      )}
-
-                      {hasMultipleImages && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex((prev) => 
-                                prev > 0 ? prev - 1 : screenImages.length - 1
-                              );
-                            }}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-9 h-9 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
-                            aria-label="Previous image"
-                          >
-                            ‹
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex((prev) => 
-                                prev < screenImages.length - 1 ? prev + 1 : 0
-                              );
-                            }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-9 h-9 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
-                            aria-label="Next image"
-                          >
-                            ›
-                          </button>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Thumbnail carousel appears only when multiple images */}
-                    {hasMultipleImages && (
-                      <div className="flex-none">
-                        <div className="flex gap-2 overflow-x-auto pb-1">
-                          {screenImages.map((image, index) => (
-                            <img
-                              key={image.id}
-                              src={image.data}
-                              alt={image.filename}
-                              className={`object-contain rounded cursor-pointer border-2 transition-colors bg-gray-100 ${
-                                isMobileView ? 'w-16 h-16' : 'w-14 h-14'
-                              } ${
-                                index === currentImageIndex 
-                                  ? 'border-blue-500' 
-                                  : 'border-transparent hover:border-gray-300'
-                              }`}
-                              onClick={() => setCurrentImageIndex(index)}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-xs text-gray-500 text-center mt-1">
-                          {currentImageIndex + 1} / {screenImages.length}
-                        </p>
                       </div>
                     )}
                   </div>
@@ -534,69 +482,19 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                     </div>
 
                     <div className="col-span-7 flex flex-col h-full gap-3 overflow-hidden">
-                      <div className="relative flex-1 max-h-[50vh] min-h-[260px] rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
-                        {currentImage ? (
-                          <img
-                            src={currentImage.data}
-                            alt={currentImage.filename}
-                            className="w-full h-full object-contain cursor-pointer"
-                            onClick={() => setZoomedImage(currentImage.data)}
-                          />
-                        ) : (
+                      {hasImages ? (
+                        <GalleryPreview
+                          images={screenImages}
+                          galleryLayout={screenData.galleryLayout || 'carousel'}
+                          currentIndex={currentImageIndex}
+                          onIndexChange={setCurrentImageIndex}
+                          onImageClick={(image) => setZoomedImage(image.data)}
+                          isMobile={false}
+                          className="flex-1 min-h-0 max-h-[50vh]"
+                        />
+                      ) : (
+                        <div className="flex-1 max-h-[50vh] min-h-[260px] rounded-lg bg-gray-100 flex items-center justify-center">
                           <span className="text-gray-400 text-sm">No image selected</span>
-                        )}
-
-                        {hasMultipleImages && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCurrentImageIndex((prev) => 
-                                  prev > 0 ? prev - 1 : screenImages.length - 1
-                                );
-                              }}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
-                              aria-label="Previous image"
-                            >
-                              ‹
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCurrentImageIndex((prev) => 
-                                  prev < screenImages.length - 1 ? prev + 1 : 0
-                                );
-                              }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-white"
-                              aria-label="Next image"
-                            >
-                              ›
-                            </button>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Thumbnail carousel appears only when multiple images */}
-                      {hasMultipleImages && (
-                        <div className="flex-none">
-                          <div className="flex gap-2 overflow-x-auto pb-1">
-                            {screenImages.map((image, index) => (
-                              <img
-                                key={image.id}
-                                src={image.data}
-                                alt={image.filename}
-                                className={`object-contain rounded cursor-pointer border-2 transition-colors bg-gray-100 w-16 h-16 ${
-                                  index === currentImageIndex 
-                                    ? 'border-blue-500' 
-                                    : 'border-transparent hover:border-gray-300'
-                                }`}
-                                onClick={() => setCurrentImageIndex(index)}
-                              />
-                            ))}
-                          </div>
-                          <p className="text-xs text-gray-500 text-center mt-1">
-                            {currentImageIndex + 1} / {screenImages.length}
-                          </p>
                         </div>
                       )}
                     </div>

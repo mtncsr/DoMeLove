@@ -18,6 +18,11 @@ export async function buildExportHTML(project: Project, templateMeta: TemplateMe
   // Update template onclick handlers to use GiftApp namespace
   html = updateTemplateOnclickHandlers(html);
 
+  // Transform existing template screens to preview-matching structure
+  if (project.templateId !== 'custom' || !project.data.customTemplate?.isCustom) {
+    html = transformTemplateScreensToPreviewStructure(html, project, templateMeta);
+  }
+
   // Replace simple flat placeholders
   html = replacePlaceholders(html, project, templateMeta);
 
@@ -77,20 +82,114 @@ export function verifyExportStructure(html: string): void {
 }
 
 
+/**
+ * Generate preview-matching screen HTML structure
+ * Matches the exact layout from PreviewStep component
+ */
+function generatePreviewMatchingScreenHTML(
+  screen: { screenId: string; order: number },
+  screenData: any,
+  project: Project,
+  templateMeta: TemplateMeta
+): string {
+  const titleText = (screenData.title || '').trim();
+  const bodyText = (screenData.text || '').trim();
+  const mediaMode = screenData.mediaMode || 'classic';
+  const hasVideo = mediaMode === 'video' && !!screenData.videoId;
+  
+  // Get images for this screen
+  const imageMap = new Map<string, ImageData>();
+  for (const img of project.data.images) {
+    imageMap.set(img.id, img);
+  }
+  
+  const screenImages = (screenData.images || [])
+    .map((imageId: string) => imageMap.get(imageId))
+    .filter((img): img is ImageData => img !== undefined);
+  
+  const hasImages = screenImages.length > 0 && !hasVideo;
+  const hasMultipleImages = screenImages.length > 1;
+  
+  // Generate media content (images carousel or video)
+  let mediaContent = '';
+  if (hasVideo && screenData.videoId) {
+    // Video will be injected later via injectVideos, use placeholder
+    mediaContent = `{{${screen.screenId}_video}}`;
+  } else if (hasImages) {
+    const galleryLayout = screenData.galleryLayout || 'carousel';
+    switch (galleryLayout) {
+      case 'gridWithZoom':
+        mediaContent = generateGridWithZoomHTML(screen.screenId, screenImages);
+        break;
+      case 'fullscreenSlideshow':
+        mediaContent = generateFullscreenSlideshowHTML(screen.screenId, screenImages);
+        break;
+      case 'heroWithThumbnails':
+        mediaContent = generateHeroWithThumbnailsHTML(screen.screenId, screenImages);
+        break;
+      case 'timeline':
+        mediaContent = generateTimelineHTML(screen.screenId, screenImages);
+        break;
+      case 'carousel':
+      default:
+        mediaContent = generateImageCarouselHTML(screen.screenId, screenImages);
+        break;
+    }
+  }
+  
+  return `
+    <div class="screen hidden" id="screen-${screen.screenId}">
+      <!-- Fixed Top Bar -->
+      <div class="screen-top-bar">
+        <button class="screen-menu-btn" type="button" title="Menu">☰</button>
+        <div class="screen-top-nav">
+          <button class="screen-prev-btn" type="button" disabled>←</button>
+        </div>
+      </div>
+
+      <!-- Optional Title -->
+      ${titleText ? `
+      <div class="screen-title-section">
+        <h3 class="screen-title">${escapeHtmlForExport(titleText)}</h3>
+      </div>
+      ` : ''}
+
+      <!-- Content Area -->
+      <div class="screen-content-area">
+        <!-- Desktop: Split Layout -->
+        <div class="screen-desktop-layout">
+          <div class="screen-text-column">
+            ${bodyText ? `
+            <p class="screen-text">${escapeHtmlForExport(bodyText)}</p>
+            ` : ''}
+          </div>
+          <div class="screen-media-column">
+            ${mediaContent || '<span class="screen-no-media">No media</span>'}
+          </div>
+        </div>
+
+        <!-- Mobile: Stacked Layout -->
+        <div class="screen-mobile-layout">
+          ${bodyText ? `
+          <p class="screen-text">${escapeHtmlForExport(bodyText)}</p>
+          ` : ''}
+          ${mediaContent ? `<div class="screen-media-mobile">${mediaContent}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- Fixed Bottom Bar -->
+      <div class="screen-bottom-bar">
+        <button class="screen-next-btn" type="button">Next</button>
+      </div>
+    </div>
+  `;
+}
+
 function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta): string {
   const screens = templateMeta.screens.sort((a, b) => a.order - b.order);
   const screensHTML = screens.map((screen) => {
     const screenData = project.data.screens[screen.screenId] || {};
-    const hasImages = screenData.images && screenData.images.length > 0;
-    const placeholder = hasImages ? `{{${screen.screenId}_images}}` : '';
-
-    return `
-      <div class="screen hidden" id="screen-${screen.screenId}">
-        ${screenData.title ? `<h2>{{${screen.screenId}_title}}</h2>` : ''}
-        ${screenData.text ? `<p>{{${screen.screenId}_text}}</p>` : ''}
-        ${placeholder}
-      </div>
-    `;
+    return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta);
   }).join('\n');
 
   // Generate overlay button based on button style
@@ -680,6 +779,45 @@ function escapeHtmlForExport(text: string): string {
 }
 
 
+/**
+ * Transform existing template screens to preview-matching structure
+ */
+function transformTemplateScreensToPreviewStructure(html: string, project: Project, templateMeta: TemplateMeta): string {
+  const screens = templateMeta.screens.sort((a, b) => a.order - b.order);
+  
+  for (const screen of screens) {
+    const screenData = project.data.screens[screen.screenId] || {};
+    const screenId = screen.screenId;
+    
+    // Find the existing screen div - try multiple patterns
+    // Pattern 1: id="${screenId}" (standard format)
+    let screenRegex = new RegExp(
+      `<div[^>]*\\s+id=["']${screenId}["'][^>]*>([\\s\\S]*?)<\\/div>`,
+      'i'
+    );
+    
+    let match = html.match(screenRegex);
+    
+    // Pattern 2: id="screen-${screenId}" (if already transformed)
+    if (!match) {
+      screenRegex = new RegExp(
+        `<div[^>]*\\s+id=["']screen-${screenId}["'][^>]*>([\\s\\S]*?)<\\/div>`,
+        'i'
+      );
+      match = html.match(screenRegex);
+    }
+    
+    if (match) {
+      // Generate new preview-matching structure
+      const newScreenHTML = generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta);
+      // Replace the old screen with new structure
+      html = html.replace(screenRegex, newScreenHTML.trim());
+    }
+  }
+  
+  return html;
+}
+
 function updateTemplateOnclickHandlers(html: string): string {
   // FALLBACK: Update onclick handlers in templates to use GiftApp namespace
   // NOTE: This is a backward compatibility fallback. Primary event binding is now done via
@@ -721,7 +859,7 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
       animation: pulse 2s infinite;
     }
   `;
-  const allStyles = `${existingStyles.trim()}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}`;
+  const allStyles = `${existingStyles.trim()}\n${getPreviewLayoutStyles()}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}`;
   const themedStyles = applyThemeStyles(allStyles, project);
   const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
   
@@ -901,6 +1039,254 @@ function getOverlayButtonStyles(): string {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  `;
+}
+
+function getPreviewLayoutStyles(): string {
+  return `
+  /* ========== Preview-Matching Screen Layout ========== */
+  .screen {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    overflow: hidden;
+  }
+
+  /* Fixed Top Bar */
+  .screen-top-bar {
+    flex: none;
+    height: 48px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+
+  @media (min-width: 768px) {
+    .screen-top-bar {
+      height: 48px;
+      padding: 0 20px;
+    }
+  }
+
+  .screen-menu-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background-color 0.2s;
+  }
+
+  .screen-menu-btn:hover {
+    background-color: #f9fafb;
+  }
+
+  .screen-top-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .screen-prev-btn,
+  .screen-next-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+
+  .screen-prev-btn:hover:not(:disabled),
+  .screen-next-btn:hover:not(:disabled) {
+    background-color: #f3f4f6;
+  }
+
+  .screen-prev-btn:disabled,
+  .screen-next-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Optional Title Section */
+  .screen-title-section {
+    flex: none;
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid #f3f4f6;
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+
+  @media (min-width: 768px) {
+    .screen-title-section {
+      padding: 12px 24px 8px;
+    }
+  }
+
+  .screen-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #111827;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @media (min-width: 768px) {
+    .screen-title {
+      font-size: 20px;
+    }
+  }
+
+  /* Content Area */
+  .screen-content-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Desktop: Split Layout */
+  .screen-desktop-layout {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .screen-desktop-layout {
+      display: block;
+      height: 100%;
+      padding: 8px 24px 12px;
+    }
+  }
+
+  .screen-desktop-layout .screen-text-column {
+    display: inline-block;
+    width: 41.666667%; /* col-span-5 = 5/12 */
+    vertical-align: top;
+    padding-right: 16px;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .screen-desktop-layout .screen-media-column {
+    display: inline-block;
+    width: 58.333333%; /* col-span-7 = 7/12 */
+    vertical-align: top;
+    height: 100%;
+    overflow-y: auto;
+    padding-left: 16px;
+  }
+
+  .screen-text {
+    color: #374151;
+    line-height: 1.6;
+    font-size: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 10;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Mobile: Stacked Layout */
+  .screen-mobile-layout {
+    display: block;
+    padding: 12px 16px;
+    min-height: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .screen-mobile-layout {
+      display: none;
+    }
+  }
+
+  .screen-mobile-layout .screen-text {
+    -webkit-line-clamp: 4;
+    margin-bottom: 12px;
+  }
+
+  .screen-media-mobile {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  .screen-no-media {
+    color: #9ca3af;
+    font-size: 14px;
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  /* Fixed Bottom Bar */
+  .screen-bottom-bar {
+    flex: none;
+    height: 56px;
+    padding: 0 16px;
+    border-top: 1px solid #e5e7eb;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (min-width: 768px) {
+    .screen-bottom-bar {
+      height: 56px;
+      padding: 0 24px;
+    }
+  }
+
+  .screen-next-btn {
+    width: 100%;
+    max-width: 200px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  @media (min-width: 640px) {
+    .screen-next-btn {
+      width: auto;
+    }
+  }
+
+  .screen-next-btn:hover:not(:disabled) {
+    background: #2563eb;
+  }
+
+  .screen-next-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Hidden class for screen visibility */
+  .screen.hidden {
+    display: none;
   }
   `;
 }
@@ -1366,10 +1752,37 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
     }
     // ========== End AudioManager ==========
     
+    function updateButtonStates() {
+      screens.forEach(function(screenId, i) {
+        // Try new format first (screen- prefix)
+        var screen = document.getElementById('screen-' + screenId);
+        // Fallback to old format (no prefix)
+        if (!screen) {
+          screen = document.getElementById(screenId);
+        }
+        if (!screen) return;
+        
+        var prevBtn = screen.querySelector('.screen-prev-btn');
+        var nextBtn = screen.querySelector('.screen-next-btn');
+        
+        if (prevBtn) {
+          prevBtn.disabled = (i === 0);
+        }
+        if (nextBtn) {
+          nextBtn.disabled = (i === screens.length - 1);
+        }
+      });
+    }
+    
     function showScreen(index) {
       if (index < 0 || index >= screens.length) return;
       screens.forEach(function(screenId, i) {
-        var screen = document.getElementById(screenId);
+        // Try new format first (screen- prefix)
+        var screen = document.getElementById('screen-' + screenId);
+        // Fallback to old format (no prefix)
+        if (!screen) {
+          screen = document.getElementById(screenId);
+        }
         if (screen) {
           if (i === index) {
             screen.classList.remove('hidden');
@@ -1379,6 +1792,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
         }
       });
       currentScreenIndex = index;
+      updateButtonStates();
     }
     
     function startExperience() {
@@ -1387,6 +1801,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
       var nav = document.getElementById('navigation');
       if (nav) nav.classList.remove('hidden');
       showScreen(0);
+      updateButtonStates();
       
       // Start global audio if available
       if (globalAudioData) {
@@ -1680,7 +2095,38 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
         });
       }
       
-      // Navigation buttons
+      // Screen navigation buttons (new preview-matching structure)
+      screens.forEach(function(screenId) {
+        var screen = document.getElementById('screen-' + screenId);
+        if (!screen) {
+          // Fallback: try without screen- prefix for old templates
+          screen = document.getElementById(screenId);
+        }
+        if (screen) {
+          // Menu button (no-op for now, can be extended later)
+          var menuBtn = screen.querySelector('.screen-menu-btn');
+          if (menuBtn) {
+            menuBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              // Menu functionality can be added here if needed
+            });
+          }
+          
+          // Previous button
+          var prevBtn = screen.querySelector('.screen-prev-btn');
+          if (prevBtn) {
+            prevBtn.addEventListener('click', previousScreen);
+          }
+          
+          // Next button
+          var nextBtn = screen.querySelector('.screen-next-btn');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', nextScreen);
+          }
+        }
+      });
+      
+      // Legacy navigation buttons (for old templates)
       var nav = document.getElementById('navigation');
       if (nav) {
         var prevBtn = nav.querySelector('.nav-button');

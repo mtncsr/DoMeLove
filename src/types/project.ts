@@ -61,6 +61,9 @@ export interface ProjectData {
 
   // UI selection state
   selectedTemplateCardId?: string;
+
+  // Global style configuration
+  globalStyle?: GlobalStyleConfig;
 }
 
 export interface ThemeConfig {
@@ -110,6 +113,9 @@ export interface ScreenData {
   titleColor?: string;
   textColor?: string;
   titleSize?: string;
+
+  // Screen-specific style overrides
+  style?: ScreenStyleConfig;
 }
 
 export interface ImageData {
@@ -162,12 +168,79 @@ export interface OverlayConfig {
   textButton?: {
     text: string;
     frameStyle: 'solid' | 'dashed' | 'double' | 'shadow' | 'gradient' | 'heart' | 'star' | 'circle' | 'oval' | 'rectangle' | 'square';
+    backgroundColor?: string;
+    textColor?: string;
+    borderColor?: string;
   };
 }
 
 export interface Blessing {
   sender: string;
   text: string;
+}
+
+// Background animation configuration
+export interface BackgroundAnimationConfig {
+  type?: 'none' | 'hearts' | 'sparkles' | 'bubbles' | 'confetti' | 'fireworks' | 'stars';
+  intensity?: 'low' | 'medium' | 'high';
+  speed?: 'slow' | 'normal' | 'fast';
+  color?: string; // Primary color for animation particles
+}
+
+// Button style configuration
+export interface ButtonStyleConfig {
+  backgroundColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderStyle?: 'solid' | 'dashed' | 'dotted' | 'none';
+  borderRadius?: number;
+  fontSize?: number;
+  fontWeight?: 'normal' | 'bold' | number;
+  padding?: {
+    top?: number;
+    right?: number;
+    bottom?: number;
+    left?: number;
+  };
+  shape?: 'rectangle' | 'rounded' | 'pill' | 'circle';
+  effects?: {
+    shadow?: boolean;
+    hover?: {
+      backgroundColor?: string;
+      textColor?: string;
+    };
+  };
+}
+
+// Global color and animation settings
+export interface GlobalStyleConfig {
+  colors?: {
+    background?: string;
+    text?: string;
+    title?: string;
+    button?: {
+      background?: string;
+      text?: string;
+      border?: string;
+    };
+    navigation?: {
+      next?: ButtonStyleConfig;
+      prev?: ButtonStyleConfig;
+      menu?: ButtonStyleConfig;
+    };
+  };
+  backgroundAnimation?: BackgroundAnimationConfig;
+}
+
+// Per-screen style overrides
+export interface ScreenStyleConfig {
+  colors?: {
+    background?: string;
+    text?: string;
+    title?: string;
+  };
+  backgroundAnimation?: BackgroundAnimationConfig;
 }
 
 

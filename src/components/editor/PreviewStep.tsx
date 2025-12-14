@@ -4,7 +4,7 @@ import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
 import { audioManager } from '../../services/audioManager';
 import { Button } from '../ui/Button';
-import { GalleryPreview } from './GalleryPreview';
+import { ScreenPreview } from './ScreenPreview';
 
 interface PreviewStepProps {
   templateMeta: TemplateMeta | null;
@@ -55,19 +55,6 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
   }, [currentScreenIndex, contentScreens.length]);
 
   const currentScreen = contentScreens[currentScreenIndex];
-  const screenData = currentScreen ? (currentProject.data.screens[currentScreen.screenId] || {}) : {};
-  const screenImages = currentScreen && (screenData.images || [])
-    .map(id => currentProject.data.images.find(img => img.id === id))
-    .filter((img): img is typeof currentProject.data.images[0] => img !== undefined) || [];
-  const hasImages = screenImages.length > 0;
-  const hasMultipleImages = screenImages.length > 1;
-  const currentImage = hasImages
-    ? screenImages[Math.min(currentImageIndex, screenImages.length - 1)]
-    : null;
-  const titleText = (screenData.title || '').trim();
-  const bodyText = (screenData.text || '').trim();
-  const maxTextLines = isMobileView ? 4 : 10;
-  const maxTitleLines = 2;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -81,16 +68,6 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!hasImages && currentImageIndex !== 0) {
-      setCurrentImageIndex(0);
-      return;
-    }
-
-    if (hasImages && currentImageIndex >= screenImages.length) {
-      setCurrentImageIndex(screenImages.length - 1);
-    }
-  }, [currentImageIndex, hasImages, screenImages.length]);
 
   const handleOverlayClick = () => {
     setOverlayVisible(false);
@@ -337,183 +314,37 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             `}</style>
           </div>
         ) : (
-          <>
-            {isMobileView ? (
-              <div className="flex flex-col h-full">
-                {/* Fixed Top Bar */}
-                <div className="flex-none h-12 px-4 flex items-center justify-between border-b border-gray-200 bg-white/90">
-                  <button
-                    className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50"
-                    title="Menu"
-                  >
-                    ☰
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={handlePrevious}
-                      disabled={currentScreenIndex === 0}
-                      className="px-3 py-2"
-                    >
-                      ←
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Optional Title */}
-                {titleText && (
-                  <div className="flex-none px-4 pt-3 pb-2 border-b border-gray-100 bg-white/90">
-                    <h3
-                      className="text-lg font-semibold leading-tight"
-                      style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: maxTitleLines,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {titleText}
-                    </h3>
-                  </div>
-                )}
-
-                {/* Flexible Content */}
-                <div className="flex flex-col flex-1 min-h-0 px-4 py-3 gap-3 overflow-y-auto">
-                  {bodyText && (
-                    <p
-                      className="text-gray-700 leading-relaxed"
-                      style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: maxTextLines,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {bodyText}
-                    </p>
-                  )}
-
-                  <div className="flex flex-col flex-1 min-h-0 gap-3 overflow-hidden">
-                    {hasImages ? (
-                      <GalleryPreview
-                        images={screenImages}
-                        galleryLayout={screenData.galleryLayout || 'carousel'}
-                        currentIndex={currentImageIndex}
-                        onIndexChange={setCurrentImageIndex}
-                        onImageClick={(image) => setZoomedImage(image.data)}
-                        isMobile={isMobileView}
-                        className="flex-1 min-h-0"
-                      />
-                    ) : (
-                      <div className="flex-1 min-h-0 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <span className="text-gray-400 text-sm">No image selected</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Fixed Bottom Bar */}
-                <div className="flex-none h-14 px-4 border-t border-gray-200 bg-white/90 flex items-center justify-center">
-                  <Button
-                    onClick={handleNext}
-                    disabled={currentScreenIndex === screens.length - 1}
-                    className="w-full sm:w-auto"
-                  >
-                    {t('editor.preview.next')}
-                  </Button>
-                </div>
+          currentScreen && (
+            <div className="relative w-full h-full min-h-[600px]">
+              {/* Navigation Controls Overlay */}
+              <div className="absolute top-4 right-4 z-30 flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={handlePrevious}
+                  disabled={currentScreenIndex === 0}
+                  className="px-3 py-2 bg-white/90 backdrop-blur-sm"
+                >
+                  ← {t('editor.preview.previous')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleNext}
+                  disabled={currentScreenIndex === screens.length - 1}
+                  className="px-3 py-2 bg-white/90 backdrop-blur-sm"
+                >
+                  {t('editor.preview.next')} →
+                </Button>
               </div>
-            ) : (
-              <div className="flex flex-col h-full">
-                {/* Fixed Top Bar */}
-                <div className="flex-none h-12 px-5 flex items-center justify-between border-b border-gray-200 bg-white/90">
-                  <button
-                    className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50"
-                    title="Menu"
-                  >
-                    ☰
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={handlePrevious}
-                      disabled={currentScreenIndex === 0}
-                      className="px-3 py-2"
-                    >
-                      ←
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Optional Title */}
-                {titleText && (
-                  <div className="flex-none px-6 pt-3 pb-2 border-b border-gray-100 bg-white/90">
-                    <h3
-                      className="text-xl font-semibold leading-tight"
-                      style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: maxTitleLines,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {titleText}
-                    </h3>
-                  </div>
-                )}
-
-                {/* Desktop Split Content */}
-                <div className={`flex-1 min-h-0 px-6 ${titleText ? 'pt-2 pb-3' : 'py-4'} overflow-hidden`}>
-                  <div className="grid grid-cols-12 gap-4 h-full">
-                    <div className="col-span-5 flex flex-col h-full overflow-hidden">
-                      {bodyText && (
-                        <p
-                          className="text-gray-700 leading-relaxed overflow-y-auto pr-1"
-                          style={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: maxTextLines,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {bodyText}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="col-span-7 flex flex-col h-full gap-3 overflow-hidden">
-                      {hasImages ? (
-                        <GalleryPreview
-                          images={screenImages}
-                          galleryLayout={screenData.galleryLayout || 'carousel'}
-                          currentIndex={currentImageIndex}
-                          onIndexChange={setCurrentImageIndex}
-                          onImageClick={(image) => setZoomedImage(image.data)}
-                          isMobile={false}
-                          className="flex-1 min-h-0 max-h-[50vh]"
-                        />
-                      ) : (
-                        <div className="flex-1 max-h-[50vh] min-h-[260px] rounded-lg bg-gray-100 flex items-center justify-center">
-                          <span className="text-gray-400 text-sm">No image selected</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Fixed Bottom Bar */}
-                <div className="flex-none h-14 px-6 border-t border-gray-200 bg-white/90 flex items-center justify-center">
-                  <Button
-                    onClick={handleNext}
-                    disabled={currentScreenIndex === screens.length - 1}
-                    className="w-full sm:w-auto"
-                  >
-                    {t('editor.preview.next')}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </>
+              
+              {/* Use ScreenPreview component to match screens panel preview */}
+              <ScreenPreview
+                screen={currentScreen}
+                project={currentProject}
+                templateMeta={templateMeta}
+                className="w-full h-full"
+              />
+            </div>
+          )
         )}
         
         {/* Zoomed Image Modal */}

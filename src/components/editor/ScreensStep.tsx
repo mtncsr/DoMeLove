@@ -12,6 +12,8 @@ import { Button } from '../ui/Button';
 import { ScreenVideoSelector } from './ScreenVideoSelector';
 import { ScreenPreview } from './ScreenPreview';
 import { getTextDirection } from '../../i18n/config';
+import { ColorPicker } from '../ui/ColorPicker';
+import type { BackgroundAnimationConfig, ButtonStyleConfig } from '../../types/project';
 
 // GALLERY_LAYOUTS moved to use translations in TemplateStep
 
@@ -44,7 +46,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
   const [activeScreenIndex, setActiveScreenIndex] = useState(0);
   const [editingTabName, setEditingTabName] = useState<string | null>(null);
   const [editingTabValue, setEditingTabValue] = useState('');
-  const [openEmojiDropdown, setOpenEmojiDropdown] = useState<'title' | 'text' | 'custom' | null>(null);
+  const [openEmojiDropdown, setOpenEmojiDropdown] = useState<'title' | 'text' | 'custom' | 'mainGreeting' | null>(null);
   const dir = getTextDirection(i18n.language);
   const isRTL = dir === 'rtl';
 
@@ -151,7 +153,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
     setEditingTabValue(getScreenDisplayName(screenId, screens.findIndex(s => s.screenId === screenId)));
   };
 
-  const toggleEmojiDropdown = (field: 'title' | 'text' | 'custom') => {
+  const toggleEmojiDropdown = (field: 'title' | 'text' | 'custom' | 'mainGreeting') => {
     setOpenEmojiDropdown(openEmojiDropdown === field ? null : field);
   };
 
@@ -283,6 +285,11 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
                 project={currentProject}
                 updateProject={updateProject}
                 templateId={currentProject.templateId}
+                openEmojiDropdown={openEmojiDropdown === 'title' || openEmojiDropdown === 'mainGreeting' ? openEmojiDropdown : null}
+                toggleEmojiDropdown={(field) => {
+                  setOpenEmojiDropdown(openEmojiDropdown === field ? null : field);
+                }}
+                setOpenEmojiDropdown={setOpenEmojiDropdown}
               />
             ) : (
               <ScreenEditor
@@ -292,7 +299,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
                 allScreenAudioFiles={allAvailableAudioFiles}
                 isLastScreen={activeScreenIndex === screens.length - 1}
                 templateMeta={templateMeta}
-                openEmojiDropdown={openEmojiDropdown}
+                openEmojiDropdown={(openEmojiDropdown === 'mainGreeting' ? null : openEmojiDropdown) as 'title' | 'text' | 'custom' | null}
                 toggleEmojiDropdown={toggleEmojiDropdown}
                 setOpenEmojiDropdown={setOpenEmojiDropdown}
               />
@@ -308,18 +315,46 @@ interface MainScreenEditorProps {
   project: any;
   updateProject: (project: any) => void;
   templateId: string;
+  openEmojiDropdown: 'title' | 'mainGreeting' | null;
+  toggleEmojiDropdown: (field: 'title' | 'mainGreeting') => void;
+  setOpenEmojiDropdown: (value: 'title' | 'mainGreeting' | null) => void;
 }
 
-function MainScreenEditor({ project, updateProject, templateId }: MainScreenEditorProps) {
+function MainScreenEditor({ project, updateProject, templateId, openEmojiDropdown, toggleEmojiDropdown, setOpenEmojiDropdown }: MainScreenEditorProps) {
   const { t, i18n } = useTranslation();
   const dir = getTextDirection(i18n.language);
   const isRTL = dir === 'rtl';
+
+  // Get main screen (first screen)
+  const screens = (project.data.dynamicScreens?.length ? project.data.dynamicScreens : [])
+    .slice()
+    .sort((a: any, b: any) => a.order - b.order);
+  const mainScreen = screens[0];
+  const mainScreenData = mainScreen ? (project.data.screens[mainScreen.screenId] || {}) : {};
 
   // Get all available audio files (library + already assigned to other screens)
   const allAvailableAudioFiles: AudioFile[] = [
     ...(project.data.audio.library || []),
     ...Object.values(project.data.audio.screens || {}),
   ];
+
+  const updateScreenField = (field: string, value: any) => {
+    if (!mainScreen) return;
+    const latestScreenData = project.data.screens[mainScreen.screenId] || {};
+    updateProject({
+      ...project,
+      data: {
+        ...project.data,
+        screens: {
+          ...project.data.screens,
+          [mainScreen.screenId]: {
+            ...latestScreenData,
+            [field]: value,
+          },
+        },
+      },
+    });
+  };
 
   const updateField = (field: string, value: string) => {
     updateProject({
@@ -380,6 +415,17 @@ function MainScreenEditor({ project, updateProject, templateId }: MainScreenEdit
     });
   };
 
+  const appendEmoji = (field: 'title' | 'mainGreeting', emoji: string) => {
+    if (field === 'title') {
+      const currentValue = mainScreenData.title || '';
+      updateScreenField('title', `${currentValue}${emoji}`);
+    } else {
+      const currentValue = project.data.mainGreeting || '';
+      updateField('mainGreeting', `${currentValue}${emoji}`);
+    }
+    setOpenEmojiDropdown(null);
+  };
+
   return (
     <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
       {/* Main Screen Details */}
@@ -394,45 +440,117 @@ function MainScreenEditor({ project, updateProject, templateId }: MainScreenEdit
           </span>
         </div>
         <div className="space-y-4">
-          <Input
-            label={t('editor.giftDetails.recipientName')}
-            value={project.data.recipientName || ''}
-            onChange={(e) => updateField('recipientName', e.target.value)}
-          />
-          <Input
-            label={t('editor.giftDetails.senderName')}
-            value={project.data.senderName || ''}
-            onChange={(e) => updateField('senderName', e.target.value)}
-          />
-          <Input
-            label={t('editor.giftDetails.eventTitle')}
-            value={project.data.eventTitle || ''}
-            onChange={(e) => updateField('eventTitle', e.target.value)}
-          />
-          <Textarea
-            label={t('editor.giftDetails.mainGreeting')}
-            value={project.data.mainGreeting || ''}
-            onChange={(e) => updateField('mainGreeting', e.target.value)}
-            rows={4}
-            placeholder={t('editor.giftDetails.mainGreeting')}
-            footer={
-              <div className={`flex items-center gap-2 text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span>{t('editor.screens.addEmoji')}</span>
-                <div className="flex gap-1">
-                  {ALL_EMOJIS.slice(0, 10).map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200"
-                      onClick={() => updateField('mainGreeting', `${project.data.mainGreeting || ''}${emoji}`)}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+          {/* Title */}
+          <div className="relative">
+            <Input
+              label={t('editor.screens.title')}
+              value={mainScreenData.title || ''}
+              onChange={(e) => updateScreenField('title', e.target.value)}
+              footer={
+                <div className="relative">
+                  <button
+                    type="button"
+                    data-emoji-trigger
+                    className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded"
+                    onClick={() => toggleEmojiDropdown('title')}
+                  >
+                    <span>{t('editor.screens.addEmoji')}</span>
+                    <svg className={`w-3 h-3 transition-transform ${openEmojiDropdown === 'title' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {openEmojiDropdown === 'title' && (
+                    <div className={`emoji-dropdown absolute bottom-full ${isRTL ? 'right-0' : 'left-0'} mb-1 bg-white border border-slate-200 rounded-lg shadow-lg p-3 z-10 min-w-[300px]`}>
+                      <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
+                        {ALL_EMOJIS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-100 rounded"
+                            onClick={() => appendEmoji('title', emoji)}
+                            title={`Add ${emoji} to title`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-200">
+                        <input
+                          type="text"
+                          placeholder="Custom emoji..."
+                          maxLength={2}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              appendEmoji('title', e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-fuchsia-400"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            }
-          />
+              }
+            />
+          </div>
+
+          {/* Main Greeting */}
+          <div className="relative">
+            <Textarea
+              label={t('editor.giftDetails.mainGreeting')}
+              value={project.data.mainGreeting || ''}
+              onChange={(e) => updateField('mainGreeting', e.target.value)}
+              rows={4}
+              placeholder={t('editor.giftDetails.mainGreeting')}
+              footer={
+                <div className="relative">
+                  <button
+                    type="button"
+                    data-emoji-trigger
+                    className={`flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded ${isRTL ? 'flex-row-reverse' : ''}`}
+                    onClick={() => toggleEmojiDropdown('mainGreeting')}
+                  >
+                    <span>{t('editor.screens.addEmoji')}</span>
+                    <svg className={`w-3 h-3 transition-transform ${openEmojiDropdown === 'mainGreeting' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {openEmojiDropdown === 'mainGreeting' && (
+                    <div className={`emoji-dropdown absolute bottom-full ${isRTL ? 'right-0' : 'left-0'} mb-1 bg-white border border-slate-200 rounded-lg shadow-lg p-3 z-10 min-w-[300px]`}>
+                      <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
+                        {ALL_EMOJIS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-100 rounded"
+                            onClick={() => appendEmoji('mainGreeting', emoji)}
+                            title={`Add ${emoji} to main greeting`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-200">
+                        <input
+                          type="text"
+                          placeholder="Custom emoji..."
+                          maxLength={2}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              appendEmoji('mainGreeting', e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-fuchsia-400"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -562,6 +680,539 @@ function MainScreenEditor({ project, updateProject, templateId }: MainScreenEdit
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Global Style Configuration */}
+      <div className="bg-white/90 dark:bg-[var(--surface-2)] p-6 rounded-2xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Global Styles</h3>
+        <div className="space-y-6">
+          {/* Colors */}
+          <div>
+            <h4 className="text-md font-medium text-slate-800 mb-3">Colors</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ColorPicker
+                label="Background Color"
+                value={project.data.globalStyle?.colors?.background || '#ffffff'}
+                onChange={(color) => {
+                  updateProject({
+                    ...project,
+                    data: {
+                      ...project.data,
+                      globalStyle: {
+                        ...project.data.globalStyle,
+                        colors: {
+                          ...project.data.globalStyle?.colors,
+                          background: color,
+                        },
+                      },
+                    },
+                  });
+                }}
+              />
+              <ColorPicker
+                label="Text Color"
+                value={project.data.globalStyle?.colors?.text || '#374151'}
+                onChange={(color) => {
+                  updateProject({
+                    ...project,
+                    data: {
+                      ...project.data,
+                      globalStyle: {
+                        ...project.data.globalStyle,
+                        colors: {
+                          ...project.data.globalStyle?.colors,
+                          text: color,
+                        },
+                      },
+                    },
+                  });
+                }}
+              />
+              <ColorPicker
+                label="Title Color"
+                value={project.data.globalStyle?.colors?.title || '#111827'}
+                onChange={(color) => {
+                  updateProject({
+                    ...project,
+                    data: {
+                      ...project.data,
+                      globalStyle: {
+                        ...project.data.globalStyle,
+                        colors: {
+                          ...project.data.globalStyle?.colors,
+                          title: color,
+                        },
+                      },
+                    },
+                  });
+                }}
+              />
+              <div>
+                <label className="block text-sm font-semibold text-slate-800 mb-2">Button Colors</label>
+                <div className="space-y-2">
+                  <ColorPicker
+                    label="Background"
+                    value={project.data.globalStyle?.colors?.button?.background || '#3b82f6'}
+                    onChange={(color) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              button: {
+                                ...project.data.globalStyle?.colors?.button,
+                                background: color,
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                  />
+                  <ColorPicker
+                    label="Text"
+                    value={project.data.globalStyle?.colors?.button?.text || '#ffffff'}
+                    onChange={(color) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              button: {
+                                ...project.data.globalStyle?.colors?.button,
+                                text: color,
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                  />
+                  <ColorPicker
+                    label="Border"
+                    value={project.data.globalStyle?.colors?.button?.border || '#3b82f6'}
+                    onChange={(color) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              button: {
+                                ...project.data.globalStyle?.colors?.button,
+                                border: color,
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Background Animation */}
+          <div>
+            <h4 className="text-md font-medium text-slate-800 mb-3">Background Animation</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Animation Type</label>
+                <select
+                  value={project.data.globalStyle?.backgroundAnimation?.type || 'none'}
+                  onChange={(e) => {
+                    updateProject({
+                      ...project,
+                      data: {
+                        ...project.data,
+                        globalStyle: {
+                          ...project.data.globalStyle,
+                          backgroundAnimation: {
+                            ...project.data.globalStyle?.backgroundAnimation,
+                            type: e.target.value as BackgroundAnimationConfig['type'],
+                          },
+                        },
+                      },
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                >
+                  <option value="none">None</option>
+                  <option value="hearts">Hearts</option>
+                  <option value="sparkles">Sparkles</option>
+                  <option value="bubbles">Bubbles</option>
+                  <option value="confetti">Confetti</option>
+                  <option value="fireworks">Fireworks</option>
+                  <option value="stars">Stars</option>
+                </select>
+              </div>
+              {project.data.globalStyle?.backgroundAnimation?.type && project.data.globalStyle?.backgroundAnimation?.type !== 'none' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Intensity</label>
+                    <select
+                      value={project.data.globalStyle?.backgroundAnimation?.intensity || 'medium'}
+                      onChange={(e) => {
+                        updateProject({
+                          ...project,
+                          data: {
+                            ...project.data,
+                            globalStyle: {
+                              ...project.data.globalStyle,
+                              backgroundAnimation: {
+                                ...project.data.globalStyle?.backgroundAnimation,
+                                intensity: e.target.value as BackgroundAnimationConfig['intensity'],
+                              },
+                            },
+                          },
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Speed</label>
+                    <select
+                      value={project.data.globalStyle?.backgroundAnimation?.speed || 'normal'}
+                      onChange={(e) => {
+                        updateProject({
+                          ...project,
+                          data: {
+                            ...project.data,
+                            globalStyle: {
+                              ...project.data.globalStyle,
+                              backgroundAnimation: {
+                                ...project.data.globalStyle?.backgroundAnimation,
+                                speed: e.target.value as BackgroundAnimationConfig['speed'],
+                              },
+                            },
+                          },
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                    >
+                      <option value="slow">Slow</option>
+                      <option value="normal">Normal</option>
+                      <option value="fast">Fast</option>
+                    </select>
+                  </div>
+                  <ColorPicker
+                    label="Animation Color"
+                    value={project.data.globalStyle?.backgroundAnimation?.color || '#ff6b9d'}
+                    onChange={(color) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            backgroundAnimation: {
+                              ...project.data.globalStyle?.backgroundAnimation,
+                              color: color,
+                            },
+                          },
+                        },
+                      });
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Button Styling */}
+      <div className="bg-white/90 dark:bg-[var(--surface-2)] p-6 rounded-2xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Navigation Buttons Styling</h3>
+        <div className="space-y-6">
+          {(['next', 'prev', 'menu'] as const).map((buttonType) => (
+            <div key={buttonType} className="border border-slate-200 rounded-lg p-4">
+              <h4 className="text-md font-medium text-slate-800 mb-3 capitalize">{buttonType} Button</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ColorPicker
+                  label="Background Color"
+                  value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.backgroundColor || '#ffffff'}
+                  onChange={(color) => {
+                    updateProject({
+                      ...project,
+                      data: {
+                        ...project.data,
+                        globalStyle: {
+                          ...project.data.globalStyle,
+                          colors: {
+                            ...project.data.globalStyle?.colors,
+                            navigation: {
+                              ...project.data.globalStyle?.colors?.navigation,
+                              [buttonType]: {
+                                ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                backgroundColor: color,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    });
+                  }}
+                />
+                <ColorPicker
+                  label="Text Color"
+                    value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.textColor || '#374151'}
+                  onChange={(color) => {
+                    updateProject({
+                      ...project,
+                      data: {
+                        ...project.data,
+                        globalStyle: {
+                          ...project.data.globalStyle,
+                          colors: {
+                            ...project.data.globalStyle?.colors,
+                            navigation: {
+                              ...project.data.globalStyle?.colors?.navigation,
+                              [buttonType]: {
+                                ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                textColor: color,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    });
+                  }}
+                />
+                <ColorPicker
+                  label="Border Color"
+                  value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.borderColor || '#e5e7eb'}
+                  onChange={(color) => {
+                    updateProject({
+                      ...project,
+                      data: {
+                        ...project.data,
+                        globalStyle: {
+                          ...project.data.globalStyle,
+                          colors: {
+                            ...project.data.globalStyle?.colors,
+                            navigation: {
+                              ...project.data.globalStyle?.colors?.navigation,
+                              [buttonType]: {
+                                ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                borderColor: color,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    });
+                  }}
+                />
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Border Width</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.borderWidth || 1}
+                    onChange={(e) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              navigation: {
+                                ...project.data.globalStyle?.colors?.navigation,
+                                [buttonType]: {
+                                  ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                  borderWidth: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Border Style</label>
+                  <select
+                    value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.borderStyle || 'solid'}
+                    onChange={(e) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              navigation: {
+                                ...project.data.globalStyle?.colors?.navigation,
+                                [buttonType]: {
+                                  ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                  borderStyle: e.target.value as ButtonStyleConfig['borderStyle'],
+                                },
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                  >
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                    <option value="none">None</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Border Radius</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.borderRadius || 8}
+                    onChange={(e) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              navigation: {
+                                ...project.data.globalStyle?.colors?.navigation,
+                                [buttonType]: {
+                                  ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                  borderRadius: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Font Size</label>
+                  <input
+                    type="number"
+                    min="8"
+                    max="24"
+                    value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.fontSize || 16}
+                    onChange={(e) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              navigation: {
+                                ...project.data.globalStyle?.colors?.navigation,
+                                [buttonType]: {
+                                  ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                  fontSize: parseInt(e.target.value) || 16,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Shape</label>
+                  <select
+                    value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.shape || 'rounded'}
+                    onChange={(e) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              navigation: {
+                                ...project.data.globalStyle?.colors?.navigation,
+                                [buttonType]: {
+                                  ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                  shape: e.target.value as ButtonStyleConfig['shape'],
+                                },
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                  >
+                    <option value="rectangle">Rectangle</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="pill">Pill</option>
+                    <option value="circle">Circle</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={project.data.globalStyle?.colors?.navigation?.[buttonType]?.effects?.shadow || false}
+                    onChange={(e) => {
+                      updateProject({
+                        ...project,
+                        data: {
+                          ...project.data,
+                          globalStyle: {
+                            ...project.data.globalStyle,
+                            colors: {
+                              ...project.data.globalStyle?.colors,
+                              navigation: {
+                                ...project.data.globalStyle?.colors?.navigation,
+                                [buttonType]: {
+                                  ...project.data.globalStyle?.colors?.navigation?.[buttonType],
+                                  effects: {
+                                    ...project.data.globalStyle?.colors?.navigation?.[buttonType]?.effects,
+                                    shadow: e.target.checked,
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }}
+                    className="accent-fuchsia-500"
+                  />
+                  <label className="text-sm font-medium text-slate-700">Shadow</label>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1174,6 +1825,168 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Per-Screen Style Override */}
+      <div className="bg-white dark:bg-[var(--surface-2)] p-6 rounded-lg border border-gray-200 dark:border-[rgba(255,255,255,0.12)]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Screen Style Override</h3>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!screenData.style}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  updateScreenField('style', {
+                    colors: {},
+                    backgroundAnimation: { type: 'none' },
+                  });
+                } else {
+                  updateScreenField('style', undefined);
+                }
+              }}
+              className="accent-fuchsia-500"
+            />
+            <span className="text-sm font-medium text-slate-700">Override global styles</span>
+          </label>
+        </div>
+        {screenData.style && (
+          <div className="space-y-6">
+            {/* Colors */}
+            <div>
+              <h4 className="text-md font-medium text-slate-800 mb-3">Colors</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ColorPicker
+                  label="Background Color"
+                  value={screenData.style.colors?.background || project.data.globalStyle?.colors?.background || '#ffffff'}
+                  onChange={(color) => {
+                    updateScreenField('style', {
+                      ...screenData.style,
+                      colors: {
+                        ...screenData.style.colors,
+                        background: color,
+                      },
+                    });
+                  }}
+                />
+                <ColorPicker
+                  label="Text Color"
+                  value={screenData.style.colors?.text || project.data.globalStyle?.colors?.text || '#374151'}
+                  onChange={(color) => {
+                    updateScreenField('style', {
+                      ...screenData.style,
+                      colors: {
+                        ...screenData.style.colors,
+                        text: color,
+                      },
+                    });
+                  }}
+                />
+                <ColorPicker
+                  label="Title Color"
+                  value={screenData.style.colors?.title || project.data.globalStyle?.colors?.title || '#111827'}
+                  onChange={(color) => {
+                    updateScreenField('style', {
+                      ...screenData.style,
+                      colors: {
+                        ...screenData.style.colors,
+                        title: color,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Background Animation */}
+            <div>
+              <h4 className="text-md font-medium text-slate-800 mb-3">Background Animation</h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Animation Type</label>
+                  <select
+                    value={screenData.style.backgroundAnimation?.type || 'none'}
+                    onChange={(e) => {
+                      updateScreenField('style', {
+                        ...screenData.style,
+                        backgroundAnimation: {
+                          ...screenData.style.backgroundAnimation,
+                          type: e.target.value as BackgroundAnimationConfig['type'],
+                        },
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                  >
+                    <option value="none">Use Global</option>
+                    <option value="hearts">Hearts</option>
+                    <option value="sparkles">Sparkles</option>
+                    <option value="bubbles">Bubbles</option>
+                    <option value="confetti">Confetti</option>
+                    <option value="fireworks">Fireworks</option>
+                    <option value="stars">Stars</option>
+                  </select>
+                </div>
+                {screenData.style.backgroundAnimation?.type && screenData.style.backgroundAnimation?.type !== 'none' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Intensity</label>
+                      <select
+                        value={screenData.style.backgroundAnimation?.intensity || 'medium'}
+                        onChange={(e) => {
+                          updateScreenField('style', {
+                            ...screenData.style,
+                            backgroundAnimation: {
+                              ...screenData.style.backgroundAnimation,
+                              intensity: e.target.value as BackgroundAnimationConfig['intensity'],
+                            },
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Speed</label>
+                      <select
+                        value={screenData.style.backgroundAnimation?.speed || 'normal'}
+                        onChange={(e) => {
+                          updateScreenField('style', {
+                            ...screenData.style,
+                            backgroundAnimation: {
+                              ...screenData.style.backgroundAnimation,
+                              speed: e.target.value as BackgroundAnimationConfig['speed'],
+                            },
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                      >
+                        <option value="slow">Slow</option>
+                        <option value="normal">Normal</option>
+                        <option value="fast">Fast</option>
+                      </select>
+                    </div>
+                    <ColorPicker
+                      label="Animation Color"
+                      value={screenData.style.backgroundAnimation?.color || '#ff6b9d'}
+                      onChange={(color) => {
+                        updateScreenField('style', {
+                          ...screenData.style,
+                          backgroundAnimation: {
+                            ...screenData.style.backgroundAnimation,
+                            color: color,
+                          },
+                        });
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

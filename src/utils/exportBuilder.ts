@@ -84,7 +84,7 @@ export function verifyExportStructure(html: string): void {
 
 /**
  * Generate preview-matching screen HTML structure
- * Matches the exact layout from PreviewStep component
+ * Matches the exact layout from ScreenPreview component (used in screens panel)
  */
 function generatePreviewMatchingScreenHTML(
   screen: { screenId: string; order: number },
@@ -96,6 +96,7 @@ function generatePreviewMatchingScreenHTML(
   const bodyText = (screenData.text || '').trim();
   const mediaMode = screenData.mediaMode || 'classic';
   const hasVideo = mediaMode === 'video' && !!screenData.videoId;
+  const isMainScreen = screen.order === 1;
   
   // Get images for this screen
   const imageMap = new Map<string, ImageData>();
@@ -105,10 +106,9 @@ function generatePreviewMatchingScreenHTML(
   
   const screenImages = (screenData.images || [])
     .map((imageId: string) => imageMap.get(imageId))
-    .filter((img): img is ImageData => img !== undefined);
+    .filter((img: ImageData | undefined): img is ImageData => img !== undefined);
   
   const hasImages = screenImages.length > 0 && !hasVideo;
-  const hasMultipleImages = screenImages.length > 1;
   
   // Generate media content (images carousel or video)
   let mediaContent = '';
@@ -137,49 +137,114 @@ function generatePreviewMatchingScreenHTML(
     }
   }
   
+  // Get screen-specific and global styles (matching ScreenPreview logic)
+  const globalStyle = project.data.globalStyle;
+  const screenStyle = screenData.style;
+  const designConfig = templateMeta?.designConfig;
+  
+  // Determine background color (screen override > global > custom > template)
+  let backgroundStyle = '';
+  if (screenStyle?.colors?.background) {
+    backgroundStyle = `background-color: ${screenStyle.colors.background};`;
+  } else if (globalStyle?.colors?.background) {
+    backgroundStyle = `background-color: ${globalStyle.colors.background};`;
+  } else if (screenData.customBackground === 'custom') {
+    if (screenData.backgroundGradient) {
+      backgroundStyle = `background: ${screenData.backgroundGradient};`;
+    } else if (screenData.backgroundColor) {
+      backgroundStyle = `background-color: ${screenData.backgroundColor};`;
+    }
+  } else if (designConfig?.background) {
+    backgroundStyle = `background: ${designConfig.background};`;
+  }
+  
+  // For main screen, use overlay gradient background
+  if (isMainScreen && project.data.overlay) {
+    backgroundStyle = 'background: linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68));';
+  }
+  
+  // Determine text colors (screen override > global > default)
+  const textColor = screenStyle?.colors?.text || globalStyle?.colors?.text || screenData.textColor || '#374151';
+  const titleColor = screenStyle?.colors?.title || globalStyle?.colors?.title || screenData.titleColor || '#111827';
+  
+  // For main screen, use white text on gradient background
+  const finalTitleColor = isMainScreen && project.data.overlay 
+    ? (titleColor === '#111827' ? 'white' : titleColor)
+    : titleColor;
+  const finalTextColor = isMainScreen && project.data.overlay
+    ? (textColor === '#374151' ? 'white' : textColor)
+    : textColor;
+  
+  // Build inline styles for text elements
+  const titleStyle = finalTitleColor ? ` style="color: ${finalTitleColor};"` : '';
+  const textStyle = finalTextColor ? ` style="color: ${finalTextColor};"` : '';
+
+  // Main screen layout (matching ScreenPreview)
+  if (isMainScreen) {
+    // Generate overlay button HTML based on button style
+    let overlayButtonHTML = '';
+    const overlay = project.data.overlay;
+    
+    if (overlay.buttonStyle === 'emoji-animated') {
+      const emoji = overlay.emojiButton?.emoji || '🎉';
+      const size = overlay.emojiButton?.size || 48;
+      const animation = overlay.emojiButton?.animation || 'pulse';
+      overlayButtonHTML = `<button type="button" class="emoji-button emoji-${animation}" style="font-size: ${size}px; width: ${size + 20}px; height: ${size + 20}px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 50%;">${emoji}</button>`;
+    } else if (overlay.buttonStyle === 'text-framed') {
+      const text = overlay.textButton?.text || 'Start Experience';
+      const frameStyle = overlay.textButton?.frameStyle || 'solid';
+      const buttonBg = overlay.textButton?.backgroundColor || project.data.globalStyle?.colors?.button?.background || 'white';
+      const buttonText = overlay.textButton?.textColor || project.data.globalStyle?.colors?.button?.text || '#333';
+      const buttonBorder = overlay.textButton?.borderColor || project.data.globalStyle?.colors?.button?.border || '#333';
+      
+      // Build frame-specific styles
+      let buttonStyle = `padding: 12px 24px; cursor: pointer; font-weight: bold; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;`;
+      
+      if (frameStyle === 'solid' || frameStyle === 'dashed' || frameStyle === 'double' || frameStyle === 'shadow' || frameStyle === 'rectangle' || frameStyle === 'square') {
+        buttonStyle += `background-color: ${buttonBg}; color: ${buttonText}; border: 2px solid ${buttonBorder}; border-radius: 8px;`;
+      } else if (frameStyle === 'circle' || frameStyle === 'oval') {
+        buttonStyle += `background-color: ${buttonBg}; color: ${buttonText}; border: 3px solid ${buttonBorder}; border-radius: 50%;`;
+      } else if (frameStyle === 'gradient') {
+        buttonStyle += `border: none; background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: ${buttonText}; border-radius: 8px;`;
+      } else if (frameStyle === 'heart') {
+        buttonStyle += `border: none; background: ${buttonBg === 'white' ? '#ff6b6b' : buttonBg}; color: ${buttonText}; clip-path: polygon(50% 0%, 61% 0%, 68% 11%, 79% 11%, 86% 0%, 100% 0%, 100% 50%, 50% 100%, 0% 50%, 0% 0%, 14% 0%, 21% 11%, 32% 11%); width: 120px; height: 100px; font-size: 14px; border-radius: 0;`;
+      } else if (frameStyle === 'star') {
+        buttonStyle += `border: none; background: ${buttonBg === 'white' ? '#ffd93d' : buttonBg}; color: ${buttonText}; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); width: 100px; height: 100px; font-size: 12px; border-radius: 0;`;
+      }
+      
+      overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}" style="${buttonStyle}">${escapeHtmlForExport(text)}</button>`;
+    }
+    
+    return `
+    <div class="screen hidden" id="screen-${screen.screenId}" style="${backgroundStyle}">
+      <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-center; text-align: center; padding: 2rem; gap: 1.5rem;">
+        ${titleText ? `<h1 class="screen-title" style="font-weight: bold; font-size: 1.875rem; ${titleStyle}">${escapeHtmlForExport(titleText)}</h1>` : ''}
+        ${project.data.mainGreeting ? `<p style="font-size: 1.125rem; max-width: 42rem; line-height: 1.75; ${textStyle}">${escapeHtmlForExport(project.data.mainGreeting)}</p>` : ''}
+        ${overlayButtonHTML}
+      </div>
+    </div>
+    `;
+  }
+  
+  // Get screen config from templateMeta to check placeholders
+  const screenConfig = templateMeta.screens.find(s => s.screenId === screen.screenId);
+  const hasTitlePlaceholder = screenConfig?.placeholders?.includes('title');
+  const hasTextPlaceholder = screenConfig?.placeholders?.includes('text');
+  
+  // Regular screen layout (matching ScreenPreview)
   return `
-    <div class="screen hidden" id="screen-${screen.screenId}">
-      <!-- Fixed Top Bar -->
-      <div class="screen-top-bar">
-        <button class="screen-menu-btn" type="button" title="Menu">☰</button>
-        <div class="screen-top-nav">
-          <button class="screen-prev-btn" type="button" disabled>←</button>
-        </div>
-      </div>
-
-      <!-- Optional Title -->
-      ${titleText ? `
-      <div class="screen-title-section">
-        <h3 class="screen-title">${escapeHtmlForExport(titleText)}</h3>
-      </div>
-      ` : ''}
-
-      <!-- Content Area -->
-      <div class="screen-content-area">
-        <!-- Desktop: Split Layout -->
-        <div class="screen-desktop-layout">
-          <div class="screen-text-column">
-            ${bodyText ? `
-            <p class="screen-text">${escapeHtmlForExport(bodyText)}</p>
-            ` : ''}
+    <div class="screen hidden" id="screen-${screen.screenId}" style="${backgroundStyle}">
+      <div style="padding: 2rem; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.5rem;">
+        ${hasTitlePlaceholder && titleText ? `<h1 class="screen-title" style="font-weight: bold; font-size: 1.875rem; ${titleStyle}">${escapeHtmlForExport(titleText)}</h1>` : ''}
+        ${hasTextPlaceholder && bodyText ? `<p class="screen-text" style="font-size: 1.125rem; max-width: 42rem; line-height: 1.75; ${textStyle}">${escapeHtmlForExport(bodyText)}</p>` : ''}
+        ${!hasVideo && hasImages ? `<div style="width: 100%; max-width: 42rem;">${mediaContent}</div>` : ''}
+        ${hasVideo && screenData.videoId ? `<div style="width: 100%; max-width: 24rem;">${mediaContent}</div>` : ''}
+        ${!titleText && !bodyText && !hasImages && !screenData.videoId ? `
+          <div style="color: #9ca3af; text-align: center;">
+            <div style="font-size: 3.75rem; margin-bottom: 1rem;">📄</div>
+            <div style="font-size: 1.125rem;">Screen content will appear here</div>
           </div>
-          <div class="screen-media-column">
-            ${mediaContent || '<span class="screen-no-media">No media</span>'}
-          </div>
-        </div>
-
-        <!-- Mobile: Stacked Layout -->
-        <div class="screen-mobile-layout">
-          ${bodyText ? `
-          <p class="screen-text">${escapeHtmlForExport(bodyText)}</p>
-          ` : ''}
-          ${mediaContent ? `<div class="screen-media-mobile">${mediaContent}</div>` : ''}
-        </div>
-      </div>
-
-      <!-- Fixed Bottom Bar -->
-      <div class="screen-bottom-bar">
-        <button class="screen-next-btn" type="button">Next</button>
+        ` : ''}
       </div>
     </div>
   `;
@@ -204,7 +269,19 @@ function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta
   } else if (overlay.buttonStyle === 'text-framed') {
     const text = overlay.textButton?.text || 'Start Experience';
     const frameStyle = overlay.textButton?.frameStyle || 'solid';
-    overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}">${escapeHtmlForExport(text)}</button>`;
+    const buttonBg = overlay.textButton?.backgroundColor || project.data.globalStyle?.colors?.button?.background || 'white';
+    const buttonText = overlay.textButton?.textColor || project.data.globalStyle?.colors?.button?.text || '#333';
+    const buttonBorder = overlay.textButton?.borderColor || project.data.globalStyle?.colors?.button?.border || '#333';
+    
+    // Build inline style for button
+    let buttonStyle = '';
+    if (frameStyle === 'solid' || frameStyle === 'dashed' || frameStyle === 'double' || frameStyle === 'shadow' || frameStyle === 'rectangle' || frameStyle === 'square') {
+      buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
+    } else if (frameStyle === 'circle' || frameStyle === 'oval') {
+      buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
+    }
+    
+    overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}"${buttonStyle ? ` style="${buttonStyle}"` : ''}>${escapeHtmlForExport(text)}</button>`;
   }
 
   return `
@@ -859,12 +936,12 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
       animation: pulse 2s infinite;
     }
   `;
-  const allStyles = `${existingStyles.trim()}\n${getPreviewLayoutStyles()}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}`;
+  const allStyles = `${existingStyles.trim()}\n${getPreviewLayoutStyles()}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}\n${generateColorStyles(project)}\n${generateButtonStyles(project)}\n${generateAnimationStyles(project)}`;
   const themedStyles = applyThemeStyles(allStyles, project);
   const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
   
-  // Build runtime logic section (GiftApp with integrated AudioManager)
-  const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${buildGiftAppNamespace(project, templateMeta)}`;
+  // Build runtime logic section (GiftApp with integrated AudioManager + animations)
+  const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${buildGiftAppNamespace(project, templateMeta)}\n${generateAnimationScript(project)}`;
   
   // Inject styles before </head> or before <body> if no </head>
   if (html.includes('</head>')) {
@@ -1041,6 +1118,446 @@ function getOverlayButtonStyles(): string {
     justify-content: center;
   }
   `;
+}
+
+// Generate CSS for global and screen-specific color styles
+function generateColorStyles(project: Project): string {
+  const globalStyle = project.data.globalStyle;
+  if (!globalStyle?.colors) return '';
+
+  let css = `
+  /* ========== Global Color Styles ========== */
+  :root {
+    ${globalStyle.colors.background ? `--global-bg-color: ${globalStyle.colors.background};` : ''}
+    ${globalStyle.colors.text ? `--global-text-color: ${globalStyle.colors.text};` : ''}
+    ${globalStyle.colors.title ? `--global-title-color: ${globalStyle.colors.title};` : ''}
+  }
+  `;
+
+  // Apply global colors to screens
+  if (globalStyle.colors.background) {
+    css += `.screen { background-color: ${globalStyle.colors.background}; }\n`;
+  }
+  if (globalStyle.colors.text) {
+    css += `.screen-text { color: ${globalStyle.colors.text}; }\n`;
+  }
+  if (globalStyle.colors.title) {
+    css += `.screen-title { color: ${globalStyle.colors.title}; }\n`;
+  }
+
+  // Screen-specific overrides
+  Object.entries(project.data.screens).forEach(([screenId, screenData]) => {
+    if (screenData.style?.colors) {
+      const screenStyle = screenData.style.colors;
+      if (screenStyle.background) {
+        css += `#screen-${screenId} { background-color: ${screenStyle.background} !important; }\n`;
+      }
+      if (screenStyle.text) {
+        css += `#screen-${screenId} .screen-text { color: ${screenStyle.text} !important; }\n`;
+      }
+      if (screenStyle.title) {
+        css += `#screen-${screenId} .screen-title { color: ${screenStyle.title} !important; }\n`;
+      }
+    }
+  });
+
+  return css;
+}
+
+// Generate CSS for navigation button styles
+function generateButtonStyles(project: Project): string {
+  const globalStyle = project.data.globalStyle;
+  if (!globalStyle?.colors?.navigation) return '';
+
+  let css = `
+  /* ========== Navigation Button Styles ========== */
+  `;
+
+  ['next', 'prev', 'menu'].forEach((buttonType) => {
+    const buttonStyle = globalStyle.colors?.navigation?.[buttonType as 'next' | 'prev' | 'menu'];
+    if (!buttonStyle) return;
+
+    const selector = buttonType === 'next' ? '.screen-next-btn' : buttonType === 'prev' ? '.screen-prev-btn' : '.screen-menu-btn';
+    const borderRadius = buttonStyle.shape === 'pill' ? '9999px' : buttonStyle.shape === 'circle' ? '50%' : `${buttonStyle.borderRadius || 8}px`;
+
+    css += `
+    ${selector} {
+      ${buttonStyle.backgroundColor ? `background-color: ${buttonStyle.backgroundColor};` : ''}
+      ${buttonStyle.textColor ? `color: ${buttonStyle.textColor};` : ''}
+      ${buttonStyle.borderColor ? `border-color: ${buttonStyle.borderColor};` : ''}
+      ${buttonStyle.borderWidth !== undefined ? `border-width: ${buttonStyle.borderWidth}px;` : ''}
+      ${buttonStyle.borderStyle ? `border-style: ${buttonStyle.borderStyle};` : ''}
+      ${buttonStyle.borderRadius !== undefined ? `border-radius: ${borderRadius};` : ''}
+      ${buttonStyle.fontSize ? `font-size: ${buttonStyle.fontSize}px;` : ''}
+      ${buttonStyle.fontWeight ? `font-weight: ${buttonStyle.fontWeight};` : ''}
+      ${buttonStyle.padding ? `padding: ${buttonStyle.padding.top || 0}px ${buttonStyle.padding.right || 0}px ${buttonStyle.padding.bottom || 0}px ${buttonStyle.padding.left || 0}px;` : ''}
+      ${buttonStyle.effects?.shadow ? 'box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}
+    }
+    `;
+
+    if (buttonStyle.effects?.hover) {
+      css += `
+      ${selector}:hover:not(:disabled) {
+        ${buttonStyle.effects.hover.backgroundColor ? `background-color: ${buttonStyle.effects.hover.backgroundColor};` : ''}
+        ${buttonStyle.effects.hover.textColor ? `color: ${buttonStyle.effects.hover.textColor};` : ''}
+      }
+      `;
+    }
+  });
+
+  return css;
+}
+
+// Generate CSS for background animations
+function generateAnimationStyles(_project: Project): string {
+  let css = `
+  /* ========== Background Animation Styles ========== */
+  @keyframes floatUp {
+    0% {
+      transform: translateY(0) translateX(0) scale(1);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translateY(-50vh) translateX(10px) scale(1.2);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100vh) translateX(-10px) scale(0.8);
+      opacity: 0;
+    }
+  }
+
+  @keyframes sparkle {
+    0%, 100% {
+      opacity: 0;
+      transform: scale(0) rotate(0deg);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1) rotate(180deg);
+    }
+  }
+
+  @keyframes bubbleUp {
+    0% {
+      transform: translateY(0) translateX(0) scale(0.5);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(-50vh) translateX(15px) scale(1);
+      opacity: 0.8;
+    }
+    100% {
+      transform: translateY(-100vh) translateX(-15px) scale(1.2);
+      opacity: 0;
+    }
+  }
+
+  @keyframes twinkle {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+  }
+  `;
+
+  return css;
+}
+
+// Generate JavaScript for background animations
+function generateAnimationScript(project: Project): string {
+  const globalStyle = project.data.globalStyle;
+  const screens = project.data.dynamicScreens || [];
+  const globalAnimation = globalStyle?.backgroundAnimation;
+
+  let script = `
+  // Background Animation System
+  (function() {
+    function getParticleCount(intensity) {
+      switch(intensity) {
+        case 'low': return 10;
+        case 'medium': return 25;
+        case 'high': return 50;
+        default: return 25;
+      }
+    }
+
+    function getAnimationDuration(speed) {
+      switch(speed) {
+        case 'slow': return 8000;
+        case 'normal': return 5000;
+        case 'fast': return 3000;
+        default: return 5000;
+      }
+    }
+
+    function initHeartsAnimation(container, config) {
+      const count = getParticleCount(config.intensity);
+      const duration = getAnimationDuration(config.speed);
+      const color = config.color || '#ff6b9d';
+      
+      for (let i = 0; i < count; i++) {
+        const heart = document.createElement('div');
+        heart.textContent = '❤️';
+        heart.style.position = 'absolute';
+        heart.style.bottom = '0';
+        heart.style.left = Math.random() * 100 + '%';
+        heart.style.fontSize = (15 + Math.random() * 20) + 'px';
+        heart.style.color = color;
+        heart.style.opacity = (0.7 + Math.random() * 0.3);
+        heart.style.animation = 'floatUp ' + (duration / 1000) + 's linear infinite';
+        heart.style.animationDelay = ((i / count) * duration / 1000) + 's';
+        heart.style.pointerEvents = 'none';
+        container.appendChild(heart);
+      }
+    }
+
+    function initSparklesAnimation(container, config) {
+      const count = getParticleCount(config.intensity);
+      const duration = getAnimationDuration(config.speed);
+      const color = config.color || '#ffd700';
+      
+      for (let i = 0; i < count; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.textContent = '✨';
+        sparkle.style.position = 'absolute';
+        sparkle.style.left = Math.random() * 100 + '%';
+        sparkle.style.top = Math.random() * 100 + '%';
+        sparkle.style.fontSize = (8 + Math.random() * 12) + 'px';
+        sparkle.style.color = color;
+        sparkle.style.animation = 'sparkle ' + (duration / 1000) + 's ease-in-out infinite';
+        sparkle.style.animationDelay = (Math.random() * duration / 1000) + 's';
+        sparkle.style.pointerEvents = 'none';
+        container.appendChild(sparkle);
+      }
+    }
+
+    function initBubblesAnimation(container, config) {
+      const count = getParticleCount(config.intensity);
+      const duration = getAnimationDuration(config.speed);
+      const color = config.color || '#87ceeb';
+      
+      for (let i = 0; i < count; i++) {
+        const bubble = document.createElement('div');
+        const size = 20 + Math.random() * 40;
+        bubble.style.position = 'absolute';
+        bubble.style.bottom = '0';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.borderRadius = '50%';
+        bubble.style.border = '2px solid ' + color;
+        bubble.style.backgroundColor = 'rgba(135, 206, 235, 0.2)';
+        bubble.style.animation = 'bubbleUp ' + (3 + Math.random() * 4) + 's linear infinite';
+        bubble.style.animationDelay = ((i / count) * duration / 1000) + 's';
+        bubble.style.pointerEvents = 'none';
+        container.appendChild(bubble);
+      }
+    }
+
+    function initConfettiAnimation(container, config) {
+      const canvas = document.createElement('canvas');
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '1';
+      container.appendChild(canvas);
+      
+      const ctx = canvas.getContext('2d');
+      canvas.width = container.offsetWidth;
+      canvas.height = container.offsetHeight;
+      
+      const count = getParticleCount(config.intensity);
+      const speed = config.speed || 'normal';
+      const speedMultiplier = speed === 'slow' ? 0.5 : speed === 'fast' ? 2 : 1;
+      const color = config.color || '#ff6b9d';
+      const colors = [color, '#4ecdc4', '#ffe66d', '#ff6b9d', '#95e1d3', '#f38181'];
+      
+      const particles = [];
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: -10,
+          vx: (Math.random() - 0.5) * 2 * speedMultiplier,
+          vy: (Math.random() * 3 + 2) * speedMultiplier,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          size: 5 + Math.random() * 5,
+        });
+      }
+      
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(function(particle) {
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.vy += 0.1 * speedMultiplier;
+          if (particle.y > canvas.height) {
+            particle.y = -10;
+            particle.x = Math.random() * canvas.width;
+          }
+          ctx.fillStyle = particle.color;
+          ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+        });
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
+
+    function initFireworksAnimation(container, config) {
+      const canvas = document.createElement('canvas');
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '1';
+      container.appendChild(canvas);
+      
+      const ctx = canvas.getContext('2d');
+      canvas.width = container.offsetWidth;
+      canvas.height = container.offsetHeight;
+      
+      const speed = config.speed || 'normal';
+      const speedMultiplier = speed === 'slow' ? 0.5 : speed === 'fast' ? 2 : 1;
+      const color = config.color || '#ff6b9d';
+      const colors = [color, '#4ecdc4', '#ffe66d', '#ff6b9d', '#95e1d3', '#f38181'];
+      const fireworks = [];
+      
+      function createFirework(x, y) {
+        const particles = [];
+        for (let i = 0; i < 30; i++) {
+          const angle = (Math.PI * 2 * i) / 30;
+          const velocity = 2 + Math.random() * 2;
+          particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * velocity * speedMultiplier,
+            vy: Math.sin(angle) * velocity * speedMultiplier,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            life: 1,
+          });
+        }
+        fireworks.push({ x: x, y: y, particles: particles });
+      }
+      
+      function animate() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        if (Math.random() < 0.02) {
+          createFirework(
+            Math.random() * canvas.width,
+            Math.random() * (canvas.height * 0.5) + canvas.height * 0.2
+          );
+        }
+        
+        fireworks.forEach(function(firework, fIdx) {
+          firework.particles = firework.particles.filter(function(particle) {
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.vy += 0.1 * speedMultiplier;
+            particle.life -= 0.02;
+            
+            if (particle.life > 0) {
+              ctx.globalAlpha = particle.life;
+              ctx.fillStyle = particle.color;
+              ctx.beginPath();
+              ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+              ctx.fill();
+              return true;
+            }
+            return false;
+          });
+          
+          if (firework.particles.length === 0) {
+            fireworks.splice(fIdx, 1);
+          }
+        });
+        
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
+
+    function initStarsAnimation(container, config) {
+      const count = getParticleCount(config.intensity);
+      const duration = getAnimationDuration(config.speed);
+      const color = config.color || '#ffd700';
+      
+      for (let i = 0; i < count; i++) {
+        const star = document.createElement('div');
+        star.textContent = '⭐';
+        star.style.position = 'absolute';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.fontSize = (4 + Math.random() * 8) + 'px';
+        star.style.color = color;
+        star.style.animation = 'twinkle ' + (duration / 1000) + 's ease-in-out infinite';
+        star.style.animationDelay = (Math.random() * duration / 1000) + 's';
+        star.style.pointerEvents = 'none';
+        container.appendChild(star);
+      }
+    }
+
+    function initScreenAnimations() {
+      const globalAnimation = ${globalAnimation ? JSON.stringify(globalAnimation) : 'null'};
+      
+      ${screens.map((screen) => {
+        const screenData = project.data.screens[screen.screenId] || {};
+        const screenAnimation = screenData.style?.backgroundAnimation;
+        const animation = (screenAnimation && screenAnimation.type !== 'none') ? screenAnimation : globalAnimation;
+        
+        if (!animation || animation.type === 'none') return '';
+        
+        const animationType = animation.type as 'hearts' | 'sparkles' | 'bubbles' | 'confetti' | 'fireworks' | 'stars';
+        const initFunctionMap: Record<'hearts' | 'sparkles' | 'bubbles' | 'confetti' | 'fireworks' | 'stars', string> = {
+          hearts: 'initHeartsAnimation',
+          sparkles: 'initSparklesAnimation',
+          bubbles: 'initBubblesAnimation',
+          confetti: 'initConfettiAnimation',
+          fireworks: 'initFireworksAnimation',
+          stars: 'initStarsAnimation',
+        };
+        const initFunction = initFunctionMap[animationType];
+        
+        if (!initFunction) return '';
+        
+        return `
+        (function() {
+          const screen = document.getElementById('screen-${screen.screenId}');
+          if (screen) {
+            const animContainer = document.createElement('div');
+            animContainer.style.position = 'absolute';
+            animContainer.style.inset = '0';
+            animContainer.style.zIndex = '0';
+            animContainer.style.pointerEvents = 'none';
+            screen.appendChild(animContainer);
+            ${initFunction}(animContainer, ${JSON.stringify(animation)});
+          }
+        })();
+        `;
+      }).join('\n')}
+    }
+
+    // Initialize animations when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initScreenAnimations);
+    } else {
+      initScreenAnimations();
+    }
+  })();
+  `;
+
+  return script;
 }
 
 function getPreviewLayoutStyles(): string {

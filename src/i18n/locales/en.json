@@ -113,7 +113,7 @@
       "startButton": "Start Button"
     },
     "screens": {
-      "title": "Screens",
+      "title": "Title",
       "giftDetails": "Gift Details",
       "backgroundMusic": "Background Music",
       "content": "Content",
@@ -149,6 +149,67 @@
         "eighth": "Eighth",
         "ninth": "Ninth",
         "tenth": "Tenth"
+      }
+    },
+    "styles": {
+      "globalStyles": "Global Styles",
+      "screenStyles": "Screen Styles",
+      "backgroundAnimation": "Background Animation",
+      "buttonStyling": "Button Styling",
+      "colors": {
+        "background": "Background Color",
+        "text": "Text Color",
+        "title": "Title Color",
+        "button": "Button Colors",
+        "buttonBackground": "Background",
+        "buttonText": "Text",
+        "buttonBorder": "Border",
+        "navigation": "Navigation Buttons"
+      },
+      "animations": {
+        "type": "Animation Type",
+        "intensity": "Intensity",
+        "speed": "Speed",
+        "color": "Animation Color",
+        "none": "None",
+        "hearts": "Hearts",
+        "sparkles": "Sparkles",
+        "bubbles": "Bubbles",
+        "confetti": "Confetti",
+        "fireworks": "Fireworks",
+        "stars": "Stars",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "slow": "Slow",
+        "normal": "Normal",
+        "fast": "Fast"
+      },
+      "buttons": {
+        "next": "Next Button",
+        "prev": "Previous Button",
+        "menu": "Menu Button",
+        "backgroundColor": "Background Color",
+        "textColor": "Text Color",
+        "borderColor": "Border Color",
+        "borderWidth": "Border Width",
+        "borderStyle": "Border Style",
+        "borderRadius": "Border Radius",
+        "fontSize": "Font Size",
+        "shape": "Shape",
+        "shadow": "Shadow",
+        "rectangle": "Rectangle",
+        "rounded": "Rounded",
+        "pill": "Pill",
+        "circle": "Circle",
+        "solid": "Solid",
+        "dashed": "Dashed",
+        "dotted": "Dotted",
+        "noBorder": "None"
+      },
+      "screenOverride": {
+        "title": "Screen Style Override",
+        "toggle": "Override global styles"
       }
     },
     "screenTexts": {

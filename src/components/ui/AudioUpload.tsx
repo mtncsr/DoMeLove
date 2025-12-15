@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
-import type { AudioFile } from '../../types/project';
+import type { ProcessedAudio } from '../../utils/audioProcessor';
 import { processAudio } from '../../utils/audioProcessor';
 import { MediaConfig } from '../../config/mediaConfig';
 
 interface AudioUploadProps {
-  onUpload: (audio: AudioFile) => void;
+  onUpload: (audio: ProcessedAudio) => void | Promise<void>;
   accept?: string;
   label?: string;
 }

@@ -8,9 +8,20 @@ interface ScreenPreviewProps {
   project: Project;
   templateMeta: TemplateMeta | null;
   className?: string;
+  /**
+   * Optional handler for the main screen "start" action.
+   * When provided, the overlay button on the main screen will call this.
+   */
+  onMainStart?: () => void;
 }
 
-export function ScreenPreview({ screen, project, templateMeta, className = '' }: ScreenPreviewProps) {
+export function ScreenPreview({
+  screen,
+  project,
+  templateMeta,
+  className = '',
+  onMainStart,
+}: ScreenPreviewProps) {
   const screenData = project.data.screens[screen.screenId] || {};
   const mediaMode = screenData.mediaMode || 'classic';
   const isVideoMode = mediaMode === 'video';
@@ -59,7 +70,7 @@ export function ScreenPreview({ screen, project, templateMeta, className = '' }:
   // Render background animation if configured
   const shouldRenderAnimation = backgroundAnimation && backgroundAnimation.type && backgroundAnimation.type !== 'none';
 
-  // Generate overlay button HTML based on button style
+  // Generate overlay button based on button style
   const renderOverlayButton = () => {
     const overlay = project.data.overlay;
     if (!overlay) return null;
@@ -72,6 +83,7 @@ export function ScreenPreview({ screen, project, templateMeta, className = '' }:
         <button
           type="button"
           className={`emoji-button emoji-${animation}`}
+          onClick={onMainStart}
           style={{
             fontSize: `${size}px`,
             width: `${size + 20}px`,
@@ -197,6 +209,7 @@ export function ScreenPreview({ screen, project, templateMeta, className = '' }:
         <button
           type="button"
           className={`text-button frame-${frameStyle}`}
+          onClick={onMainStart}
           style={{
             ...baseStyle,
             ...(frameSpecificStyles[frameStyle] || frameSpecificStyles.solid),
@@ -304,6 +317,7 @@ export function ScreenPreview({ screen, project, templateMeta, className = '' }:
               <GalleryPreview
                 images={screenImages}
                 galleryLayout={screenData.galleryLayout || 'carousel'}
+                projectId={project.id}
               />
             </div>
           )}

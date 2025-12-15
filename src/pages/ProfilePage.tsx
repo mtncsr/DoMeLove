@@ -39,14 +39,14 @@ export function ProfilePage() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json,application/json';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const jsonData = JSON.parse(event.target?.result as string);
-          const result = importProject(jsonData);
+          const result = await importProject(jsonData);
           if (result.success && result.project) {
             alert('Project imported successfully.');
           } else {
@@ -115,7 +115,7 @@ export function ProfilePage() {
                     <Button variant="secondary" onClick={() => handleExport(project.id)} className="px-3 py-2 text-sm">
                       {t('marketing.profile.exportJson')}
                     </Button>
-                    <Button variant="danger" onClick={() => deleteProject(project.id)} className="px-3 py-2 text-sm">
+                    <Button variant="danger" onClick={() => deleteProject(project.id).catch(err => console.error('Failed to delete project:', err))} className="px-3 py-2 text-sm">
                       {t('marketing.profile.delete')}
                     </Button>
                   </div>

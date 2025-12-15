@@ -1,21 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { flushSync } from 'react-dom';
 import type { Project, ScreenData } from '../types/project';
 import { storageService } from '../services/storageService';
 import { validationService } from '../services/validationService';
 import i18n, { getTextDirection } from '../i18n/config';
 import { useAppSettings } from './AppSettingsContext';
 import { deleteProjectVideos } from '../services/videoBlobStore';
+import { deleteAllMediaForProject, revokeProjectPreviewUrls } from '../services/mediaService';
 
 interface ProjectContextType {
   projects: Project[];
   currentProject: Project | null;
   createProject: (templateId: string, name: string) => Project;
   updateProject: (project: Project | ((prev: Project) => Project)) => void;
-  deleteProject: (projectId: string) => void;
+  deleteProject: (projectId: string) => Promise<void>;
   setCurrentProject: (project: Project | null) => void;
   exportProject: (project: Project) => string;
-  importProject: (jsonData: unknown) => { success: boolean; error?: string; project?: Project };
+  importProject: (jsonData: unknown) => Promise<{ success: boolean; error?: string; project?: Project }>;
   saveCurrentProject: () => void;
 }
 
@@ -39,16 +39,24 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
   // Load projects on mount
   useEffect(() => {
-    try {
-      const loaded = storageService.loadProjects();
-      setProjects(loaded);
-      projectsRef.current = loaded;
-    } catch (error) {
-      console.error('Failed to load projects:', error);
-      // Continue with empty array if loading fails
-      setProjects([]);
-      projectsRef.current = [];
-    }
+    let cancelled = false;
+    storageService
+      .loadProjects()
+      .then((loaded) => {
+        if (cancelled) return;
+        setProjects(loaded);
+        projectsRef.current = loaded;
+      })
+      .catch((error) => {
+        console.error('Failed to load projects:', error);
+        if (!cancelled) {
+          setProjects([]);
+          projectsRef.current = [];
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Auto-save current project (debounced) when autosave is enabled
@@ -146,13 +154,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
     
-    // Use flushSync to force immediate state update and prevent React from batching
-    // This ensures each image update is processed immediately before the next one
-    flushSync(() => {
-      // Update ref synchronously so queued updates can read the latest state immediately
-      currentProjectRef.current = updatedWithTimestamp;
-      setCurrentProjectState(updatedWithTimestamp);
-    });
+    // Remove flushSync - let React batch normally
+    currentProjectRef.current = updatedWithTimestamp;
+    setCurrentProjectState(updatedWithTimestamp);
     
     // Update projects array but don't save to storage immediately
     // The debounced auto-save effect will handle storage writes
@@ -165,20 +169,38 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     });
   }, [currentProject]);
 
-  const deleteProject = useCallback((projectId: string) => {
+  const deleteProject = useCallback(async (projectId: string) => {
+    // Revoke all object URLs for this project
+    revokeProjectPreviewUrls(projectId);
+
+    // Delete all media blobs (images, audio, video)
+    await deleteAllMediaForProject(projectId);
+    await deleteProjectVideos(projectId);
+
+    // Remove from projects array
     const updatedProjects = projects.filter(p => p.id !== projectId);
     setProjects(updatedProjects);
     storageService.saveProjects(updatedProjects);
-    deleteProjectVideos(projectId).catch((err) => {
-      console.error('Failed to delete project videos from IndexedDB:', err);
-    });
+
     if (currentProject?.id === projectId) {
       setCurrentProjectState(null);
     }
   }, [projects, currentProject]);
 
   const setCurrentProject = useCallback((project: Project | null) => {
+    const previousProjectId = currentProjectRef.current?.id;
+    const newProjectId = project?.id;
+
     if (project) {
+      // GUARD: Only revoke previous project URLs if switching to DIFFERENT project
+      // Must NOT revoke when selecting the same project again
+      if (previousProjectId && previousProjectId !== newProjectId) {
+        // Switching to different project - revoke previous project's URLs
+        revokeProjectPreviewUrls(previousProjectId);
+      }
+      // If same project (previousProjectId === newProjectId), do NOT revoke
+      // This prevents flicker/reloading when re-selecting the same project
+
       // Only clean up video mode inconsistencies - preserve images for classic mode screens
       // Image cleanup happens in storageService.migrateIfNeeded, not here
       const validVideoIds = new Set((project.data.videos || []).map(v => v.id));
@@ -188,11 +210,11 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
           const isVideoMode = mediaMode === 'video';
           const hasVideo = screenData.videoId && validVideoIds.has(screenData.videoId);
           const nextMediaMode: ScreenData['mediaMode'] = isVideoMode && hasVideo ? 'video' : 'classic';
-          
+
           // Only clear images if switching FROM video mode TO classic mode due to invalid video
           // If already in classic mode, preserve all images
           const shouldClearImages = isVideoMode && !hasVideo;
-          
+
           return [
             screenId,
             {
@@ -219,6 +241,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       };
       setCurrentProjectState(cleanedProject);
     } else {
+      // Clearing current project - revoke its URLs (project-scoped)
+      if (previousProjectId) {
+        revokeProjectPreviewUrls(previousProjectId);
+      }
       setCurrentProjectState(null);
     }
   }, []);
@@ -227,7 +253,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     return JSON.stringify(project, null, 2);
   }, []);
 
-  const importProject = useCallback((jsonData: unknown): { success: boolean; error?: string; project?: Project } => {
+  const importProject = useCallback(async (jsonData: unknown): Promise<{ success: boolean; error?: string; project?: Project }> => {
     const result = validationService.validateImport(jsonData);
     if (!result.isValid) {
       return {
@@ -244,8 +270,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Migrate if needed
-    const migrated = storageService.migrateIfNeeded(result.project);
-    
+    const migrated = await storageService.migrateIfNeeded(result.project);
+
     // Update timestamps
     const now = new Date().toISOString();
     migrated.updatedAt = now;

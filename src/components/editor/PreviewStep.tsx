@@ -5,6 +5,7 @@ import type { TemplateMeta } from '../../types/template';
 import { audioManager } from '../../services/audioManager';
 import { Button } from '../ui/Button';
 import { ScreenPreview } from './ScreenPreview';
+import { getMediaDataUrl } from '../../services/mediaService';
 
 interface PreviewStepProps {
   templateMeta: TemplateMeta | null;
@@ -15,6 +16,7 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
   const { currentProject } = useProject();
   const [currentScreenIndex, setCurrentScreenIndex] = useState(0);
   const [isMobileView, setIsMobileView] = useState(false);
+  // Overlay gate: initially show the main screen as an overlay
   const [overlayVisible, setOverlayVisible] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -56,6 +58,9 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
 
   const currentScreen = contentScreens[currentScreenIndex];
 
+  // Main screen config (order === 1) - used as the overlay screen
+  const mainScreen = screens.find((s) => s.order === 1);
+
   useEffect(() => {
     isMountedRef.current = true;
     // Cleanup audio and timeouts on unmount
@@ -73,16 +78,19 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
     setOverlayVisible(false);
     setAudioError(null);
     // Start audio if available - prioritize screen audio, fallback to global
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       if (!isMountedRef.current) return;
-      
+
       let audioPlayed = false;
-      
+
       // Check for global audio first (if exists, it plays across all screens)
       if (currentProject.data.audio.global) {
         try {
-          audioManager.playScreenAudio('global', currentProject.data.audio.global.data, true); // Loop global audio
-          audioPlayed = true;
+          const audioDataUrl = await getMediaDataUrl(currentProject.id, currentProject.data.audio.global.id);
+          if (audioDataUrl) {
+            audioManager.playScreenAudio('global', audioDataUrl, true); // Loop global audio
+            audioPlayed = true;
+          }
         } catch (error) {
           if (isMountedRef.current) {
             setAudioError('Failed to play audio. Please check your browser settings.');
@@ -103,8 +111,11 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                 currentProject.data.screens[screens[currentScreenIndex - 1].screenId]?.extendMusicToNext;
               
               if (!shouldExtend) {
-                audioManager.playScreenAudio(currentScreen.screenId, audio.data, false);
-                audioPlayed = true;
+                const audioDataUrl = await getMediaDataUrl(currentProject.id, audio.id);
+                if (audioDataUrl) {
+                  audioManager.playScreenAudio(currentScreen.screenId, audioDataUrl, false);
+                  audioPlayed = true;
+                }
               }
             } catch (error) {
               if (isMountedRef.current) {
@@ -139,8 +150,8 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
       setCurrentScreenIndex(nextIndex);
       setCurrentImageIndex(0); // Reset image index when changing screens
       const nextScreen = screens[nextIndex];
-      
-      const timeout = setTimeout(() => {
+
+      const timeout = setTimeout(async () => {
         if (!isMountedRef.current) return;
         
         // If global audio exists, it continues playing (already looping)
@@ -162,7 +173,10 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             const audio = currentProject.data.audio.screens[nextScreen.screenId];
             if (audio) {
               try {
-                audioManager.playScreenAudio(nextScreen.screenId, audio.data, false);
+                const audioDataUrl = await getMediaDataUrl(currentProject.id, audio.id);
+                if (audioDataUrl) {
+                  audioManager.playScreenAudio(nextScreen.screenId, audioDataUrl, false);
+                }
               } catch (error) {
                 if (isMountedRef.current) {
                   setAudioError('Failed to play audio');
@@ -192,8 +206,8 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
       
       setCurrentScreenIndex(prevIndex);
       setCurrentImageIndex(0); // Reset image index when changing screens
-      
-      const timeout = setTimeout(() => {
+
+      const timeout = setTimeout(async () => {
         if (!isMountedRef.current) return;
         
         // If global audio exists, it continues playing (already looping)
@@ -215,7 +229,10 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             const audio = currentProject.data.audio.screens[prevScreen.screenId];
             if (audio) {
               try {
-                audioManager.playScreenAudio(prevScreen.screenId, audio.data, false);
+                const audioDataUrl = await getMediaDataUrl(currentProject.id, audio.id);
+                if (audioDataUrl) {
+                  audioManager.playScreenAudio(prevScreen.screenId, audioDataUrl, false);
+                }
               } catch (error) {
                 if (isMountedRef.current) {
                   setAudioError('Failed to play audio');
@@ -277,75 +294,50 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
         } relative overflow-x-hidden overflow-y-auto force-light-preview`}
         style={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb' }}
       >
-        {overlayVisible ? (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-red-500 text-white cursor-pointer force-light-preview"
-            onClick={handleOverlayClick}
-            style={{ 
-              background: 'linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68))',
-              color: 'white'
-            }}
-          >
-            <h3 className="text-3xl font-bold mb-2" style={{ color: 'white' }}>
-              {currentProject.data.overlay.mainText || ''}
-            </h3>
-            {currentProject.data.overlay.subText && (
-              <p className="text-xl mb-4" style={{ color: 'white' }}>
-                {currentProject.data.overlay.subText}
-              </p>
-            )}
-            <button 
-              className="px-6 py-3 rounded-lg font-semibold shadow-sm"
-              style={{ 
-                animation: 'pulse 2s infinite',
-                minWidth: '120px',
-                minHeight: '48px',
-                backgroundColor: 'white',
-                color: 'rgb(219, 39, 119)'
-              }}
-            >
-              {currentProject.data.overlay.buttonText || ''}
-            </button>
-            <style>{`
-              @keyframes pulse {
-                0%, 100% { transform: scale(1); opacity: 1; }
-                50% { transform: scale(1.05); opacity: 0.9; }
-              }
-            `}</style>
-          </div>
-        ) : (
-          currentScreen && (
-            <div className="relative w-full h-full min-h-[600px]">
-              {/* Navigation Controls Overlay */}
-              <div className="absolute top-4 right-4 z-30 flex gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={handlePrevious}
-                  disabled={currentScreenIndex === 0}
-                  className="px-3 py-2 bg-white/90 backdrop-blur-sm"
-                >
-                  ← {t('editor.preview.previous')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={handleNext}
-                  disabled={currentScreenIndex === screens.length - 1}
-                  className="px-3 py-2 bg-white/90 backdrop-blur-sm"
-                >
-                  {t('editor.preview.next')} →
-                </Button>
-              </div>
-              
-              {/* Use ScreenPreview component to match screens panel preview */}
-              <ScreenPreview
-                screen={currentScreen}
-                project={currentProject}
-                templateMeta={templateMeta}
-                className="w-full h-full"
-              />
-            </div>
-          )
-        )}
+        <div className="relative w-full h-full min-h-[600px]">
+          {overlayVisible && mainScreen ? (
+            // Overlay: show the main screen as designed in Screens, using the styled button
+            <ScreenPreview
+              screen={mainScreen}
+              project={currentProject}
+              templateMeta={templateMeta}
+              className="w-full h-full"
+              onMainStart={handleOverlayClick}
+            />
+          ) : (
+            currentScreen && (
+              <>
+                {/* Navigation Controls Overlay */}
+                <div className="absolute top-4 right-4 z-30 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={handlePrevious}
+                    disabled={currentScreenIndex === 0}
+                    className="px-3 py-2 bg-white/90 backdrop-blur-sm"
+                  >
+                    ← {t('editor.preview.previous')}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={handleNext}
+                    disabled={currentScreenIndex === screens.length - 1}
+                    className="px-3 py-2 bg-white/90 backdrop-blur-sm"
+                  >
+                    {t('editor.preview.next')} →
+                  </Button>
+                </div>
+                
+                {/* Use ScreenPreview component to match screens panel preview */}
+                <ScreenPreview
+                  screen={currentScreen}
+                  project={currentProject}
+                  templateMeta={templateMeta}
+                  className="w-full h-full"
+                />
+              </>
+            )
+          )}
+        </div>
         
         {/* Zoomed Image Modal */}
         {zoomedImage && (
@@ -369,7 +361,12 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : screenImages.length - 1));
-                        setZoomedImage(screenImages[(currentImageIndex > 0 ? currentImageIndex - 1 : screenImages.length - 1)]?.data || null);
+                        const prevImage = screenImages[(currentImageIndex > 0 ? currentImageIndex - 1 : screenImages.length - 1)];
+                        if (prevImage) {
+                          getMediaDataUrl(currentProject.id, prevImage.id).then(setZoomedImage);
+                        } else {
+                          setZoomedImage(null);
+                        }
                       }}
                       className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/70 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-white"
                       aria-label="Previous image"
@@ -388,7 +385,12 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setCurrentImageIndex((prev) => (prev < screenImages.length - 1 ? prev + 1 : 0));
-                        setZoomedImage(screenImages[(currentImageIndex < screenImages.length - 1 ? currentImageIndex + 1 : 0)]?.data || null);
+                        const nextImage = screenImages[(currentImageIndex < screenImages.length - 1 ? currentImageIndex + 1 : 0)];
+                        if (nextImage) {
+                          getMediaDataUrl(currentProject.id, nextImage.id).then(setZoomedImage);
+                        } else {
+                          setZoomedImage(null);
+                        }
                       }}
                       className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/70 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-white"
                       aria-label="Next image"

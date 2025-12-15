@@ -2,9 +2,11 @@ import type { Project, ProjectData } from '../types/project';
 import type { TemplateMeta } from '../types/template';
 import type { ValidationResult, ValidationError } from '../types/validation';
 import { MediaConfig } from '../config/mediaConfig';
+import { getExportScreens } from '../utils/screenSource';
+import { hasMedia } from './mediaStore';
 
 class ValidationService {
-  validateProject(project: Project, templateMeta: TemplateMeta): ValidationResult {
+  async validateProject(project: Project, templateMeta: TemplateMeta): Promise<ValidationResult> {
     const errors: ValidationError[] = [];
     const warnings: ValidationError[] = [];
 
@@ -19,7 +21,7 @@ class ValidationService {
       if (textPlaceholders.includes(placeholder)) {
         continue;
       }
-      const isRequired = this.isPlaceholderRequired(placeholder, templateMeta);
+      const isRequired = this.isPlaceholderRequired(placeholder, project, templateMeta);
       if (isRequired && !this.hasPlaceholderValue(project.data, placeholder)) {
         errors.push({
           field: placeholder,
@@ -31,7 +33,10 @@ class ValidationService {
 
     // Check required screen fields (ERRORS - blocking)
     // Skip text/title fields - they are no longer required
-    for (const screen of templateMeta.screens) {
+    // CRITICAL: Use getExportScreens() - validation must match export exactly
+    // Do NOT iterate templateMeta.screens directly
+    const exportScreens = getExportScreens(project, templateMeta);
+    for (const screen of exportScreens) {
       const screenData = project.data.screens[screen.screenId];
 
       for (const placeholder of screen.required) {
@@ -80,11 +85,54 @@ class ValidationService {
                 section: 'videos',
               });
             }
-          }
         }
       }
+    }
 
-      // Check image count for gallery screens (WARNINGS - non-blocking)
+    // Check image blobs
+    for (const image of project.data.images) {
+      const exists = await hasMedia(project.id, image.id);
+      if (!exists) {
+        errors.push({
+          field: `image.${image.id}`,
+          message: `Image "${image.filename}" blob is missing. Please re-upload.`,
+          section: 'images'
+        });
+      }
+    }
+
+    // Check audio: global + all per-screen assigned audio IDs
+    if (project.data.audio.global) {
+      const exists = await hasMedia(project.id, project.data.audio.global.id);
+      if (!exists) {
+        errors.push({
+          field: 'audio.global',
+          message: `Global audio "${project.data.audio.global.filename}" blob is missing. Please re-upload.`,
+          section: 'music'
+        });
+      }
+    }
+
+    // Check all screen-assigned audio
+    // Use project.data.audio.screens[screenId]?.id as source of truth, not screenData.audioId
+    // CRITICAL: Use getExportScreens() - validation must match export exactly
+    // Do NOT iterate templateMeta.screens directly
+    const exportScreensForAudio = getExportScreens(project, templateMeta);
+    for (const screen of exportScreensForAudio) {
+      const audio = project.data.audio.screens[screen.screenId];
+      if (audio?.id) {
+        const exists = await hasMedia(project.id, audio.id);
+        if (!exists) {
+          errors.push({
+            field: `audio.screens.${screen.screenId}`,
+            message: `Audio "${audio.filename}" for screen "${screen.screenId}" blob is missing. Please re-upload.`,
+            section: 'music'
+          });
+        }
+      }
+    }
+
+    // Check image count for gallery screens (WARNINGS - non-blocking)
       if (screen.galleryImageCount) {
         const imageCount = this.getScreenImageCount(project.data, screen.screenId);
         if (imageCount < screen.galleryImageCount) {
@@ -205,9 +253,12 @@ class ValidationService {
     }
   }
 
-  private isPlaceholderRequired(placeholder: string, templateMeta: TemplateMeta): boolean {
+  private isPlaceholderRequired(placeholder: string, project: Project, templateMeta: TemplateMeta): boolean {
     // Check if placeholder is in any screen's required list
-    for (const screen of templateMeta.screens) {
+    // CRITICAL: Use getExportScreens() - validation must match export exactly
+    // Do NOT iterate templateMeta.screens directly
+    const exportScreens = getExportScreens(project, templateMeta);
+    for (const screen of exportScreens) {
       if (screen.required.includes(placeholder)) {
         return true;
       }

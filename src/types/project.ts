@@ -22,13 +22,13 @@ export interface ProjectData {
   // Screen-specific data
   screens: Record<string, ScreenData>;
   
-  // Images (Base64)
+  // Images (metadata refs; blobs stored in IndexedDB)
   images: ImageData[];
 
   // Videos (metadata only; blobs stored in IndexedDB)
   videos: VideoData[];
   
-  // Audio (Base64)
+  // Audio (metadata refs; blobs stored in IndexedDB)
   audio: AudioData;
   
   // Overlay configuration
@@ -120,13 +120,14 @@ export interface ScreenData {
 
 export interface ImageData {
   id: string;
-  data: string; // Base64 or object URL (temporary during processing)
   filename: string;
+  mime: string;
   size: number; // Size in bytes
   width?: number;
   height?: number;
-  isProcessing?: boolean; // True while compression/conversion is in progress
-  previewUrl?: string; // Object URL for instant preview (revoked after processing)
+  createdAt?: string;
+  legacyDataUrl?: string; // legacy base64 (pre-migration)
+  previewDataUrl?: string; // optional cached data URL for quicker preview
 }
 
 export interface VideoData {
@@ -149,9 +150,13 @@ export interface AudioData {
 
 export interface AudioFile {
   id: string;
-  data: string; // Base64
   filename: string;
+  mime: string;
   size: number; // Size in bytes
+  duration?: number; // seconds
+  createdAt?: string;
+  legacyDataUrl?: string; // legacy base64 (pre-migration)
+  previewDataUrl?: string; // optional inline preview
 }
 
 export interface OverlayConfig {

@@ -23,7 +23,7 @@ export function ExportStep({ templateMeta }: ExportStepProps) {
 
   const handleExport = async () => {
     // Validate first
-    const validation = validationService.validateProject(currentProject, templateMeta);
+    const validation = await validationService.validateProject(currentProject, templateMeta);
     
     // Show errors (blocking) and warnings (non-blocking)
     setValidationErrors(validation.errors || []);

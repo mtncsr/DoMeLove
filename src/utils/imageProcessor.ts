@@ -1,7 +1,12 @@
 import { MediaConfig } from '../config/mediaConfig';
 import type { ImageData } from '../types/project';
 
-export async function processImage(file: File): Promise<ImageData> {
+export interface ProcessedImage {
+  blob: Blob;
+  metadata: ImageData;
+}
+
+export async function processImage(file: File): Promise<ProcessedImage> {
   return new Promise((resolve, reject) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -84,29 +89,29 @@ export async function processImage(file: File): Promise<ImageData> {
             return;
           }
           
-          // Extract Base64 data
-          const base64Data = dataUrl.split(',')[1];
-          if (!base64Data) {
-            reject(new Error('Failed to extract image data'));
-            return;
-          }
-          
-          // Calculate size
-          const size = Math.round((base64Data.length * 3) / 4);
-          
-          // Generate a truly unique ID using timestamp, random string, and performance counter
+          const createdAt = new Date().toISOString();
           const uniqueId = `img_${Date.now()}_${performance.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
-          const imageData: ImageData = {
-            id: uniqueId,
-            data: dataUrl, // Full data URL for easy use
-            filename: file.name,
-            size,
-            width: Math.round(width),
-            height: Math.round(height),
-          };
-          
-          resolve(imageData);
+
+          // Convert data URL to Blob for storage
+          fetch(dataUrl)
+            .then((resp) => resp.blob())
+            .then((blob) => {
+              const metadata: ImageData = {
+                id: uniqueId,
+                filename: file.name,
+                mime: blob.type || 'image/webp',
+                size: blob.size,
+                width: Math.round(width),
+                height: Math.round(height),
+                createdAt,
+                previewDataUrl: dataUrl,
+              };
+
+              resolve({ blob, metadata });
+            })
+            .catch((err) => {
+              reject(new Error(`Failed to convert image to blob: ${err instanceof Error ? err.message : 'Unknown error'}`));
+            });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error processing image';
           reject(new Error(`Image processing failed: ${errorMessage}`));

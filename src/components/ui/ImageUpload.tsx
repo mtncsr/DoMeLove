@@ -1,10 +1,9 @@
 import React, { useRef, useState } from 'react';
-import type { ImageData } from '../../types/project';
-import { processImage } from '../../utils/imageProcessor';
+import { processImage, type ProcessedImage } from '../../utils/imageProcessor';
 
 interface ImageUploadProps {
-  onUpload: (image: ImageData) => void;
-  onMultipleUpload?: (images: ImageData[]) => void;
+  onUpload: (image: ProcessedImage) => void | Promise<void>;
+  onMultipleUpload?: (images: ProcessedImage[]) => void | Promise<void>;
   multiple?: boolean;
   accept?: string;
   label?: string;
@@ -34,16 +33,16 @@ export function ImageUpload({ onUpload, onMultipleUpload: _onMultipleUpload, mul
       // Process batch in parallel
       const batchPromises = batch.map(async (file) => {
         try {
-          const imageData = await processImage(file);
+          const processedImage = await processImage(file);
           processed++;
           successful++;
           setProgress({ current: processed, total });
 
           // Upload image immediately as it's processed - images will appear progressively
           // The queue system in handleImageUpload will handle concurrent updates safely
-          onUpload(imageData);
+          await onUpload(processedImage);
 
-          return { success: true, imageData, filename: file.name };
+          return { success: true, processedImage, filename: file.name };
         } catch (error) {
           processed++;
           failed++;

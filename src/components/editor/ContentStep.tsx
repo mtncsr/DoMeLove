@@ -4,6 +4,8 @@ import { useProject } from '../../contexts/ProjectContext';
 import { useEditor } from '../../contexts/EditorContext';
 import type { ImageData, AudioFile, VideoData, Project } from '../../types/project';
 import type { TemplateMeta } from '../../types/template';
+import type { ProcessedImage } from '../../utils/imageProcessor';
+import type { ProcessedAudio } from '../../utils/audioProcessor';
 import { ImageUpload } from '../ui/ImageUpload';
 import { AudioUpload } from '../ui/AudioUpload';
 import { VideoUpload } from '../ui/VideoUpload';
@@ -11,16 +13,102 @@ import { Button } from '../ui/Button';
 import { Tooltip } from '../ui/Tooltip';
 import { formatFileSize } from '../../utils/imageProcessor';
 import { saveVideoBlob, deleteVideoBlob, hasVideoBlob } from '../../services/videoBlobStore';
+import { saveProcessedImage, saveProcessedAudio, deleteMediaWithPreview, getMediaPreviewUrl, hasMedia } from '../../services/mediaService';
 import { getTextDirection } from '../../i18n/config';
+import { getExportScreens } from '../../utils/screenSource';
+
+// Simple image thumbnail component using preview URL
+const ImageThumb = ({ projectId, image }: { projectId: string; image: ImageData }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getMediaPreviewUrl(projectId, image.id).then((previewUrl) => {
+      if (!cancelled) {
+        setUrl(previewUrl);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, image.id]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-32 bg-gray-200 rounded-lg mb-2 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={url || ''}
+      alt={image.filename}
+      className="w-full h-32 object-cover rounded-lg mb-2"
+    />
+  );
+};
 
 export function ContentStep() {
   const { t, i18n } = useTranslation();
   const { currentProject, updateProject } = useProject();
   const { templateMeta } = useEditor();
+
   const [activeTab, setActiveTab] = useState<'images' | 'music' | 'videos'>('images');
   const [missingVideoBlobs, setMissingVideoBlobs] = useState<Record<string, boolean>>({});
+  const [missingImageBlobs, setMissingImageBlobs] = useState<Record<string, boolean>>({});
+  const [missingAudioBlobs, setMissingAudioBlobs] = useState<Record<string, boolean>>({});
   const dir = getTextDirection(i18n.language);
   const isRTL = dir === 'rtl';
+
+  // Check missing media (images and audio)
+  async function checkMissingMediaFunction() {
+    if (!currentProject) return;
+
+    // Always check images (all in library, since they can be assigned)
+    // This works even if templateMeta is not yet available
+    const imageEntries = await Promise.all(
+      currentProject.data.images.map(async (img) => {
+        const exists = await hasMedia(currentProject.id, img.id);
+        return [img.id, !exists] as const;
+      })
+    );
+    setMissingImageBlobs(Object.fromEntries(imageEntries));
+
+    // Check global audio (works without templateMeta)
+    const audioIds = new Set<string>();
+    if (currentProject.data.audio.global) {
+      audioIds.add(currentProject.data.audio.global.id);
+    }
+
+    // Check per-screen audio ONLY if templateMeta is available
+    // LIMIT to exported screens only (screens returned by getExportScreens)
+    // This prevents incorrectly marking audio as "missing" for unused/inactive screens
+    if (templateMeta) {
+      const exportScreens = getExportScreens(currentProject, templateMeta);
+      // Collect screen-assigned audio IDs only for screens in exportScreens
+      // Use audio.screens[screenId]?.id as source of truth
+      for (const screen of exportScreens) {
+        const audio = currentProject.data.audio.screens[screen.screenId];
+        if (audio?.id) {
+          audioIds.add(audio.id);
+        }
+      }
+    }
+
+    const audioEntries = await Promise.all(
+      Array.from(audioIds).map(async (id) => {
+        const exists = await hasMedia(currentProject.id, id);
+        return [id, !exists] as const;
+      })
+    );
+    setMissingAudioBlobs(Object.fromEntries(audioEntries));
+  }
+
+  if (!currentProject) return null;
 
   // Cleanup temporarily disabled to avoid interfering with image assignments during navigation
   useEffect(() => {
@@ -48,7 +136,10 @@ export function ContentStep() {
     };
   }, [currentProject?.id, currentProject?.data.videos]);
 
-  if (!currentProject) return null;
+  // Trigger missing media checks on specific events
+  useEffect(() => {
+    checkMissingMediaFunction();
+  }, [currentProject?.id]); // On mount/entering ContentStep
 
   return (
     <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
@@ -97,11 +188,15 @@ export function ContentStep() {
           project={currentProject}
           updateProject={updateProject}
           templateMeta={templateMeta}
+          missingImageBlobs={missingImageBlobs}
+          checkMissingMediaFunction={checkMissingMediaFunction}
         />
       ) : activeTab === 'music' ? (
         <MusicTab
           project={currentProject}
           updateProject={updateProject}
+          checkMissingMediaFunction={checkMissingMediaFunction}
+          missingAudioBlobs={missingAudioBlobs}
         />
       ) : (
         <VideosTab
@@ -119,9 +214,11 @@ interface ImagesTabProps {
   project: any;
   updateProject: (project: any) => void;
   templateMeta: TemplateMeta | null;
+  missingImageBlobs: Record<string, boolean>;
+  checkMissingMediaFunction: () => void;
 }
 
-function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
+function ImagesTab({ project, updateProject, templateMeta, missingImageBlobs, checkMissingMediaFunction }: ImagesTabProps) {
   const { t } = useTranslation();
 
   // Get which screens an image is assigned to (only if image exists AND screen exists in current template)
@@ -159,16 +256,21 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
     return screenId;
   };
 
-  const handleImageUpload = (image: ImageData) => {
-    // Use functional update to read the latest state and prevent race conditions
+  const handleImageUpload = async (processed: ProcessedImage) => {
+    if (!project) return;
+
+    // Save to MediaStore
+    const result = await saveProcessedImage(project.id, processed);
+
+    // Update project with metadata only
     updateProject((prevProject: Project) => {
       // Check if image already exists
-      const existingIndex = prevProject.data.images.findIndex((img: ImageData) => img.id === image.id);
-      
+      const existingIndex = prevProject.data.images.findIndex((img: ImageData) => img.id === result.metadata.id);
+
       if (existingIndex >= 0) {
         // Update existing image
         const updatedImages = [...prevProject.data.images];
-        updatedImages[existingIndex] = image;
+        updatedImages[existingIndex] = result.metadata;
         return {
           ...prevProject,
           data: {
@@ -182,24 +284,34 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
           ...prevProject,
           data: {
             ...prevProject.data,
-            images: [...prevProject.data.images, image],
+            images: [...prevProject.data.images, result.metadata],
           },
         };
       }
     });
+
+    // Check for missing media after upload
+    checkMissingMediaFunction();
   };
 
-  const handleMultipleImageUpload = (images: ImageData[]) => {
-    if (images.length === 0) return;
-    
+  const handleMultipleImageUpload = async (processedImages: ProcessedImage[]) => {
+    if (processedImages.length === 0 || !project) return;
+
+    // Save all images to MediaStore
+    const results = await Promise.all(
+      processedImages.map(processed => saveProcessedImage(project.id, processed))
+    );
+
     // Use functional update to read the latest state and prevent race conditions
     updateProject((prevProject: Project) => {
       const currentImages = [...prevProject.data.images];
-      
+
       // Filter out any images that already exist (by ID)
       const existingImageIds = new Set(currentImages.map(img => img.id));
-      const imagesToAdd = images.filter(img => !existingImageIds.has(img.id));
-      
+      const imagesToAdd = results
+        .map(result => result.metadata)
+        .filter(img => !existingImageIds.has(img.id));
+
       // Add all new images
       return {
         ...prevProject,
@@ -211,7 +323,13 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
     });
   };
 
-  const handleDeleteImage = (imageId: string) => {
+  const handleDeleteImage = async (imageId: string) => {
+    if (!project) return;
+
+    // Delete from MediaStore
+    await deleteMediaWithPreview(project.id, imageId);
+
+    // Update project state
     updateProject({
       ...project,
       data: {
@@ -228,6 +346,9 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
         ),
       },
     });
+
+    // Check for missing media after deletion
+    checkMissingMediaFunction();
   };
 
   return (
@@ -259,6 +380,13 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
               
               return (
                 <div key={image.id} className="bg-white/90 dark:bg-[var(--surface-2)] p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] relative shadow-sm">
+                  {missingImageBlobs[image.id] && (
+                    <Tooltip content="Original upload missing. Please re-upload this image." position="top">
+                      <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10 font-medium shadow">
+                        Missing
+                      </div>
+                    </Tooltip>
+                  )}
                   {isUsed && (
                     <Tooltip content={tooltipContent} position="top">
                       <div className="absolute top-2 right-2 bg-emerald-500 rounded-full p-1.5 z-10 cursor-help shadow">
@@ -268,11 +396,7 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
                       </div>
                     </Tooltip>
                   )}
-                  <img
-                    src={image.data}
-                    alt={image.filename}
-                    className="w-full h-32 object-cover rounded-lg mb-2"
-                  />
+                  <ImageThumb projectId={project.id} image={image} />
                   <p className="text-sm text-slate-700 truncate mb-1">{image.filename}</p>
                   <p className="text-xs text-slate-500 mb-2">{formatFileSize(image.size)}</p>
                   {image.width && image.height && (
@@ -300,12 +424,19 @@ function ImagesTab({ project, updateProject, templateMeta }: ImagesTabProps) {
 interface MusicTabProps {
   project: any;
   updateProject: (project: any) => void;
+  checkMissingMediaFunction: () => void;
+  missingAudioBlobs: Record<string, boolean>;
 }
 
-function MusicTab({ project, updateProject }: MusicTabProps) {
+function MusicTab({ project, updateProject, checkMissingMediaFunction, missingAudioBlobs }: MusicTabProps) {
   const { t } = useTranslation();
 
-  const handleUploadToLibrary = (audio: AudioFile) => {
+  const handleUploadToLibrary = async (processed: ProcessedAudio) => {
+    if (!project) return;
+
+    // Save to MediaStore
+    const result = await saveProcessedAudio(project.id, processed);
+
     const library = project.data.audio.library || [];
     updateProject({
       ...project,
@@ -313,10 +444,13 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
         ...project.data,
         audio: {
           ...project.data.audio,
-          library: [...library, audio],
+          library: [...library, result.metadata],
         },
       },
     });
+
+    // Check for missing media after upload
+    checkMissingMediaFunction();
   };
 
   const handleDeleteFromLibrary = (audioId: string) => {
@@ -331,6 +465,9 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
         },
       },
     });
+
+    // Check for missing media after deletion
+    checkMissingMediaFunction();
   };
 
   // Collect all audio files (global + screen audio + library)
@@ -373,6 +510,9 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
         },
       },
     });
+
+    // Check for missing media after deletion
+    checkMissingMediaFunction();
   };
 
   const handleDeleteScreenAudio = (screenId: string) => {
@@ -395,6 +535,9 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
         },
       },
     });
+
+    // Check for missing media after deletion
+    checkMissingMediaFunction();
   };
 
   return (
@@ -415,7 +558,14 @@ function MusicTab({ project, updateProject }: MusicTabProps) {
         ) : (
           <div className="space-y-4">
             {allAudioFiles.map(({ id, file, type, screenId }) => (
-              <div key={id} className="bg-white/90 dark:bg-[var(--surface-2)] p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] shadow-sm">
+              <div key={id} className="bg-white/90 dark:bg-[var(--surface-2)] p-4 rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.12)] shadow-sm relative">
+                {missingAudioBlobs[id] && (
+                  <Tooltip content="Original upload missing. Please re-upload this audio." position="top">
+                    <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10 font-medium shadow">
+                      Missing
+                    </div>
+                  </Tooltip>
+                )}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-900">{file.filename}</p>

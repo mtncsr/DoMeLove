@@ -1,16 +1,114 @@
-import type { Project, ImageData } from '../types/project';
-import type { TemplateMeta } from '../types/template';
+import type { Project, ImageData, ScreenData } from '../types/project';
+import type { TemplateMeta, ScreenConfig } from '../types/template';
 import { loadTemplateHTML } from './templateLoader';
 import { MediaConfig } from '../config/mediaConfig';
 import { getVideoBlob } from '../services/videoBlobStore';
+import { getMediaDataUrl } from '../services/mediaService';
+import { getExportScreens } from './screenSource';
 
 // AudioManager is now integrated into GiftApp - no separate global needed
 
+async function resolveMediaDataUrls(
+  project: Project,
+  templateMeta: TemplateMeta
+): Promise<{
+  images: Map<string, string>;
+  audio: Map<string, string>;
+}> {
+  // CRITICAL: Get exported screens FIRST (single source of truth)
+  // Do NOT iterate templateMeta.screens directly
+  const exportScreens = getExportScreens(project, templateMeta);
+
+  // Collect image IDs from ACTUAL USAGE only (screen assignments, not entire library)
+  // Only from screens in exportScreens
+  const imageIds = new Set<string>();
+  for (const screen of exportScreens) {
+    const screenData = project.data.screens[screen.screenId];
+    if (screenData?.images) {
+      screenData.images.forEach(id => imageIds.add(id));
+    }
+  }
+
+  // Collect audio IDs from ACTUAL USAGE only (global + per-screen assigned)
+  // Use project.data.audio.screens[screenId]?.id as source of truth, not screenData.audioId
+  // Only from screens in exportScreens
+  const audioIds = new Set<string>();
+  if (project.data.audio.global) {
+    audioIds.add(project.data.audio.global.id);
+  }
+  for (const screen of exportScreens) {
+    const audio = project.data.audio.screens[screen.screenId];
+    if (audio?.id) {
+      audioIds.add(audio.id);
+    }
+  }
+
+  // Concurrency-limited resolver helper
+  async function resolveWithLimit<T>(
+    items: T[],
+    resolver: (item: T) => Promise<[string, string] | null>,
+    limit: number = 6
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    const queue = [...items];
+
+    async function worker() {
+      while (queue.length > 0) {
+        const item = queue.shift()!;
+        const resolved = await resolver(item);
+        if (resolved) {
+          result.set(resolved[0], resolved[1]);
+        }
+      }
+    }
+
+    // Run up to 'limit' workers concurrently
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+    return result;
+  }
+
+  // Resolve images with concurrency limit (pool size 6)
+  const imageMap = await resolveWithLimit(
+    Array.from(imageIds),
+    async (id) => {
+      const dataUrl = await getMediaDataUrl(project.id, id);
+      if (!dataUrl) {
+        const image = project.data.images.find(img => img.id === id);
+        throw new Error(`Image blob missing: ${image?.filename || id} (ID: ${id}). Please re-upload.`);
+      }
+      return [id, dataUrl];
+    },
+    6
+  );
+
+  // Resolve audio with concurrency limit (pool size 6)
+  const audioMap = await resolveWithLimit(
+    Array.from(audioIds),
+    async (id) => {
+      const dataUrl = await getMediaDataUrl(project.id, id);
+      if (!dataUrl) {
+        // Find audio metadata for error message
+        const audio = project.data.audio.global?.id === id
+          ? project.data.audio.global
+          : Object.values(project.data.audio.screens).find(a => a?.id === id);
+        throw new Error(`Audio blob missing: ${audio?.filename || id} (ID: ${id}). Please re-upload.`);
+      }
+      return [id, dataUrl];
+    },
+    6
+  );
+
+  return { images: imageMap, audio: audioMap };
+}
+
 export async function buildExportHTML(project: Project, templateMeta: TemplateMeta): Promise<string> {
-  // Load template HTML or generate for custom templates
+  // Resolve all media data URLs FIRST (before generating/transforming screens so images can be embedded)
+  const mediaDataUrls = await resolveMediaDataUrls(project, templateMeta);
+
+  // Load template HTML or generate for custom templates (now with mediaDataUrls available)
   let html: string;
   if (project.templateId === 'custom' && project.data.customTemplate?.isCustom) {
-    html = generateCustomTemplateHTML(project, templateMeta);
+    html = generateCustomTemplateHTML(project, templateMeta, mediaDataUrls);
   } else {
     html = await loadTemplateHTML(project.templateId);
   }
@@ -18,22 +116,26 @@ export async function buildExportHTML(project: Project, templateMeta: TemplateMe
   // Update template onclick handlers to use GiftApp namespace
   html = updateTemplateOnclickHandlers(html);
 
-  // Transform existing template screens to preview-matching structure
+  // Transform existing template screens to preview-matching structure (now with mediaDataUrls available)
   if (project.templateId !== 'custom' || !project.data.customTemplate?.isCustom) {
-    html = transformTemplateScreensToPreviewStructure(html, project, templateMeta);
+    html = transformTemplateScreensToPreviewStructure(html, project, templateMeta, mediaDataUrls);
   }
 
+   // Ensure the overlay screen in the final HTML matches the "main" screen design
+   // and uses the configured styled start button (for both built-in and custom templates).
+   html = transformOverlayToPreviewMainScreen(html, project, templateMeta);
+
   // Replace simple flat placeholders
-  html = replacePlaceholders(html, project, templateMeta);
+  html = replacePlaceholders(html, project, templateMeta, mediaDataUrls);
 
   // Handle repeating structures (galleries, blessings) based on template-meta
-  html = injectRepeatingStructures(html, project, templateMeta);
+  html = injectRepeatingStructures(html, project, templateMeta, mediaDataUrls);
 
   // Inject videos (fetch blobs and embed data URLs)
   html = await injectVideos(html, project, templateMeta);
 
   // Add HTML section comments and inject all scripts/styles in organized sections
-  html = buildOrganizedHTML(html, project, templateMeta);
+  html = await buildOrganizedHTML(html, project, templateMeta, mediaDataUrls);
 
   // Dev-time verification (only in development)
   if (import.meta.env.DEV) {
@@ -87,10 +189,11 @@ export function verifyExportStructure(html: string): void {
  * Matches the exact layout from ScreenPreview component (used in screens panel)
  */
 function generatePreviewMatchingScreenHTML(
-  screen: { screenId: string; order: number },
-  screenData: any,
+  screen: ScreenConfig,
+  screenData: ScreenData,
   project: Project,
-  templateMeta: TemplateMeta
+  templateMeta: TemplateMeta,
+  mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }
 ): string {
   const titleText = (screenData.title || '').trim();
   const bodyText = (screenData.text || '').trim();
@@ -119,20 +222,20 @@ function generatePreviewMatchingScreenHTML(
     const galleryLayout = screenData.galleryLayout || 'carousel';
     switch (galleryLayout) {
       case 'gridWithZoom':
-        mediaContent = generateGridWithZoomHTML(screen.screenId, screenImages);
+        mediaContent = generateGridWithZoomHTML(screen.screenId, screenImages, mediaDataUrls.images);
         break;
       case 'fullscreenSlideshow':
-        mediaContent = generateFullscreenSlideshowHTML(screen.screenId, screenImages);
+        mediaContent = generateFullscreenSlideshowHTML(screen.screenId, screenImages, mediaDataUrls.images);
         break;
       case 'heroWithThumbnails':
-        mediaContent = generateHeroWithThumbnailsHTML(screen.screenId, screenImages);
+        mediaContent = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaDataUrls.images);
         break;
       case 'timeline':
-        mediaContent = generateTimelineHTML(screen.screenId, screenImages);
+        mediaContent = generateTimelineHTML(screen.screenId, screenImages, mediaDataUrls.images);
         break;
       case 'carousel':
       default:
-        mediaContent = generateImageCarouselHTML(screen.screenId, screenImages);
+        mediaContent = generateImageCarouselHTML(screen.screenId, screenImages, mediaDataUrls.images);
         break;
     }
   }
@@ -250,12 +353,51 @@ function generatePreviewMatchingScreenHTML(
   `;
 }
 
-function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta): string {
-  const screens = templateMeta.screens.sort((a, b) => a.order - b.order);
+function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
+  const screens = getExportScreens(project, templateMeta);
   const screensHTML = screens.map((screen) => {
     const screenData = project.data.screens[screen.screenId] || {};
-    return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta);
+    return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaDataUrls);
   }).join('\n');
+
+  // Derive overlay title/text from the main screen configuration (order === 1),
+  // so the exported overlay matches the "main" screen the user designed.
+  const mainScreenConfig = screens.find((s) => s.order === 1);
+  let overlayTitleHTML = '';
+  let overlayTextHTML = '';
+
+  if (mainScreenConfig) {
+    const mainScreenData: any = project.data.screens[mainScreenConfig.screenId] || {};
+    const globalStyle = project.data.globalStyle;
+    const screenStyle = mainScreenData.style;
+
+    // Match text color logic used for the main screen preview/export
+    const textColor =
+      screenStyle?.colors?.text ||
+      globalStyle?.colors?.text ||
+      mainScreenData.textColor ||
+      '#374151';
+    const titleColor =
+      screenStyle?.colors?.title ||
+      globalStyle?.colors?.title ||
+      mainScreenData.titleColor ||
+      '#111827';
+
+    const finalTitleColor = project.data.overlay
+      ? (titleColor === '#111827' ? 'white' : titleColor)
+      : titleColor;
+    const finalTextColor = project.data.overlay
+      ? (textColor === '#374151' ? 'white' : textColor)
+      : textColor;
+
+    if (mainScreenData.title) {
+      overlayTitleHTML = `<h1 class="screen-title" style="font-weight: bold; font-size: 1.875rem; color: ${finalTitleColor};">${escapeHtmlForExport(mainScreenData.title)}</h1>`;
+    }
+
+    if (project.data.mainGreeting) {
+      overlayTextHTML = `<p style="font-size: 1.125rem; max-width: 42rem; line-height: 1.75; color: ${finalTextColor};">${escapeHtmlForExport(project.data.mainGreeting)}</p>`;
+    }
+  }
 
   // Generate overlay button based on button style
   let overlayButtonHTML = '<button type="button">{{overlayButtonText}}</button>';
@@ -294,9 +436,11 @@ function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta
 </head>
 <body>
   <div id="overlay" class="overlay">
-    <h1>{{overlayMainText}}</h1>
-    <p>{{overlaySubText}}</p>
-    ${overlayButtonHTML}
+    <div class="overlay-inner">
+      ${overlayTitleHTML}
+      ${overlayTextHTML}
+      ${overlayButtonHTML}
+    </div>
   </div>
 
   <div id="navigation" class="navigation hidden">
@@ -415,7 +559,7 @@ function generateCustomScreenStyles(project: Project): string {
   return customStyles.length > 0 ? `/* Custom Screen Styles */\n${customStyles.join('\n')}` : '';
 }
 
-function replacePlaceholders(html: string, project: Project, templateMeta: TemplateMeta): string {
+function replacePlaceholders(html: string, project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
   const data = project.data;
 
   // Replace global placeholders
@@ -425,7 +569,8 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
   html = html.replace(/\{\{mainGreeting\}\}/g, data.mainGreeting || '');
 
   // Replace screen-specific placeholders
-  for (const screen of templateMeta.screens) {
+  const exportScreens = getExportScreens(project, templateMeta);
+  for (const screen of exportScreens) {
     const screenData = data.screens[screen.screenId] || {};
     
     // Replace title and text
@@ -450,20 +595,20 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
         let galleryHTML: string;
         switch (galleryLayout) {
           case 'gridWithZoom':
-            galleryHTML = generateGridWithZoomHTML(screen.screenId, screenImages);
+            galleryHTML = generateGridWithZoomHTML(screen.screenId, screenImages, mediaDataUrls.images);
             break;
           case 'fullscreenSlideshow':
-            galleryHTML = generateFullscreenSlideshowHTML(screen.screenId, screenImages);
+            galleryHTML = generateFullscreenSlideshowHTML(screen.screenId, screenImages, mediaDataUrls.images);
             break;
           case 'heroWithThumbnails':
-            galleryHTML = generateHeroWithThumbnailsHTML(screen.screenId, screenImages);
+            galleryHTML = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaDataUrls.images);
             break;
           case 'timeline':
-            galleryHTML = generateTimelineHTML(screen.screenId, screenImages);
+            galleryHTML = generateTimelineHTML(screen.screenId, screenImages, mediaDataUrls.images);
             break;
           case 'carousel':
           default:
-            galleryHTML = generateImageCarouselHTML(screen.screenId, screenImages);
+            galleryHTML = generateImageCarouselHTML(screen.screenId, screenImages, mediaDataUrls.images);
             break;
         }
         
@@ -494,10 +639,11 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
         }
 
         // Also replace old-style image placeholders for backward compatibility
-        screenImages.forEach((image, index: number) => {
+        for (const [index] of screenImages.entries()) {
           const placeholder = `{{${screen.screenId}_image${index + 1}}}`;
-          html = html.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), image.data);
-        });
+          // TODO: Get data URL synchronously or handle asynchronously
+          html = html.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
+        }
       } else {
         // If no images, replace placeholder with empty string
         const carouselPlaceholder = `{{${screen.screenId}_images}}`;
@@ -509,7 +655,8 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
     if (screen.supportsMusic && screenData.audioId) {
       const audio = data.audio.screens[screen.screenId];
       if (audio) {
-        html = html.replace(new RegExp(`\\{\\{music_${screen.screenId}\\}\\}`, 'g'), audio.data);
+        // TODO: Get data URL synchronously or handle asynchronously
+        html = html.replace(new RegExp(`\\{\\{music_${screen.screenId}\\}\\}`, 'g'), '');
       }
     }
   }
@@ -534,32 +681,46 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
   return html;
 }
 
-function generateImageCarouselHTML(screenId: string, images: ImageData[]): string {
+function generateImageCarouselHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const carouselId = `carousel-${screenId}`;
-  // No onclick attributes - event listeners will be attached by GiftApp
+  
+  // Filter to only include images that have data URLs
+  const imagesWithUrls = images.filter(img => {
+    const dataUrl = imageDataUrlMap.get(img.id);
+    return dataUrl && dataUrl.length > 0;
+  });
+  
+  // If no images have data URLs, return empty
+  if (imagesWithUrls.length === 0) {
+    return '';
+  }
+
   const carouselHTML = `
     <div class="image-carousel-container" id="${carouselId}">
       <div class="image-carousel-main">
-        <img 
-          src="${images[0].data}" 
-          alt="${escapeHtmlForExport(images[0].filename)}" 
+        <img
+          src="${imageDataUrlMap.get(imagesWithUrls[0].id)!}"
+          alt="${escapeHtmlForExport(imagesWithUrls[0].filename)}"
           class="carousel-main-image"
         />
-        ${images.length > 1 ? `
+        ${imagesWithUrls.length > 1 ? `
         <button class="carousel-nav-btn carousel-nav-prev" type="button">‹</button>
         <button class="carousel-nav-btn carousel-nav-next" type="button">›</button>
-        <div class="carousel-counter">1 / ${images.length}</div>
+        <div class="carousel-counter">1 / ${imagesWithUrls.length}</div>
         ` : ''}
       </div>
-      ${images.length > 1 ? `
+      ${imagesWithUrls.length > 1 ? `
       <div class="carousel-thumbnails">
-        ${images.map((img, index) => `
-          <img 
-            src="${img.data}" 
-            alt="${escapeHtmlForExport(img.filename)}" 
+        ${imagesWithUrls.map((img, index) => {
+          const dataUrl = imageDataUrlMap.get(img.id)!;
+          return `
+          <img
+            src="${dataUrl}"
+            alt="${escapeHtmlForExport(img.filename)}"
             class="carousel-thumbnail ${index === 0 ? 'active' : ''}"
           />
-        `).join('')}
+        `;
+        }).join('')}
       </div>
       ` : ''}
     </div>
@@ -569,7 +730,7 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[]): strin
       (function() {
         window._tempCarouselData = window._tempCarouselData || {};
         window._tempCarouselData['${carouselId}'] = {
-          images: ${JSON.stringify(images.map(img => img.data))},
+          images: ${JSON.stringify(imagesWithUrls.map(img => imageDataUrlMap.get(img.id) || ''))},
           currentIndex: 0
         };
       })();
@@ -578,20 +739,35 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[]): strin
   return carouselHTML;
 }
 
-function generateGridWithZoomHTML(screenId: string, images: ImageData[]): string {
+function generateGridWithZoomHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const galleryId = `gallery-grid-${screenId}`;
+  
+  // Filter to only include images that have data URLs
+  const imagesWithUrls = images.filter(img => {
+    const dataUrl = imageDataUrlMap.get(img.id);
+    return dataUrl && dataUrl.length > 0;
+  });
+  
+  // If no images have data URLs, return empty
+  if (imagesWithUrls.length === 0) {
+    return '';
+  }
+
   const gridHTML = `
     <div class="gallery-grid-container" id="${galleryId}">
       <div class="gallery-grid">
-        ${images.map((img) => `
+        ${imagesWithUrls.map((img) => {
+          const dataUrl = imageDataUrlMap.get(img.id)!;
+          return `
           <div class="gallery-grid-item">
-            <img 
-              src="${img.data}" 
-              alt="${escapeHtmlForExport(img.filename)}" 
+            <img
+              src="${dataUrl}"
+              alt="${escapeHtmlForExport(img.filename)}"
               class="gallery-grid-image"
             />
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     </div>
     <script>
@@ -599,7 +775,7 @@ function generateGridWithZoomHTML(screenId: string, images: ImageData[]): string
       (function() {
         window._tempGalleryData = window._tempGalleryData || {};
         window._tempGalleryData['${galleryId}'] = {
-          images: ${JSON.stringify(images.map(img => img.data))},
+          images: ${JSON.stringify(imagesWithUrls.map(img => imageDataUrlMap.get(img.id) || ''))},
           type: 'gridWithZoom'
         };
       })();
@@ -608,26 +784,41 @@ function generateGridWithZoomHTML(screenId: string, images: ImageData[]): string
   return gridHTML;
 }
 
-function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[]): string {
+function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const slideshowId = `slideshow-${screenId}`;
+  
+  // Filter to only include images that have data URLs
+  const imagesWithUrls = images.filter(img => {
+    const dataUrl = imageDataUrlMap.get(img.id);
+    return dataUrl && dataUrl.length > 0;
+  });
+  
+  // If no images have data URLs, return empty
+  if (imagesWithUrls.length === 0) {
+    return '';
+  }
+
   const slideshowHTML = `
     <div class="fullscreen-slideshow-container" id="${slideshowId}">
       <div class="slideshow-wrapper">
-        ${images.map((img, index) => `
+        ${imagesWithUrls.map((img, index) => {
+          const dataUrl = imageDataUrlMap.get(img.id)!;
+          return `
           <div class="slideshow-slide ${index === 0 ? 'active' : ''}">
-            <img 
-              src="${img.data}" 
-              alt="${escapeHtmlForExport(img.filename)}" 
+            <img
+              src="${dataUrl}"
+              alt="${escapeHtmlForExport(img.filename)}"
               class="slideshow-image"
             />
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
-      ${images.length > 1 ? `
+      ${imagesWithUrls.length > 1 ? `
       <button class="slideshow-nav slideshow-prev" type="button">‹</button>
       <button class="slideshow-nav slideshow-next" type="button">›</button>
       <div class="slideshow-indicator">
-        <span class="slideshow-current">1</span> / <span class="slideshow-total">${images.length}</span>
+        <span class="slideshow-current">1</span> / <span class="slideshow-total">${imagesWithUrls.length}</span>
       </div>
       ` : ''}
     </div>
@@ -636,7 +827,7 @@ function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[]):
       (function() {
         window._tempSlideshowData = window._tempSlideshowData || {};
         window._tempSlideshowData['${slideshowId}'] = {
-          images: ${JSON.stringify(images.map(img => img.data))},
+          images: ${JSON.stringify(imagesWithUrls.map(img => imageDataUrlMap.get(img.id) || ''))},
           currentIndex: 0,
           autoplayInterval: 4000,
           type: 'fullscreenSlideshow'
@@ -647,26 +838,41 @@ function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[]):
   return slideshowHTML;
 }
 
-function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[]): string {
+function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const heroId = `hero-gallery-${screenId}`;
+  
+  // Filter to only include images that have data URLs
+  const imagesWithUrls = images.filter(img => {
+    const dataUrl = imageDataUrlMap.get(img.id);
+    return dataUrl && dataUrl.length > 0;
+  });
+  
+  // If no images have data URLs, return empty
+  if (imagesWithUrls.length === 0) {
+    return '';
+  }
+
   const heroHTML = `
     <div class="hero-gallery-container" id="${heroId}">
       <div class="hero-main-image">
-        <img 
-          src="${images[0].data}" 
-          alt="${escapeHtmlForExport(images[0].filename)}" 
+        <img
+          src="${imageDataUrlMap.get(imagesWithUrls[0].id)!}"
+          alt="${escapeHtmlForExport(imagesWithUrls[0].filename)}"
           class="hero-image"
         />
       </div>
-      ${images.length > 1 ? `
+      ${imagesWithUrls.length > 1 ? `
       <div class="hero-thumbnails">
-        ${images.map((img, index) => `
-          <img 
-            src="${img.data}" 
-            alt="${escapeHtmlForExport(img.filename)}" 
+        ${imagesWithUrls.map((img, index) => {
+          const dataUrl = imageDataUrlMap.get(img.id)!;
+          return `
+          <img
+            src="${dataUrl}"
+            alt="${escapeHtmlForExport(img.filename)}"
             class="hero-thumbnail ${index === 0 ? 'active' : ''}"
           />
-        `).join('')}
+        `;
+        }).join('')}
       </div>
       ` : ''}
     </div>
@@ -675,7 +881,7 @@ function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[]): 
       (function() {
         window._tempHeroData = window._tempHeroData || {};
         window._tempHeroData['${heroId}'] = {
-          images: ${JSON.stringify(images.map(img => img.data))},
+          images: ${JSON.stringify(imagesWithUrls.map(img => imageDataUrlMap.get(img.id) || ''))},
           currentIndex: 0,
           type: 'heroWithThumbnails'
         };
@@ -685,16 +891,30 @@ function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[]): 
   return heroHTML;
 }
 
-function generateTimelineHTML(screenId: string, images: ImageData[]): string {
+function generateTimelineHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const timelineId = `timeline-${screenId}`;
+  
+  // Filter to only include images that have data URLs
+  const imagesWithUrls = images.filter(img => {
+    const dataUrl = imageDataUrlMap.get(img.id);
+    return dataUrl && dataUrl.length > 0;
+  });
+  
+  // If no images have data URLs, return empty
+  if (imagesWithUrls.length === 0) {
+    return '';
+  }
+
   const timelineHTML = `
     <div class="timeline-container" id="${timelineId}">
-      ${images.map((img, index) => `
+      ${imagesWithUrls.map((img, index) => {
+        const dataUrl = imageDataUrlMap.get(img.id)!;
+        return `
         <div class="timeline-card">
           <div class="timeline-image-wrapper">
-            <img 
-              src="${img.data}" 
-              alt="${escapeHtmlForExport(img.filename)}" 
+            <img
+              src="${dataUrl}"
+              alt="${escapeHtmlForExport(img.filename)}"
               class="timeline-image"
             />
           </div>
@@ -702,14 +922,15 @@ function generateTimelineHTML(screenId: string, images: ImageData[]): string {
             <div class="timeline-index">${index + 1}</div>
           </div>
         </div>
-      `).join('')}
+      `;
+      }).join('')}
     </div>
     <script>
       // Initialize timeline data
       (function() {
         window._tempTimelineData = window._tempTimelineData || {};
         window._tempTimelineData['${timelineId}'] = {
-          images: ${JSON.stringify(images.map(img => img.data))},
+          images: ${JSON.stringify(imagesWithUrls.map(img => imageDataUrlMap.get(img.id) || ''))},
           type: 'timeline'
         };
       })();
@@ -718,10 +939,12 @@ function generateTimelineHTML(screenId: string, images: ImageData[]): string {
   return timelineHTML;
 }
 
-function injectRepeatingStructures(html: string, project: Project, templateMeta: TemplateMeta): string {
+function injectRepeatingStructures(html: string, project: Project, templateMeta: TemplateMeta, _mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
   const data = project.data;
 
-  for (const screen of templateMeta.screens) {
+  // Get exported screens (single source of truth)
+  const exportScreens = getExportScreens(project, templateMeta);
+  for (const screen of exportScreens) {
     // Handle gallery screens - only if images are NOT assigned to this screen (use carousel instead)
     if (screen.type === 'gallery' && screen.galleryImageCount) {
       const screenData = data.screens[screen.screenId];
@@ -776,7 +999,9 @@ async function injectVideos(html: string, project: Project, templateMeta: Templa
   let accumulatedBytes = 0;
   const fallbackBlocks: string[] = [];
 
-  for (const screen of templateMeta.screens) {
+  // Get exported screens (single source of truth)
+  const exportScreens = getExportScreens(project, templateMeta);
+  for (const screen of exportScreens) {
     const screenData = project.data.screens[screen.screenId] || {};
     if (screenData.mediaMode !== 'video' || !screenData.videoId) continue;
 
@@ -859,8 +1084,10 @@ function escapeHtmlForExport(text: string): string {
 /**
  * Transform existing template screens to preview-matching structure
  */
-function transformTemplateScreensToPreviewStructure(html: string, project: Project, templateMeta: TemplateMeta): string {
-  const screens = templateMeta.screens.sort((a, b) => a.order - b.order);
+function transformTemplateScreensToPreviewStructure(html: string, project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
+  // Get exported screens (single source of truth)
+  const screens = getExportScreens(project, templateMeta);
+  const screensToAdd: string[] = [];
   
   for (const screen of screens) {
     const screenData = project.data.screens[screen.screenId] || {};
@@ -885,14 +1112,154 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
     }
     
     if (match) {
-      // Generate new preview-matching structure
-      const newScreenHTML = generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta);
+      // Generate new preview-matching structure with mediaDataUrls
+      const newScreenHTML = generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaDataUrls);
       // Replace the old screen with new structure
       html = html.replace(screenRegex, newScreenHTML.trim());
+    } else {
+      // Screen doesn't exist in template - mark it for addition
+      screensToAdd.push(screenId);
+    }
+  }
+  
+  // Add any screens that don't exist in the template HTML
+  if (screensToAdd.length > 0) {
+    const screensHTML = screensToAdd.map((screenId) => {
+      const screen = screens.find(s => s.screenId === screenId);
+      if (!screen) return '';
+      const screenData = project.data.screens[screen.screenId] || {};
+      return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaDataUrls);
+    }).filter(Boolean).join('\n');
+    
+    // Insert screens before </body> or at the end of body content
+    if (html.includes('</body>')) {
+      html = html.replace('</body>', `${screensHTML}\n</body>`);
+    } else if (html.includes('<body>')) {
+      // Append after body opening tag
+      const bodyMatch = html.match(/<body[^>]*>/);
+      if (bodyMatch) {
+        html = html.replace(bodyMatch[0], `${bodyMatch[0]}\n${screensHTML}`);
+      }
+    } else {
+      // No body tag, append at end
+      html = html + '\n' + screensHTML;
     }
   }
   
   return html;
+}
+
+/**
+ * Replace the template's built-in overlay with one that mirrors the "main" screen
+ * (order === 1) and uses the configured styled start button.
+ */
+function transformOverlayToPreviewMainScreen(html: string, project: Project, templateMeta: TemplateMeta): string {
+  // Locate the overlay container in the template HTML
+  const overlayRegex = /(<div[^>]*id=["']overlay["'][^>]*>)[\s\S]*?(<\/div>)/i;
+  const match = html.match(overlayRegex);
+  if (!match) {
+    return html;
+  }
+
+  // Determine the main screen (order === 1)
+  const screens = getExportScreens(project, templateMeta);
+  const mainScreenConfig = screens.find((s) => s.order === 1);
+  if (!mainScreenConfig) {
+    return html;
+  }
+
+  const mainScreenData: any = project.data.screens[mainScreenConfig.screenId] || {};
+  const globalStyle = project.data.globalStyle;
+  const screenStyle = mainScreenData.style;
+
+  // Match text color logic used for the main screen preview/export
+  const textColor =
+    screenStyle?.colors?.text ||
+    globalStyle?.colors?.text ||
+    mainScreenData.textColor ||
+    '#374151';
+  const titleColor =
+    screenStyle?.colors?.title ||
+    globalStyle?.colors?.title ||
+    mainScreenData.titleColor ||
+    '#111827';
+
+  const finalTitleColor = project.data.overlay
+    ? (titleColor === '#111827' ? 'white' : titleColor)
+    : titleColor;
+  const finalTextColor = project.data.overlay
+    ? (textColor === '#374151' ? 'white' : textColor)
+    : textColor;
+
+  let overlayTitleHTML = '';
+  let overlayTextHTML = '';
+
+  if (mainScreenData.title) {
+    overlayTitleHTML = `<h1 class="screen-title" style="font-weight: bold; font-size: 1.875rem; color: ${finalTitleColor};">${escapeHtmlForExport(mainScreenData.title)}</h1>`;
+  }
+
+  if (project.data.mainGreeting) {
+    overlayTextHTML = `<p style="font-size: 1.125rem; max-width: 42rem; line-height: 1.75; color: ${finalTextColor};">${escapeHtmlForExport(project.data.mainGreeting)}</p>`;
+  }
+
+  // Generate overlay button based on button style (emoji / text-framed)
+  let overlayButtonHTML = '<button type="button">{{overlayButtonText}}</button>';
+  const overlay = project.data.overlay;
+
+  if (overlay) {
+    if (overlay.buttonStyle === 'emoji-animated') {
+      const emoji = overlay.emojiButton?.emoji || '🎉';
+      const size = overlay.emojiButton?.size || 48;
+      const animation = overlay.emojiButton?.animation || 'pulse';
+      overlayButtonHTML = `<button type="button" class="emoji-button emoji-${animation}" style="font-size: ${size}px; width: ${size + 20}px; height: ${size + 20}px;">${emoji}</button>`;
+    } else if (overlay.buttonStyle === 'text-framed') {
+      const text = overlay.textButton?.text || 'Start Experience';
+      const frameStyle = overlay.textButton?.frameStyle || 'solid';
+      const buttonBg =
+        overlay.textButton?.backgroundColor ||
+        project.data.globalStyle?.colors?.button?.background ||
+        'white';
+      const buttonText =
+        overlay.textButton?.textColor ||
+        project.data.globalStyle?.colors?.button?.text ||
+        '#333';
+      const buttonBorder =
+        overlay.textButton?.borderColor ||
+        project.data.globalStyle?.colors?.button?.border ||
+        '#333';
+
+      // Build inline style for button
+      let buttonStyle = '';
+      if (
+        frameStyle === 'solid' ||
+        frameStyle === 'dashed' ||
+        frameStyle === 'double' ||
+        frameStyle === 'shadow' ||
+        frameStyle === 'rectangle' ||
+        frameStyle === 'square'
+      ) {
+        buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
+      } else if (frameStyle === 'circle' || frameStyle === 'oval') {
+        buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
+      }
+
+      overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}"${
+        buttonStyle ? ` style="${buttonStyle}"` : ''
+      }>${escapeHtmlForExport(text)}</button>`;
+    }
+  }
+
+  const overlayInnerHTML = `
+    <div class="overlay-inner">
+      ${overlayTitleHTML}
+      ${overlayTextHTML}
+      ${overlayButtonHTML}
+    </div>
+  `;
+
+  // Rebuild overlay block using the original opening/closing tags but our inner HTML
+  const newOverlayBlock = `${match[1]}${overlayInnerHTML}${match[2]}`;
+  return html.replace(overlayRegex, newOverlayBlock);
 }
 
 function updateTemplateOnclickHandlers(html: string): string {
@@ -911,7 +1278,7 @@ function updateTemplateOnclickHandlers(html: string): string {
   return html;
 }
 
-function buildOrganizedHTML(html: string, project: Project, templateMeta: TemplateMeta): string {
+async function buildOrganizedHTML(html: string, project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): Promise<string> {
   // Extract existing <style> tags from head to consolidate in styles section
   let existingStyles = '';
   const styleMatches = html.matchAll(/<style>([\s\S]*?)<\/style>/gi);
@@ -941,7 +1308,12 @@ function buildOrganizedHTML(html: string, project: Project, templateMeta: Templa
   const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
   
   // Build runtime logic section (GiftApp with integrated AudioManager + animations)
-  const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${buildGiftAppNamespace(project, templateMeta)}\n${generateAnimationScript(project)}`;
+  // Note: buildGiftAppNamespace returns a complete <script>...</script> block
+  // generateAnimationScript returns raw JS, so we need to wrap it in script tags
+  const giftAppScript = buildGiftAppNamespace(project, templateMeta, mediaDataUrls);
+  const animationScript = generateAnimationScript(project);
+  // Extract the closing </script> from giftAppScript and inject animation before it
+  const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${giftAppScript.replace('</script>', `${animationScript}\n</script>`)}`;
   
   // Inject styles before </head> or before <body> if no </head>
   if (html.includes('</head>')) {
@@ -1640,6 +2012,29 @@ function getPreviewLayoutStyles(): string {
     cursor: not-allowed;
   }
 
+  /* ========== Overlay Layout (matches preview main screen overlay) ========== */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68));
+    color: white;
+    z-index: 1000;
+    cursor: pointer;
+  }
+
+  .overlay-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2rem;
+  }
+
   /* Optional Title Section */
   .screen-title-section {
     flex: none;
@@ -1803,7 +2198,11 @@ function getPreviewLayoutStyles(): string {
 
   /* Hidden class for screen visibility */
   .screen.hidden {
-    display: none;
+    display: none !important;
+  }
+  
+  .overlay.hidden {
+    display: none !important;
   }
   `;
 }
@@ -2160,23 +2559,36 @@ function getGalleryStyles(): string {
   }`;
 }
 
-function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): string {
+function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
   const data = project.data;
-  const screens = templateMeta.screens.map(s => s.screenId);
-  
+
+  // Get exported screens (single source of truth)
+  const exportScreens = getExportScreens(project, templateMeta);
+  const allScreenIds = exportScreens.map(s => s.screenId);
+
+  // Find the main screen ID (order === 1) - this is shown as overlay, not in navigation
+  const mainScreen = exportScreens.find((s) => s.order === 1);
+  const mainScreenId = mainScreen?.screenId || null;
+
+  // Navigation screens: skip the "main" screen (order === 1) so that
+  // after the overlay, we go directly to the first content screen.
+  const navigationScreens = exportScreens
+    .filter((s) => s.order !== 1)
+    .map((s) => s.screenId);
+
   // Set global audio if present
-  const globalAudioData = data.audio.global ? data.audio.global.data : null;
-  
+  const globalAudioData = data.audio.global ? (mediaDataUrls.audio.get(data.audio.global.id) || null) : null;
+
   // Build audio data map for screens
   const screenAudioMap: Record<string, { data: string; extendMusicToNext?: boolean }> = {};
-  for (const screen of templateMeta.screens) {
+  for (const screen of exportScreens) {
     if (screen.supportsMusic) {
       const screenData = data.screens[screen.screenId];
       if (screenData?.audioId) {
         const audio = data.audio.screens[screen.screenId];
         if (audio) {
           screenAudioMap[screen.screenId] = {
-            data: audio.data,
+            data: mediaDataUrls.audio.get(audio.id) || '',
             extendMusicToNext: screenData.extendMusicToNext
           };
         }
@@ -2192,7 +2604,9 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
   // GiftApp namespace - all runtime functions isolated here (including AudioManager)
   var GiftApp = (function() {
     var currentScreenIndex = 0;
-    var screens = ${JSON.stringify(screens)};
+    // Screens involved in navigation (main screen is overlaid separately)
+    var screens = ${JSON.stringify(navigationScreens)};
+    var mainScreenId = ${mainScreenId ? JSON.stringify(mainScreenId) : 'null'};
     var screenAudioMap = ${JSON.stringify(screenAudioMap)};
     var globalAudioData = ${globalAudioData ? JSON.stringify(globalAudioData) : 'null'};
     var carouselData = {};
@@ -2292,7 +2706,29 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
     }
     
     function showScreen(index) {
-      if (index < 0 || index >= screens.length) return;
+      if (index < 0 || index >= screens.length) {
+        console.warn('showScreen: Invalid index', index, 'screens.length:', screens.length);
+        return;
+      }
+      
+      // Always hide the main screen element if it exists (it's shown as overlay, not in navigation)
+      if (mainScreenId) {
+        var mainScreenEl = document.getElementById('screen-' + mainScreenId);
+        if (!mainScreenEl) {
+          mainScreenEl = document.getElementById(mainScreenId);
+        }
+        if (mainScreenEl) {
+          mainScreenEl.classList.add('hidden');
+        }
+      }
+      
+      // Make sure overlay is hidden
+      var overlay = document.getElementById('overlay');
+      if (overlay) {
+        overlay.classList.add('hidden');
+      }
+      
+      var screenShown = false;
       screens.forEach(function(screenId, i) {
         // Try new format first (screen- prefix)
         var screen = document.getElementById('screen-' + screenId);
@@ -2303,26 +2739,73 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
         if (screen) {
           if (i === index) {
             screen.classList.remove('hidden');
+            // Explicitly set display to flex to ensure visibility (matches .screen CSS)
+            screen.style.display = 'flex';
+            screenShown = true;
           } else {
             screen.classList.add('hidden');
+            screen.style.display = 'none'; // Force hide with inline style
           }
+        } else {
+          console.warn('showScreen: Screen element not found for screenId:', screenId, 'tried both screen-' + screenId + ' and ' + screenId);
         }
       });
+      
+      if (!screenShown && screens.length > 0) {
+        console.error('showScreen: Failed to show screen at index', index, 'screenId:', screens[index]);
+        // Debug: Log all screen elements in the DOM
+        var allScreenElements = document.querySelectorAll('[id^="screen-"], [id="single"], [id="custom"]');
+        console.log('Available screen elements in DOM:', Array.from(allScreenElements).map(function(el) { return el.id; }));
+        console.log('Looking for screenId:', screens[index]);
+      }
+      
       currentScreenIndex = index;
       updateButtonStates();
     }
     
     function startExperience() {
+      // First, hide the overlay immediately
       var overlay = document.getElementById('overlay');
-      if (overlay) overlay.classList.add('hidden');
+      if (overlay) {
+        overlay.classList.add('hidden');
+        overlay.style.display = 'none'; // Force hide with inline style as backup
+      }
+      
       var nav = document.getElementById('navigation');
       if (nav) nav.classList.remove('hidden');
-      showScreen(0);
+      
+      // Explicitly hide the main screen element (it's shown as overlay, not as a regular screen)
+      if (mainScreenId) {
+        var mainScreenEl = document.getElementById('screen-' + mainScreenId);
+        if (!mainScreenEl) {
+          mainScreenEl = document.getElementById(mainScreenId);
+        }
+        if (mainScreenEl) {
+          mainScreenEl.classList.add('hidden');
+          mainScreenEl.style.display = 'none'; // Force hide with inline style as backup
+        }
+      }
+      
+      // Show the first content screen (main is excluded from navigation screens)
+      // Only proceed if we have screens to show
+      if (screens.length > 0) {
+        showScreen(0);
+      } else {
+        console.error('startExperience: No screens available to show!');
+      }
+      
       updateButtonStates();
       
-      // Start global audio if available
+      // Start global audio if available, otherwise start first screen's audio if it exists
       if (globalAudioData) {
         playGlobalAudio();
+      } else if (screens.length > 0) {
+        var firstScreenId = screens[0];
+        var firstScreenData = screenAudioMap[firstScreenId];
+        if (firstScreenData) {
+          // Play the first screen's music once (no loop)
+          playScreenAudio(firstScreenId, firstScreenData.data, false);
+        }
       }
     }
     
@@ -2602,11 +3085,19 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta): st
       if (overlay) {
         var startButton = overlay.querySelector('button');
         if (startButton) {
-          startButton.addEventListener('click', startExperience);
+          startButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            startExperience();
+          });
         }
-        // Also allow clicking the overlay itself to start
+        // Also allow clicking the overlay itself to start (but not if clicking on the button)
         overlay.addEventListener('click', function(e) {
-          if (e.target === overlay || e.target === overlay.querySelector('h1') || e.target === overlay.querySelector('p')) {
+          // Don't trigger if clicking on button or button's children
+          if (e.target.closest && e.target.closest('button')) {
+            return;
+          }
+          if (e.target === overlay || e.target === overlay.querySelector('h1') || e.target === overlay.querySelector('p') || (e.target.closest && e.target.closest('.overlay-inner'))) {
             startExperience();
           }
         });

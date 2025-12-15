@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
 import type { TemplateMeta } from '../../types/template';
-import type { AudioFile } from '../../types/project';
+import type { ProcessedAudio } from '../../utils/audioProcessor';
 import { AudioUpload } from '../ui/AudioUpload';
 import { Button } from '../ui/Button';
 import { formatFileSize } from '../../utils/audioProcessor';
+import { saveProcessedAudio } from '../../services/mediaService';
 
 interface MusicStepProps {
   templateMeta: TemplateMeta | null;
@@ -16,20 +17,30 @@ export function MusicStep({ templateMeta }: MusicStepProps) {
 
   if (!currentProject) return null;
 
-  const handleGlobalAudioUpload = (audio: AudioFile) => {
+  const handleGlobalAudioUpload = async (processed: ProcessedAudio) => {
+    if (!currentProject) return;
+
+    // Save to MediaStore
+    const result = await saveProcessedAudio(currentProject.id, processed);
+
     updateProject({
       ...currentProject,
       data: {
         ...currentProject.data,
         audio: {
           ...currentProject.data.audio,
-          global: audio,
+          global: result.metadata,
         },
       },
     });
   };
 
-  const handleScreenAudioUpload = (screenId: string, audio: AudioFile) => {
+  const handleScreenAudioUpload = async (screenId: string, processed: ProcessedAudio) => {
+    if (!currentProject) return;
+
+    // Save to MediaStore
+    const result = await saveProcessedAudio(currentProject.id, processed);
+
     updateProject({
       ...currentProject,
       data: {
@@ -38,14 +49,14 @@ export function MusicStep({ templateMeta }: MusicStepProps) {
           ...currentProject.data.audio,
           screens: {
             ...currentProject.data.audio.screens,
-            [screenId]: audio,
+            [screenId]: result.metadata,
           },
         },
         screens: {
           ...currentProject.data.screens,
           [screenId]: {
             ...currentProject.data.screens[screenId],
-            audioId: audio.id,
+            audioId: result.metadata.id,
           },
         },
       },

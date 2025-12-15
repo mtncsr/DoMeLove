@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ImageData } from '../../types/project';
+import { useMediaPreviewUrl } from '../../hooks/useMediaPreviewUrl';
 
 interface GalleryPreviewProps {
   images: ImageData[];
   galleryLayout: 'carousel' | 'gridWithZoom' | 'fullscreenSlideshow' | 'heroWithThumbnails' | 'timeline';
+  projectId: string;
   currentIndex?: number;
   onIndexChange?: (index: number) => void;
   onImageClick?: (image: ImageData, index: number) => void;
@@ -14,6 +16,7 @@ interface GalleryPreviewProps {
 export function GalleryPreview({
   images,
   galleryLayout,
+  projectId,
   currentIndex: controlledIndex,
   onIndexChange,
   onImageClick,
@@ -47,7 +50,7 @@ export function GalleryPreview({
   useEffect(() => {
     if (galleryLayout === 'fullscreenSlideshow' && images.length > 1 && !isPaused) {
       slideshowIntervalRef.current = setInterval(() => {
-        setCurrentIndex((prev) => (prev + 1) % images.length);
+        setCurrentIndex((currentIndex + 1) % images.length);
       }, 4000);
       return () => {
         if (slideshowIntervalRef.current) {
@@ -69,9 +72,9 @@ export function GalleryPreview({
   if (images.length === 1) {
     return (
       <div className={className}>
-        <img
-          src={images[0].data}
-          alt={images[0].filename}
+        <PreviewImage
+          projectId={projectId}
+          image={images[0]}
           className="w-full h-auto object-contain rounded-lg cursor-pointer"
           onClick={() => handleImageClick(images[0], 0)}
         />
@@ -85,9 +88,9 @@ export function GalleryPreview({
     return (
       <div className={`flex flex-col gap-3 ${className}`}>
         <div className="relative flex-1 min-h-0 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
-          <img
-            src={currentImage.data}
-            alt={currentImage.filename}
+          <PreviewImage
+            projectId={projectId}
+            image={currentImage}
             className="w-full h-full object-contain cursor-pointer"
             onClick={() => handleImageClick(currentImage, currentIndex)}
           />
@@ -115,10 +118,10 @@ export function GalleryPreview({
         <div className="flex-none">
           <div className="flex gap-2 overflow-x-auto pb-1">
             {images.map((image, index) => (
-              <img
+              <PreviewImage
                 key={image.id}
-                src={image.data}
-                alt={image.filename}
+                projectId={projectId}
+                image={image}
                 className={`object-contain rounded cursor-pointer border-2 transition-colors bg-gray-100 ${
                   isMobile ? 'w-16 h-16' : 'w-14 h-14'
                 } ${
@@ -148,9 +151,9 @@ export function GalleryPreview({
             className="relative aspect-square overflow-hidden rounded-lg bg-gray-100 cursor-pointer group"
             onClick={() => handleImageClick(image, index)}
           >
-            <img
-              src={image.data}
-              alt={image.filename}
+            <PreviewImage
+              projectId={projectId}
+              image={image}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           </div>
@@ -175,9 +178,9 @@ export function GalleryPreview({
                 index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
               }`}
             >
-              <img
-                src={image.data}
-                alt={image.filename}
+              <PreviewImage
+                projectId={projectId}
+                image={image}
                 className="w-full h-full object-contain cursor-pointer"
                 onClick={() => handleImageClick(image, index)}
               />
@@ -217,19 +220,19 @@ export function GalleryPreview({
     return (
       <div className={`flex flex-col gap-3 ${className}`}>
         <div className="relative w-full rounded-lg bg-gray-100 overflow-hidden">
-          <img
-            src={heroImage.data}
-            alt={heroImage.filename}
+          <PreviewImage
+            projectId={projectId}
+            image={heroImage}
             className="w-full h-auto max-h-[60vh] object-contain cursor-pointer"
             onClick={() => handleImageClick(heroImage, currentIndex)}
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 justify-center flex-wrap">
           {images.map((image, index) => (
-            <img
+            <PreviewImage
               key={image.id}
-              src={image.data}
-              alt={image.filename}
+              projectId={projectId}
+              image={image}
               className={`object-cover rounded-lg cursor-pointer border-2 transition-all w-20 h-20 sm:w-24 sm:h-24 ${
                 index === currentIndex
                   ? 'border-blue-500 shadow-lg scale-105'
@@ -250,9 +253,9 @@ export function GalleryPreview({
         {images.map((image, index) => (
           <div key={image.id} className="flex gap-4 items-start relative">
             <div className="flex-shrink-0 w-32 h-32 sm:w-48 sm:h-48 rounded-xl overflow-hidden bg-gray-100 shadow-md cursor-pointer">
-              <img
-                src={image.data}
-                alt={image.filename}
+              <PreviewImage
+                projectId={projectId}
+                image={image}
                 className="w-full h-full object-cover"
                 onClick={() => handleImageClick(image, index)}
               />
@@ -276,14 +279,30 @@ export function GalleryPreview({
     <div className={className}>
       <div className="grid grid-cols-2 gap-4">
         {images.map((image) => (
-          <img
+          <PreviewImage
             key={image.id}
-            src={image.data}
-            alt={image.filename}
+            projectId={projectId}
+            image={image}
             className="w-full h-32 object-cover rounded-lg"
           />
         ))}
       </div>
     </div>
   );
+}
+
+function PreviewImage({
+  projectId,
+  image,
+  className,
+  onClick,
+}: {
+  projectId: string;
+  image: ImageData;
+  className?: string;
+  onClick?: () => void;
+}) {
+  const { url } = useMediaPreviewUrl(projectId, image.id);
+  const src = url || image.previewDataUrl || '';
+  return <img src={src} alt={image.filename} className={className} onClick={onClick} />;
 }

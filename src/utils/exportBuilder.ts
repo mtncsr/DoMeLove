@@ -8,13 +8,21 @@ import { getExportScreens } from './screenSource';
 
 // AudioManager is now integrated into GiftApp - no separate global needed
 
+export interface MediaUrls {
+  images: Map<string, string>;
+  audio: Map<string, string>;
+  videos: Map<string, string>;
+}
+
+export interface BuildHtmlOptions {
+  startScreenId?: string;
+  singleScreenOnly?: boolean;
+}
+
 async function resolveMediaDataUrls(
   project: Project,
   templateMeta: TemplateMeta
-): Promise<{
-  images: Map<string, string>;
-  audio: Map<string, string>;
-}> {
+): Promise<MediaUrls> {
   // CRITICAL: Get exported screens FIRST (single source of truth)
   // Do NOT iterate templateMeta.screens directly
   const exportScreens = getExportScreens(project, templateMeta);
@@ -40,6 +48,15 @@ async function resolveMediaDataUrls(
     const audio = project.data.audio.screens[screen.screenId];
     if (audio?.id) {
       audioIds.add(audio.id);
+    }
+  }
+
+  // Collect video IDs
+  const videoIds = new Set<string>();
+  for (const screen of exportScreens) {
+    const screenData = project.data.screens[screen.screenId];
+    if (screenData?.mediaMode === 'video' && screenData.videoId) {
+      videoIds.add(screenData.videoId);
     }
   }
 
@@ -98,17 +115,38 @@ async function resolveMediaDataUrls(
     6
   );
 
-  return { images: imageMap, audio: audioMap };
+  // Resolve videos
+  const videoMap = new Map<string, string>();
+  for (const videoId of videoIds) {
+    const blob = await getVideoBlob(project.id, videoId);
+    if (!blob) {
+      const videoMeta = project.data.videos.find(v => v.id === videoId);
+      throw new Error(`Video blob missing: ${videoMeta?.filename || videoId}. Please re-upload.`);
+    }
+    const dataUrl = await blobToDataUrl(blob);
+    videoMap.set(videoId, dataUrl);
+  }
+
+  return { images: imageMap, audio: audioMap, videos: videoMap };
 }
 
-export async function buildExportHTML(project: Project, templateMeta: TemplateMeta): Promise<string> {
-  // Resolve all media data URLs FIRST (before generating/transforming screens so images can be embedded)
-  const mediaDataUrls = await resolveMediaDataUrls(project, templateMeta);
+/**
+ * Core HTML builder function - used by both preview and export
+ * This is the single source of truth for HTML generation
+ */
+export async function buildGiftHtmlFromTemplate(
+  project: Project,
+  templateMeta: TemplateMeta,
+  screens: ScreenConfig[],
+  mediaUrls: MediaUrls,
+  mode: 'preview' | 'export',
+  options: BuildHtmlOptions = {}
+): Promise<string> {
 
-  // Load template HTML or generate for custom templates (now with mediaDataUrls available)
+  // Load template HTML or generate for custom templates
   let html: string;
   if (project.templateId === 'custom' && project.data.customTemplate?.isCustom) {
-    html = generateCustomTemplateHTML(project, templateMeta, mediaDataUrls);
+    html = generateCustomTemplateHTML(project, templateMeta, mediaUrls);
   } else {
     html = await loadTemplateHTML(project.templateId);
   }
@@ -116,33 +154,47 @@ export async function buildExportHTML(project: Project, templateMeta: TemplateMe
   // Update template onclick handlers to use GiftApp namespace
   html = updateTemplateOnclickHandlers(html);
 
-  // Transform existing template screens to preview-matching structure (now with mediaDataUrls available)
+  // Transform existing template screens to preview-matching structure
   if (project.templateId !== 'custom' || !project.data.customTemplate?.isCustom) {
-    html = transformTemplateScreensToPreviewStructure(html, project, templateMeta, mediaDataUrls);
+    html = transformTemplateScreensToPreviewStructure(html, project, templateMeta, screens, mediaUrls);
   }
 
-   // Ensure the overlay screen in the final HTML matches the "main" screen design
-   // and uses the configured styled start button (for both built-in and custom templates).
-   html = transformOverlayToPreviewMainScreen(html, project, templateMeta);
+  // Ensure the overlay screen in the final HTML matches the "main" screen design
+  html = transformOverlayToPreviewMainScreen(html, project, templateMeta);
 
   // Replace simple flat placeholders
-  html = replacePlaceholders(html, project, templateMeta, mediaDataUrls);
+  html = replacePlaceholders(html, project, templateMeta, screens, mediaUrls);
 
   // Handle repeating structures (galleries, blessings) based on template-meta
-  html = injectRepeatingStructures(html, project, templateMeta, mediaDataUrls);
+  html = injectRepeatingStructures(html, project, templateMeta, screens, mediaUrls);
 
-  // Inject videos (fetch blobs and embed data URLs)
-  html = await injectVideos(html, project, templateMeta);
+  // Inject videos using provided mediaUrls
+  html = await injectVideos(html, project, screens, mediaUrls, mode);
 
   // Add HTML section comments and inject all scripts/styles in organized sections
-  html = await buildOrganizedHTML(html, project, templateMeta, mediaDataUrls);
+  html = await buildOrganizedHTML(html, project, templateMeta, screens, mediaUrls, mode, options);
 
-  // Dev-time verification (only in development)
-  if (import.meta.env.DEV) {
+  // Dev-time verification (only in development, export mode)
+  if (import.meta.env.DEV && mode === 'export') {
     verifyExportStructure(html);
   }
 
   return html;
+}
+
+/**
+ * Legacy export function - maintains backward compatibility
+ * Now uses the unified builder internally
+ */
+export async function buildExportHTML(project: Project, templateMeta: TemplateMeta): Promise<string> {
+  // Resolve all media data URLs FIRST (before generating/transforming screens so images can be embedded)
+  const mediaUrls = await resolveMediaDataUrls(project, templateMeta);
+
+  // Get screens using single source of truth
+  const screens = getExportScreens(project, templateMeta);
+
+  // Build HTML using unified builder
+  return buildGiftHtmlFromTemplate(project, templateMeta, screens, mediaUrls, 'export', {});
 }
 
 /**
@@ -193,10 +245,11 @@ function generatePreviewMatchingScreenHTML(
   screenData: ScreenData,
   project: Project,
   templateMeta: TemplateMeta,
-  mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }
+  mediaUrls: MediaUrls
 ): string {
   const titleText = (screenData.title || '').trim();
   const bodyText = (screenData.text || '').trim();
+  
   const mediaMode = screenData.mediaMode || 'classic';
   const hasVideo = mediaMode === 'video' && !!screenData.videoId;
   const isMainScreen = screen.order === 1;
@@ -222,20 +275,20 @@ function generatePreviewMatchingScreenHTML(
     const galleryLayout = screenData.galleryLayout || 'carousel';
     switch (galleryLayout) {
       case 'gridWithZoom':
-        mediaContent = generateGridWithZoomHTML(screen.screenId, screenImages, mediaDataUrls.images);
+        mediaContent = generateGridWithZoomHTML(screen.screenId, screenImages, mediaUrls.images);
         break;
       case 'fullscreenSlideshow':
-        mediaContent = generateFullscreenSlideshowHTML(screen.screenId, screenImages, mediaDataUrls.images);
+        mediaContent = generateFullscreenSlideshowHTML(screen.screenId, screenImages, mediaUrls.images);
         break;
       case 'heroWithThumbnails':
-        mediaContent = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaDataUrls.images);
+        mediaContent = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaUrls.images);
         break;
       case 'timeline':
-        mediaContent = generateTimelineHTML(screen.screenId, screenImages, mediaDataUrls.images);
+        mediaContent = generateTimelineHTML(screen.screenId, screenImages, mediaUrls.images);
         break;
       case 'carousel':
       default:
-        mediaContent = generateImageCarouselHTML(screen.screenId, screenImages, mediaDataUrls.images);
+        mediaContent = generateImageCarouselHTML(screen.screenId, screenImages, mediaUrls.images);
         break;
     }
   }
@@ -261,26 +314,39 @@ function generatePreviewMatchingScreenHTML(
     backgroundStyle = `background: ${designConfig.background};`;
   }
   
-  // For main screen, use overlay gradient background
+  // Default pinkish gradient background for all screens (unless explicitly overridden above)
+  // For main screen with overlay, always use overlay gradient
   if (isMainScreen && project.data.overlay) {
-    backgroundStyle = 'background: linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68));';
+    backgroundStyle = 'background: linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68)) !important;';
+  } else if (!backgroundStyle) {
+    // Default fallback: use pinkish gradient for all screens if no background was set
+    backgroundStyle = 'background: linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68)) !important;';
+  } else {
+    // Add !important to ensure inline styles override CSS rules
+    backgroundStyle = backgroundStyle.replace(/background[^;]*;?/gi, (match) => {
+      if (!match.includes('!important')) {
+        return match.replace(';', '') + ' !important;';
+      }
+      return match;
+    });
   }
   
   // Determine text colors (screen override > global > default)
   const textColor = screenStyle?.colors?.text || globalStyle?.colors?.text || screenData.textColor || '#374151';
   const titleColor = screenStyle?.colors?.title || globalStyle?.colors?.title || screenData.titleColor || '#111827';
   
-  // For main screen, use white text on gradient background
-  const finalTitleColor = isMainScreen && project.data.overlay 
+  // Use white text on pinkish gradient background (default or main screen overlay)
+  const isUsingDefaultGradient = backgroundStyle.includes('linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68))');
+  const finalTitleColor = isUsingDefaultGradient
     ? (titleColor === '#111827' ? 'white' : titleColor)
     : titleColor;
-  const finalTextColor = isMainScreen && project.data.overlay
+  const finalTextColor = isUsingDefaultGradient
     ? (textColor === '#374151' ? 'white' : textColor)
     : textColor;
   
-  // Build inline styles for text elements
-  const titleStyle = finalTitleColor ? ` style="color: ${finalTitleColor};"` : '';
-  const textStyle = finalTextColor ? ` style="color: ${finalTextColor};"` : '';
+  // Build inline styles for text elements (just the CSS properties, not the style="..." wrapper)
+  const titleStyle = finalTitleColor ? `color: ${finalTitleColor};` : '';
+  const textStyle = finalTextColor ? `color: ${finalTextColor};` : '';
 
   // Main screen layout (matching ScreenPreview)
   if (isMainScreen) {
@@ -318,30 +384,38 @@ function generatePreviewMatchingScreenHTML(
       overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}" style="${buttonStyle}">${escapeHtmlForExport(text)}</button>`;
     }
     
+    // Build style attributes properly for main screen (only color, font-size handled by CSS class)
+    const mainTitleStyleAttr = titleStyle ? titleStyle : '';
+    const mainTextStyleAttr = textStyle ? textStyle : '';
+    
     return `
     <div class="screen hidden" id="screen-${screen.screenId}" style="${backgroundStyle}">
-      <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-center; text-align: center; padding: 2rem; gap: 1.5rem;">
-        ${titleText ? `<h1 class="screen-title" style="font-weight: bold; font-size: 1.875rem; ${titleStyle}">${escapeHtmlForExport(titleText)}</h1>` : ''}
-        ${project.data.mainGreeting ? `<p style="font-size: 1.125rem; max-width: 42rem; line-height: 1.75; ${textStyle}">${escapeHtmlForExport(project.data.mainGreeting)}</p>` : ''}
+      <div style="min-height: 0; flex-shrink: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; padding: clamp(1rem, 2vw, 2rem); gap: clamp(1rem, 1.5vw, 1.5rem);">
+        ${titleText ? `<h1 class="screen-title"${mainTitleStyleAttr ? ` style="${mainTitleStyleAttr}"` : ''}>${escapeHtmlForExport(titleText)}</h1>` : ''}
+        ${project.data.mainGreeting ? `<p class="screen-text"${mainTextStyleAttr ? ` style="${mainTextStyleAttr}"` : ''}>${escapeHtmlForExport(project.data.mainGreeting)}</p>` : ''}
         ${overlayButtonHTML}
       </div>
     </div>
     `;
   }
   
-  // Get screen config from templateMeta to check placeholders
-  const screenConfig = templateMeta.screens.find(s => s.screenId === screen.screenId);
-  const hasTitlePlaceholder = screenConfig?.placeholders?.includes('title');
-  const hasTextPlaceholder = screenConfig?.placeholders?.includes('text');
+  // Always render title/text if they exist (regardless of placeholder config)
+  // This matches user expectations - if they entered title/text, it should display
+  const escapedTitle = titleText ? escapeHtmlForExport(titleText) : '';
+  const escapedText = bodyText ? escapeHtmlForExport(bodyText) : '';
+  // Build style attribute properly (only color, font-size and layout handled by CSS classes)
+  const titleStyleAttr = titleStyle ? titleStyle : '';
+  const textStyleAttr = textStyle ? textStyle : '';
+  const titleHTML = titleText ? `<h1 class="screen-title"${titleStyleAttr ? ` style="${titleStyleAttr}"` : ''}>${escapedTitle}</h1>` : '';
+  const textHTML = bodyText ? `<p class="screen-text"${textStyleAttr ? ` style="${textStyleAttr}"` : ''}>${escapedText}</p>` : '';
   
-  // Regular screen layout (matching ScreenPreview)
   return `
     <div class="screen hidden" id="screen-${screen.screenId}" style="${backgroundStyle}">
-      <div style="padding: 2rem; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.5rem;">
-        ${hasTitlePlaceholder && titleText ? `<h1 class="screen-title" style="font-weight: bold; font-size: 1.875rem; ${titleStyle}">${escapeHtmlForExport(titleText)}</h1>` : ''}
-        ${hasTextPlaceholder && bodyText ? `<p class="screen-text" style="font-size: 1.125rem; max-width: 42rem; line-height: 1.75; ${textStyle}">${escapeHtmlForExport(bodyText)}</p>` : ''}
-        ${!hasVideo && hasImages ? `<div style="width: 100%; max-width: 42rem;">${mediaContent}</div>` : ''}
-        ${hasVideo && screenData.videoId ? `<div style="width: 100%; max-width: 24rem;">${mediaContent}</div>` : ''}
+      <div style="min-height: 0; flex-shrink: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; padding: clamp(1rem, 2vw, 2rem); gap: clamp(1rem, 1.5vw, 1.5rem);">
+        ${titleHTML}
+        ${textHTML}
+        ${!hasVideo && hasImages ? `<div style="width: 100%; max-width: 100%; flex-shrink: 1; min-width: 0;">${mediaContent}</div>` : ''}
+        ${hasVideo && screenData.videoId ? `<div style="width: 100%; max-width: 100%; flex-shrink: 1; min-width: 0;">${mediaContent}</div>` : ''}
         ${!titleText && !bodyText && !hasImages && !screenData.videoId ? `
           <div style="color: #9ca3af; text-align: center;">
             <div style="font-size: 3.75rem; margin-bottom: 1rem;">📄</div>
@@ -350,14 +424,14 @@ function generatePreviewMatchingScreenHTML(
         ` : ''}
       </div>
     </div>
-  `;
+    `;
 }
 
-function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
+function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta, mediaUrls: MediaUrls): string {
   const screens = getExportScreens(project, templateMeta);
   const screensHTML = screens.map((screen) => {
     const screenData = project.data.screens[screen.screenId] || {};
-    return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaDataUrls);
+    return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls);
   }).join('\n');
 
   // Derive overlay title/text from the main screen configuration (order === 1),
@@ -559,7 +633,7 @@ function generateCustomScreenStyles(project: Project): string {
   return customStyles.length > 0 ? `/* Custom Screen Styles */\n${customStyles.join('\n')}` : '';
 }
 
-function replacePlaceholders(html: string, project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
+function replacePlaceholders(html: string, project: Project, templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls): string {
   const data = project.data;
 
   // Replace global placeholders
@@ -569,8 +643,7 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
   html = html.replace(/\{\{mainGreeting\}\}/g, data.mainGreeting || '');
 
   // Replace screen-specific placeholders
-  const exportScreens = getExportScreens(project, templateMeta);
-  for (const screen of exportScreens) {
+  for (const screen of screens) {
     const screenData = data.screens[screen.screenId] || {};
     
     // Replace title and text
@@ -595,20 +668,20 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
         let galleryHTML: string;
         switch (galleryLayout) {
           case 'gridWithZoom':
-            galleryHTML = generateGridWithZoomHTML(screen.screenId, screenImages, mediaDataUrls.images);
+            galleryHTML = generateGridWithZoomHTML(screen.screenId, screenImages, mediaUrls.images);
             break;
           case 'fullscreenSlideshow':
-            galleryHTML = generateFullscreenSlideshowHTML(screen.screenId, screenImages, mediaDataUrls.images);
+            galleryHTML = generateFullscreenSlideshowHTML(screen.screenId, screenImages, mediaUrls.images);
             break;
           case 'heroWithThumbnails':
-            galleryHTML = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaDataUrls.images);
+            galleryHTML = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaUrls.images);
             break;
           case 'timeline':
-            galleryHTML = generateTimelineHTML(screen.screenId, screenImages, mediaDataUrls.images);
+            galleryHTML = generateTimelineHTML(screen.screenId, screenImages, mediaUrls.images);
             break;
           case 'carousel':
           default:
-            galleryHTML = generateImageCarouselHTML(screen.screenId, screenImages, mediaDataUrls.images);
+            galleryHTML = generateImageCarouselHTML(screen.screenId, screenImages, mediaUrls.images);
             break;
         }
         
@@ -939,12 +1012,10 @@ function generateTimelineHTML(screenId: string, images: ImageData[], imageDataUr
   return timelineHTML;
 }
 
-function injectRepeatingStructures(html: string, project: Project, templateMeta: TemplateMeta, _mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
+function injectRepeatingStructures(html: string, project: Project, _templateMeta: TemplateMeta, screens: ScreenConfig[], _mediaUrls: MediaUrls): string {
   const data = project.data;
 
-  // Get exported screens (single source of truth)
-  const exportScreens = getExportScreens(project, templateMeta);
-  for (const screen of exportScreens) {
+  for (const screen of screens) {
     // Handle gallery screens - only if images are NOT assigned to this screen (use carousel instead)
     if (screen.type === 'gallery' && screen.galleryImageCount) {
       const screenData = data.screens[screen.screenId];
@@ -994,47 +1065,67 @@ function injectRepeatingStructures(html: string, project: Project, templateMeta:
   return html;
 }
 
-async function injectVideos(html: string, project: Project, templateMeta: TemplateMeta): Promise<string> {
+async function injectVideos(html: string, project: Project, screens: ScreenConfig[], mediaUrls: MediaUrls, mode: 'preview' | 'export'): Promise<string> {
   const totalBudgetBytes = MediaConfig.VIDEO_MAX_TOTAL_MB * 1024 * 1024;
   let accumulatedBytes = 0;
   const fallbackBlocks: string[] = [];
 
-  // Get exported screens (single source of truth)
-  const exportScreens = getExportScreens(project, templateMeta);
-  for (const screen of exportScreens) {
+  for (const screen of screens) {
     const screenData = project.data.screens[screen.screenId] || {};
     if (screenData.mediaMode !== 'video' || !screenData.videoId) continue;
 
     const videoMeta = project.data.videos.find((v) => v.id === screenData.videoId);
     if (!videoMeta) {
-      throw new Error(`Video metadata missing for screen "${screen.screenId}".`);
+      if (mode === 'export') {
+        throw new Error(`Video metadata missing for screen "${screen.screenId}".`);
+      }
+      // Preview mode: show placeholder instead of throwing
+      continue;
     }
 
-    const blob = await getVideoBlob(project.id, videoMeta.id);
-    if (!blob) {
-      throw new Error(`Video blob is missing for "${videoMeta.filename}". Please re-upload.`);
+    const videoUrl = mediaUrls.videos.get(screenData.videoId);
+    if (!videoUrl) {
+      if (mode === 'export') {
+        throw new Error(`Video blob is missing for "${videoMeta.filename}". Please re-upload.`);
+      }
+      // Preview mode: show placeholder
+      const placeholderHtml = `
+      <div class="video-block" id="video-${screen.screenId}" style="padding: 2rem; text-align: center; color: #666;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🎥</div>
+        <div>Video preview unavailable</div>
+      </div>
+    `;
+      const placeholder = `{{${screen.screenId}_video}}`;
+      if (html.includes(placeholder)) {
+        html = html.replace(placeholder, placeholderHtml);
+      }
+      continue;
     }
 
-    if (blob.size > MediaConfig.VIDEO_MAX_SIZE_MB * 1024 * 1024) {
-      throw new Error(
-        `Video "${videoMeta.filename}" exceeds max size of ${MediaConfig.VIDEO_MAX_SIZE_MB}MB (actual ${(blob.size / (1024 * 1024)).toFixed(1)}MB).`
-      );
+    // Validate video size in export mode
+    if (mode === 'export') {
+      const blob = await getVideoBlob(project.id, videoMeta.id);
+      if (blob) {
+        if (blob.size > MediaConfig.VIDEO_MAX_SIZE_MB * 1024 * 1024) {
+          throw new Error(
+            `Video "${videoMeta.filename}" exceeds max size of ${MediaConfig.VIDEO_MAX_SIZE_MB}MB (actual ${(blob.size / (1024 * 1024)).toFixed(1)}MB).`
+          );
+        }
+        accumulatedBytes += blob.size;
+        if (accumulatedBytes > totalBudgetBytes) {
+          throw new Error(
+            `Total video size exceeds budget (${(accumulatedBytes / (1024 * 1024)).toFixed(1)}MB > ${MediaConfig.VIDEO_MAX_TOTAL_MB}MB).`
+          );
+        }
+      }
     }
 
-    accumulatedBytes += blob.size;
-    if (accumulatedBytes > totalBudgetBytes) {
-      throw new Error(
-        `Total video size exceeds budget (${(accumulatedBytes / (1024 * 1024)).toFixed(1)}MB > ${MediaConfig.VIDEO_MAX_TOTAL_MB}MB).`
-      );
-    }
-
-    const dataUrl = await blobToDataUrl(blob);
     const poster = videoMeta.posterDataUrl || '';
 
     const videoHtml = `
       <div class="video-block" id="video-${screen.screenId}">
         <video controls playsinline preload="metadata" poster="${poster}">
-          <source src="${dataUrl}" type="${videoMeta.mime || 'video/mp4'}" />
+          <source src="${videoUrl}" type="${videoMeta.mime || 'video/mp4'}" />
         </video>
       </div>
     `;
@@ -1084,9 +1175,7 @@ function escapeHtmlForExport(text: string): string {
 /**
  * Transform existing template screens to preview-matching structure
  */
-function transformTemplateScreensToPreviewStructure(html: string, project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
-  // Get exported screens (single source of truth)
-  const screens = getExportScreens(project, templateMeta);
+function transformTemplateScreensToPreviewStructure(html: string, project: Project, templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls): string {
   const screensToAdd: string[] = [];
   
   for (const screen of screens) {
@@ -1112,8 +1201,8 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
     }
     
     if (match) {
-      // Generate new preview-matching structure with mediaDataUrls
-      const newScreenHTML = generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaDataUrls);
+      // Generate new preview-matching structure with mediaUrls
+      const newScreenHTML = generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls);
       // Replace the old screen with new structure
       html = html.replace(screenRegex, newScreenHTML.trim());
     } else {
@@ -1128,7 +1217,7 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
       const screen = screens.find(s => s.screenId === screenId);
       if (!screen) return '';
       const screenData = project.data.screens[screen.screenId] || {};
-      return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaDataUrls);
+      return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls);
     }).filter(Boolean).join('\n');
     
     // Insert screens before </body> or at the end of body content
@@ -1278,13 +1367,21 @@ function updateTemplateOnclickHandlers(html: string): string {
   return html;
 }
 
-async function buildOrganizedHTML(html: string, project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): Promise<string> {
+async function buildOrganizedHTML(html: string, project: Project, templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls, mode: 'preview' | 'export', options: BuildHtmlOptions = {}): Promise<string> {
   // Extract existing <style> tags from head to consolidate in styles section
   let existingStyles = '';
   const styleMatches = html.matchAll(/<style>([\s\S]*?)<\/style>/gi);
   for (const match of styleMatches) {
     existingStyles += match[1] + '\n';
   }
+  
+  // Remove body background from existing styles (we'll override it)
+  // This prevents template's gray background from showing through
+  existingStyles = existingStyles.replace(/body\s*\{[^}]*background[^}]*\}/gi, '');
+  existingStyles = existingStyles.replace(/body\s*\{[^}]*\}/gi, (match) => {
+    // Remove background property from body if it exists
+    return match.replace(/background[^;]*;?/gi, '').replace(/;\s*;/g, ';');
+  });
   
   // Remove existing inline scripts that define functions (will be replaced by GiftApp)
   html = html.replace(/<script>[\s\S]*?var currentScreenIndex[\s\S]*?<\/script>/gi, '');
@@ -1303,6 +1400,7 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
       animation: pulse 2s infinite;
     }
   `;
+  // Put our overrides LAST to ensure they take precedence
   const allStyles = `${existingStyles.trim()}\n${getPreviewLayoutStyles()}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}\n${generateColorStyles(project)}\n${generateButtonStyles(project)}\n${generateAnimationStyles(project)}`;
   const themedStyles = applyThemeStyles(allStyles, project);
   const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
@@ -1310,7 +1408,7 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
   // Build runtime logic section (GiftApp with integrated AudioManager + animations)
   // Note: buildGiftAppNamespace returns a complete <script>...</script> block
   // generateAnimationScript returns raw JS, so we need to wrap it in script tags
-  const giftAppScript = buildGiftAppNamespace(project, templateMeta, mediaDataUrls);
+  const giftAppScript = buildGiftAppNamespace(project, templateMeta, screens, mediaUrls, mode, options);
   const animationScript = generateAnimationScript(project);
   // Extract the closing </script> from giftAppScript and inject animation before it
   const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${giftAppScript.replace('</script>', `${animationScript}\n</script>`)}`;
@@ -1935,14 +2033,39 @@ function generateAnimationScript(project: Project): string {
 function getPreviewLayoutStyles(): string {
   return `
   /* ========== Preview-Matching Screen Layout ========== */
+  /* Override template body background to prevent gray showing through */
+  body {
+    background: transparent !important;
+  }
   .screen {
     position: relative;
     width: 100%;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #ffffff;
-    overflow: hidden;
+    /* Background is set via inline styles on each screen div */
+    overflow-y: auto;
+  }
+
+  /* Responsive title and text styles */
+  .screen-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+
+  .screen-text {
+    font-size: 1rem;
+    max-width: 42rem;
+    line-height: 1.75;
+  }
+
+  @media (min-width: 768px) {
+    .screen-title {
+      font-size: 1.875rem;
+    }
+    .screen-text {
+      font-size: 1.125rem;
+    }
   }
 
   /* Fixed Top Bar */
@@ -2227,7 +2350,7 @@ function getGalleryStyles(): string {
     height: auto;
     object-fit: contain;
     border-radius: 8px;
-    background: #f3f4f6;
+    background: transparent;
     cursor: pointer;
   }
   @media (min-width: 768px) {
@@ -2559,42 +2682,52 @@ function getGalleryStyles(): string {
   }`;
 }
 
-function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta, mediaDataUrls: { images: Map<string, string>; audio: Map<string, string> }): string {
+function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls, _mode: 'preview' | 'export', options: BuildHtmlOptions = {}): string {
   const data = project.data;
-
-  // Get exported screens (single source of truth)
-  const exportScreens = getExportScreens(project, templateMeta);
-  const allScreenIds = exportScreens.map(s => s.screenId);
+  const { startScreenId, singleScreenOnly } = options;
 
   // Find the main screen ID (order === 1) - this is shown as overlay, not in navigation
-  const mainScreen = exportScreens.find((s) => s.order === 1);
+  const mainScreen = screens.find((s) => s.order === 1);
   const mainScreenId = mainScreen?.screenId || null;
 
   // Navigation screens: skip the "main" screen (order === 1) so that
   // after the overlay, we go directly to the first content screen.
-  const navigationScreens = exportScreens
+  // If singleScreenOnly, only include that screen
+  let navigationScreens = screens
     .filter((s) => s.order !== 1)
     .map((s) => s.screenId);
 
+  if (singleScreenOnly && startScreenId) {
+    const targetScreen = screens.find(s => s.screenId === startScreenId);
+    if (targetScreen && targetScreen.order !== 1) {
+      navigationScreens = [startScreenId];
+    } else if (targetScreen && targetScreen.order === 1) {
+      // Main screen - no navigation screens
+      navigationScreens = [];
+    }
+  }
+
   // Set global audio if present
-  const globalAudioData = data.audio.global ? (mediaDataUrls.audio.get(data.audio.global.id) || null) : null;
+  const globalAudioData = data.audio.global ? (mediaUrls.audio.get(data.audio.global.id) || null) : null;
 
   // Build audio data map for screens
   const screenAudioMap: Record<string, { data: string; extendMusicToNext?: boolean }> = {};
-  for (const screen of exportScreens) {
+  for (const screen of screens) {
     if (screen.supportsMusic) {
       const screenData = data.screens[screen.screenId];
       if (screenData?.audioId) {
         const audio = data.audio.screens[screen.screenId];
         if (audio) {
           screenAudioMap[screen.screenId] = {
-            data: mediaDataUrls.audio.get(audio.id) || '',
+            data: mediaUrls.audio.get(audio.id) || '',
             extendMusicToNext: screenData.extendMusicToNext
           };
         }
       }
     }
   }
+  
+  const isSingleScreenOnly = singleScreenOnly || false;
   
   return `
 <script>
@@ -2610,6 +2743,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta, med
     var screenAudioMap = ${JSON.stringify(screenAudioMap)};
     var globalAudioData = ${globalAudioData ? JSON.stringify(globalAudioData) : 'null'};
     var carouselData = {};
+    var singleScreenOnly = ${isSingleScreenOnly};
     
     // ========== AudioManager (integrated into GiftApp) ==========
     var currentAudio = null;
@@ -2684,6 +2818,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta, med
     // ========== End AudioManager ==========
     
     function updateButtonStates() {
+      if (singleScreenOnly) return; // Don't update buttons in single screen mode
       screens.forEach(function(screenId, i) {
         // Try new format first (screen- prefix)
         var screen = document.getElementById('screen-' + screenId);
@@ -2772,7 +2907,11 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta, med
       }
       
       var nav = document.getElementById('navigation');
-      if (nav) nav.classList.remove('hidden');
+      if (nav && !singleScreenOnly) {
+        nav.classList.remove('hidden');
+      } else if (nav && singleScreenOnly) {
+        nav.classList.add('hidden');
+      }
       
       // Explicitly hide the main screen element (it's shown as overlay, not as a regular screen)
       if (mainScreenId) {
@@ -2788,13 +2927,43 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta, med
       
       // Show the first content screen (main is excluded from navigation screens)
       // Only proceed if we have screens to show
-      if (screens.length > 0) {
+      if (singleScreenOnly && startScreenId) {
+        // Single screen mode: show the target screen directly, hide all others
+        screens.forEach(function(screenId) {
+          var screen = document.getElementById('screen-' + screenId);
+          if (!screen) {
+            screen = document.getElementById(screenId);
+          }
+          if (screen) {
+            if (screenId === startScreenId) {
+              screen.classList.remove('hidden');
+              screen.style.display = 'flex';
+            } else {
+              screen.classList.add('hidden');
+              screen.style.display = 'none';
+            }
+          }
+        });
+        // Also show the main screen if it's the target
+        if (mainScreenId === startScreenId) {
+          var mainScreenEl = document.getElementById('screen-' + mainScreenId);
+          if (!mainScreenEl) {
+            mainScreenEl = document.getElementById(mainScreenId);
+          }
+          if (mainScreenEl) {
+            mainScreenEl.classList.remove('hidden');
+            mainScreenEl.style.display = 'flex';
+          }
+        }
+      } else if (screens.length > 0) {
         showScreen(0);
       } else {
         console.error('startExperience: No screens available to show!');
       }
       
-      updateButtonStates();
+      if (!singleScreenOnly) {
+        updateButtonStates();
+      }
       
       // Start global audio if available, otherwise start first screen's audio if it exists
       if (globalAudioData) {
@@ -2810,6 +2979,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta, med
     }
     
     function nextScreen() {
+      if (singleScreenOnly) return; // Disable navigation in single screen mode
       if (currentScreenIndex < screens.length - 1) {
         var currentScreenIdValue = screens[currentScreenIndex];
         var nextScreenId = screens[currentScreenIndex + 1];
@@ -2839,6 +3009,7 @@ function buildGiftAppNamespace(project: Project, templateMeta: TemplateMeta, med
     }
     
     function previousScreen() {
+      if (singleScreenOnly) return; // Disable navigation in single screen mode
       if (currentScreenIndex > 0) {
         var prevScreenId = screens[currentScreenIndex - 1];
         

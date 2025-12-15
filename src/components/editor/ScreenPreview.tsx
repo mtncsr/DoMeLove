@@ -1,3 +1,12 @@
+/**
+ * @deprecated This component is no longer used for canonical preview.
+ * Preview now uses iframe rendering via giftRenderPipeline.ts
+ * This component may still be used for non-canonical editor UI, but should not be used
+ * for the product preview panels (Screens panel, Preview & Export panel).
+ * 
+ * For canonical preview, use buildGiftHtml() from giftRenderPipeline.ts instead.
+ */
+
 import type { Project } from '../../types/project';
 import type { TemplateMeta, ScreenConfig } from '../../types/template';
 import { GalleryPreview } from './GalleryPreview';

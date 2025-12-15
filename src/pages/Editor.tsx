@@ -124,7 +124,7 @@ function EditorContent() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-slate-700 mb-4">No project selected</p>
-          <Button onClick={() => navigate('/')}>
+          <Button onClick={() => navigate(-1)}>
             {t('common.back')}
           </Button>
         </div>
@@ -160,7 +160,7 @@ function EditorContent() {
           </div>
           <Button
             variant="secondary"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(-1)}
             className="w-full rounded-xl px-4 py-2 text-sm font-semibold"
           >
             {isRTL ? `${t('common.back')} ←` : `← ${t('common.back')}`}

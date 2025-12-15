@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../contexts/ProjectContext';
-import type { TemplateMeta } from '../../types/template';
+import type { TemplateMeta, ScreenConfig } from '../../types/template';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { ScreenImageSelector } from './ScreenImageSelector';
 import { ScreenMusicSelector } from './ScreenMusicSelector';
-import type { ImageData, AudioFile } from '../../types/project';
+import type { ImageData, AudioFile, Project } from '../../types/project';
 import { formatFileSize } from '../../utils/audioProcessor';
 import { Button } from '../ui/Button';
 import { ScreenVideoSelector } from './ScreenVideoSelector';
-import { ScreenPreview } from './ScreenPreview';
+import { buildGiftHtml } from '../../utils/giftRenderPipeline';
 import { getTextDirection } from '../../i18n/config';
 import { ColorPicker } from '../ui/ColorPicker';
 import type { BackgroundAnimationConfig, ButtonStyleConfig } from '../../types/project';
@@ -266,7 +266,7 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-slate-900">Live Preview</h3>
           <div className="glass rounded-2xl p-4 border border-white/60 dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--surface-2)]">
-            <ScreenPreview
+            <ScreenPreviewIframe
               screen={currentScreen}
               project={currentProject}
               templateMeta={templateMeta}
@@ -1989,5 +1989,87 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Screen Preview Iframe Component
+ * Uses unified rendering pipeline to show single screen preview
+ * This replaces the old ScreenPreview React component for canonical preview
+ */
+function ScreenPreviewIframe({
+  screen,
+  project,
+  templateMeta,
+}: {
+  screen: ScreenConfig;
+  project: Project;
+  templateMeta: TemplateMeta | null;
+}) {
+  const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const cacheKeyRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!templateMeta) return;
+
+    const generateCacheKey = () => {
+      const screenData = project.data.screens[screen.screenId] || {};
+      return `${project.id}_${project.templateId}_${screen.screenId}_${project.updatedAt}_${JSON.stringify(screenData)}`;
+    };
+
+    const newCacheKey = generateCacheKey();
+    if (newCacheKey === cacheKeyRef.current) {
+      return;
+    }
+
+    cacheKeyRef.current = newCacheKey;
+    setIsLoading(true);
+
+    buildGiftHtml(project, templateMeta, {
+      mode: 'preview',
+      startScreenId: screen.screenId,
+      singleScreenOnly: true,
+      hideEmptyScreens: false,
+    })
+      .then((html) => {
+        setPreviewHtml(html);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to generate screen preview:', err);
+        setIsLoading(false);
+      });
+  }, [project.id, project.templateId, project.updatedAt, project.data.screens, templateMeta?.templateId, screen.screenId]);
+
+  useEffect(() => {
+    if (iframeRef.current && previewHtml) {
+      const iframe = iframeRef.current;
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(previewHtml);
+        iframeDoc.close();
+      }
+    }
+  }, [previewHtml]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-500">Loading preview...</div>
+      </div>
+    );
+  }
+
+  return (
+    <iframe
+      ref={iframeRef}
+      className="w-full h-full min-h-[400px] border-0 rounded-lg"
+      title={`Preview: ${screen.screenId}`}
+      sandbox="allow-scripts allow-same-origin"
+      style={{ width: '100%', height: '100%', minHeight: '400px' }}
+    />
   );
 }

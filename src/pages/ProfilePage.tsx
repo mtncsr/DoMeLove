@@ -5,14 +5,16 @@ import { Footer } from '../components/layout/Footer';
 import { Button } from '../components/ui/Button';
 import { useProject } from '../contexts/ProjectContext';
 import { useAppSettings } from '../contexts/AppSettingsContext';
-import { Settings } from 'lucide-react';
+import { Settings, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export function ProfilePage() {
-  const { projects, setCurrentProject, deleteProject, exportProject, importProject } = useProject();
+  const { projects, setCurrentProject, deleteProject, exportProject, importProject, updateProject } = useProject();
   const navigate = useNavigate();
   const { autosaveEnabled, setAutosaveEnabled, theme, setTheme } = useAppSettings();
   const [showSettings, setShowSettings] = useState(false);
+  const [editingProject, setEditingProject] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
   const { t } = useTranslation();
 
   const handleEdit = (projectId: string) => {
@@ -61,6 +63,25 @@ export function ProfilePage() {
     input.click();
   };
 
+  const startRename = (projectId: string, currentName: string) => {
+    setEditingProject(projectId);
+    setNewName(currentName);
+  };
+
+  const saveRename = () => {
+    if (!editingProject) return;
+
+    const project = projects.find(p => p.id === editingProject);
+    if (project) {
+      updateProject({
+        ...project,
+        name: newName
+      }, true);
+    }
+    setEditingProject(null);
+    setNewName('');
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
@@ -104,8 +125,42 @@ export function ProfilePage() {
                   key={project.id}
                   className="glass rounded-2xl p-5 border border-white/60 shadow-sm flex flex-col gap-3"
                 >
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900 line-clamp-2">{project.name}</h3>
+                  <div className="flex-1">
+                    {editingProject === project.id ? (
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          className="flex-1 px-3 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveRename();
+                            if (e.key === 'Escape') setEditingProject(null);
+                          }}
+                        />
+                        <Button
+                          onClick={saveRename}
+                          className="px-2 py-1 h-auto bg-green-500 hover:bg-green-600 border-none text-white"
+                          title={t('common.save') || "Save"}
+                        >
+                          <Check size={16} />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="group flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-bold text-slate-900 line-clamp-2">
+                          {project.name}
+                        </h3>
+                        <button
+                          onClick={() => startRename(project.id, project.name)}
+                          className="p-1 text-slate-400 hover:text-fuchsia-600 transition-all opacity-100"
+                          title={t('common.rename') || "Rename"}
+                        >
+                          ✎
+                        </button>
+                      </div>
+                    )}
                     <p className="text-sm text-slate-600">{t('marketing.profile.templatePrefix')} {project.templateId}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">

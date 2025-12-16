@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
@@ -45,6 +46,8 @@ function EditorContent() {
   const { currentStep, setCurrentStep, steps } = useEditor();
   const [templateMeta, setTemplateMeta] = useState<TemplateMeta | null>(null);
   const [debugMode, setDebugMode] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [tempName, setTempName] = useState('');
   const dir = getTextDirection(i18n.language);
   const isRTL = dir === 'rtl';
 
@@ -117,7 +120,32 @@ function EditorContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Ensure tempName stays in sync with currentProject if it's updated externally
+  useEffect(() => {
+    if (currentProject?.name) {
+      // Only update if we are NOT currently renaming to avoid overwriting user input
+      if (!isRenaming) {
+        setTempName(currentProject.name);
+      }
+    }
+  }, [currentProject?.name, isRenaming]);
+
+  const handleStartRename = () => {
+    if (!currentProject) return;
+    setTempName(currentProject.name);
+    setIsRenaming(true);
+  };
+
+  const handleFinishRename = () => {
+    if (!currentProject) return;
+    if (tempName.trim() && tempName !== currentProject.name) {
+      updateProject({ ...currentProject, name: tempName.trim() }, true);
+    }
+    setIsRenaming(false);
+  };
 
   if (!currentProject) {
     return (
@@ -156,7 +184,43 @@ function EditorContent() {
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold text-base">
               ✨
             </div>
-            <h2 className="text-lg font-bold text-slate-900 leading-snug line-clamp-2">{currentProject.name}</h2>
+            <div className={`flex-1 min-w-0 ${isRenaming ? '' : 'group relative'}`}>
+              {isRenaming ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    onBlur={handleFinishRename}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleFinishRename();
+                      if (e.key === 'Escape') setIsRenaming(false);
+                    }}
+                    className="flex-1 text-lg font-bold text-slate-900 bg-white border border-fuchsia-300 rounded px-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                    autoFocus
+                  />
+                  <Button
+                    onClick={handleFinishRename}
+                    className="px-2 py-1 h-auto bg-green-500 hover:bg-green-600 border-none text-white min-w-[32px] flex items-center justify-center"
+                    title={t('common.save') || "Save"}
+                    onMouseDown={(e) => e.preventDefault()} // Prevent blur from firing before click
+                  >
+                    <Check size={16} />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-2 cursor-pointer group"
+                  onClick={handleStartRename}
+                  title={t('common.rename') || "Click to rename"}
+                >
+                  <h2 className="text-lg font-bold text-slate-900 leading-snug line-clamp-2 hover:text-fuchsia-600 transition-colors">
+                    {currentProject.name}
+                  </h2>
+                  <span className="text-slate-400 hover:text-fuchsia-600">✎</span>
+                </div>
+              )}
+            </div>
           </div>
           <Button
             variant="secondary"

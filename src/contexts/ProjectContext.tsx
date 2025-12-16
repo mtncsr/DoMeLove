@@ -11,7 +11,7 @@ interface ProjectContextType {
   projects: Project[];
   currentProject: Project | null;
   createProject: (templateId: string, name: string) => Project;
-  updateProject: (project: Project | ((prev: Project) => Project)) => void;
+  updateProject: (project: Project | ((prev: Project) => Project), saveImmediately?: boolean) => void;
   deleteProject: (projectId: string) => Promise<void>;
   setCurrentProject: (project: Project | null) => void;
   exportProject: (project: Project) => string;
@@ -65,17 +65,17 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       const timer = setTimeout(() => {
         const projectToSave = currentProjectRef.current;
         const projectsToUpdate = projectsRef.current;
-        
+
         if (projectToSave) {
           const updated = {
             ...projectToSave,
             updatedAt: new Date().toISOString(),
           };
-          
-          const updatedProjects = projectsToUpdate.map(p => 
+
+          const updatedProjects = projectsToUpdate.map(p =>
             p.id === updated.id ? updated : p
           );
-          
+
           setProjects(updatedProjects);
           projectsRef.current = updatedProjects;
           storageService.saveProjects(updatedProjects);
@@ -105,7 +105,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     };
 
     setCurrentProjectState(updated);
-    const updatedProjects = projectsRef.current.map(p => 
+    const updatedProjects = projectsRef.current.map(p =>
       p.id === updated.id ? updated : p
     );
     setProjects(updatedProjects);
@@ -143,28 +143,47 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     return newProject;
   }, [projects]);
 
-  const updateProject = useCallback((projectOrUpdater: Project | ((prev: Project) => Project)) => {
+  const updateProject = useCallback((projectOrUpdater: Project | ((prev: Project) => Project), saveImmediately: boolean = false) => {
     // Get the updated project - either use the provided project or call the updater function
-    const updated = typeof projectOrUpdater === 'function' 
+    const updated = typeof projectOrUpdater === 'function'
       ? projectOrUpdater(currentProjectRef.current || currentProject!)
       : projectOrUpdater;
-    
+
+    console.log('[ProjectContext] Updating project:', {
+      id: updated.id,
+      name: updated.name,
+      saveImmediately,
+      currentName: currentProjectRef.current?.name
+    });
+
     const updatedWithTimestamp = {
       ...updated,
       updatedAt: new Date().toISOString(),
     };
-    
+
     // Remove flushSync - let React batch normally
-    currentProjectRef.current = updatedWithTimestamp;
-    setCurrentProjectState(updatedWithTimestamp);
-    
-    // Update projects array but don't save to storage immediately
-    // The debounced auto-save effect will handle storage writes
+    if (currentProjectRef.current?.id === updatedWithTimestamp.id) {
+      currentProjectRef.current = updatedWithTimestamp;
+      setCurrentProjectState(updatedWithTimestamp);
+    }
+
+    // Update projects array but don't save to storage immediately (unless forced)
+    // The debounced auto-save effect will handle storage writes normally
     setProjects(prevProjects => {
-      const updatedProjects = prevProjects.map(p => 
+      const updatedProjects = prevProjects.map(p =>
         p.id === updatedWithTimestamp.id ? updatedWithTimestamp : p
       );
       projectsRef.current = updatedProjects;
+
+      if (saveImmediately) {
+        // Run side effect outside of render cycle
+        console.log('[ProjectContext] Force saving immediately');
+        setTimeout(() => {
+          storageService.saveProjects(updatedProjects);
+          console.log('[ProjectContext] Save complete');
+        }, 0);
+      }
+
       return updatedProjects;
     });
   }, [currentProject]);

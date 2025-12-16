@@ -196,11 +196,10 @@ export function ScreensStep({ templateMeta }: ScreensStepProps) {
             return (
               <div
                 key={screen.screenId}
-                className={`px-4 py-2 cursor-pointer border-b-2 transition-colors min-w-[130px] flex items-center gap-2 rounded-t ${
-                  activeScreenIndex === index
-                    ? 'border-fuchsia-500 text-fuchsia-700 font-semibold bg-white dark:bg-[var(--surface-2)]'
-                    : 'border-transparent text-slate-600 dark:text-[var(--text-strong)] hover:text-slate-900 dark:hover:text-[var(--text-strong)]'
-                }`}
+                className={`px-4 py-2 cursor-pointer border-b-2 transition-colors min-w-[130px] flex items-center gap-2 rounded-t ${activeScreenIndex === index
+                  ? 'border-fuchsia-500 text-fuchsia-700 font-semibold bg-white dark:bg-[var(--surface-2)]'
+                  : 'border-transparent text-slate-600 dark:text-[var(--text-strong)] hover:text-slate-900 dark:hover:text-[var(--text-strong)]'
+                  }`}
                 onClick={() => {
                   setActiveScreenIndex(index);
                   setEditingTabName(null);
@@ -971,7 +970,7 @@ function MainScreenEditor({ project, updateProject, templateId, openEmojiDropdow
                 />
                 <ColorPicker
                   label="Text Color"
-                    value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.textColor || '#374151'}
+                  value={project.data.globalStyle?.colors?.navigation?.[buttonType]?.textColor || '#374151'}
                   onChange={(color) => {
                     updateProject({
                       ...project,
@@ -1377,20 +1376,20 @@ function ScreenEditor({ screen, project, updateProject, allScreenAudioFiles, isL
   const handleRemoveMusic = () => {
     const screens = { ...project.data.audio.screens };
     delete screens[screen.screenId];
-    
+
     // Check if this audio was only used for this screen, and if it's not in library, add it back
     const removedAudio = project.data.audio.screens[screen.screenId] as AudioFile | undefined;
     const isUsedElsewhere =
       Object.values(screens).some((a) => (a as AudioFile).id === removedAudio?.id) ||
       project.data.audio.global?.id === removedAudio?.id;
     const isInLibrary = (project.data.audio.library || []).some((a: AudioFile) => a.id === removedAudio?.id);
-    
+
     let library = project.data.audio.library || [];
     if (removedAudio && !isUsedElsewhere && !isInLibrary) {
       // Add back to library if it's not used elsewhere and not already in library
       library = [...library, removedAudio];
     }
-    
+
     updateProject({
       ...project,
       data: {

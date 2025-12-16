@@ -43,10 +43,10 @@
   .preview-desktop {
     width: 100%;
     max-width: 1280px;
-    aspect-ratio: 16 / 10;
+    min-height: 600px; /* Match iframe min-height */
     margin-left: auto;
     margin-right: auto;
-    overflow: hidden;
+    border-radius: 0.5rem; /* Ensure rounded corners if desired */
   }
 }
 

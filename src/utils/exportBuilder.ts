@@ -160,7 +160,7 @@ export async function buildGiftHtmlFromTemplate(
   }
 
   // Ensure the overlay screen in the final HTML matches the "main" screen design
-  html = transformOverlayToPreviewMainScreen(html, project, templateMeta);
+  html = transformOverlayToPreviewMainScreen(html, project, templateMeta, screens, mode, options);
 
   // Replace simple flat placeholders
   html = replacePlaceholders(html, project, templateMeta, screens, mediaUrls);
@@ -249,23 +249,23 @@ function generatePreviewMatchingScreenHTML(
 ): string {
   const titleText = (screenData.title || '').trim();
   const bodyText = (screenData.text || '').trim();
-  
+
   const mediaMode = screenData.mediaMode || 'classic';
   const hasVideo = mediaMode === 'video' && !!screenData.videoId;
   const isMainScreen = screen.order === 1;
-  
+
   // Get images for this screen
   const imageMap = new Map<string, ImageData>();
   for (const img of project.data.images) {
     imageMap.set(img.id, img);
   }
-  
+
   const screenImages = (screenData.images || [])
     .map((imageId: string) => imageMap.get(imageId))
     .filter((img: ImageData | undefined): img is ImageData => img !== undefined);
-  
+
   const hasImages = screenImages.length > 0 && !hasVideo;
-  
+
   // Generate media content (images carousel or video)
   let mediaContent = '';
   if (hasVideo && screenData.videoId) {
@@ -292,12 +292,12 @@ function generatePreviewMatchingScreenHTML(
         break;
     }
   }
-  
+
   // Get screen-specific and global styles (matching ScreenPreview logic)
   const globalStyle = project.data.globalStyle;
   const screenStyle = screenData.style;
   const designConfig = templateMeta?.designConfig;
-  
+
   // Determine background color (screen override > global > custom > template)
   let backgroundStyle = '';
   if (screenStyle?.colors?.background) {
@@ -313,7 +313,7 @@ function generatePreviewMatchingScreenHTML(
   } else if (designConfig?.background) {
     backgroundStyle = `background: ${designConfig.background};`;
   }
-  
+
   // Default pinkish gradient background for all screens (unless explicitly overridden above)
   // For main screen with overlay, always use overlay gradient
   if (isMainScreen && project.data.overlay) {
@@ -330,11 +330,11 @@ function generatePreviewMatchingScreenHTML(
       return match;
     });
   }
-  
+
   // Determine text colors (screen override > global > default)
   const textColor = screenStyle?.colors?.text || globalStyle?.colors?.text || screenData.textColor || '#374151';
   const titleColor = screenStyle?.colors?.title || globalStyle?.colors?.title || screenData.titleColor || '#111827';
-  
+
   // Use white text on pinkish gradient background (default or main screen overlay)
   const isUsingDefaultGradient = backgroundStyle.includes('linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68))');
   const finalTitleColor = isUsingDefaultGradient
@@ -343,7 +343,7 @@ function generatePreviewMatchingScreenHTML(
   const finalTextColor = isUsingDefaultGradient
     ? (textColor === '#374151' ? 'white' : textColor)
     : textColor;
-  
+
   // Build inline styles for text elements (just the CSS properties, not the style="..." wrapper)
   const titleStyle = finalTitleColor ? `color: ${finalTitleColor};` : '';
   const textStyle = finalTextColor ? `color: ${finalTextColor};` : '';
@@ -353,7 +353,7 @@ function generatePreviewMatchingScreenHTML(
     // Generate overlay button HTML based on button style
     let overlayButtonHTML = '';
     const overlay = project.data.overlay;
-    
+
     if (overlay.buttonStyle === 'emoji-animated') {
       const emoji = overlay.emojiButton?.emoji || '🎉';
       const size = overlay.emojiButton?.size || 48;
@@ -365,10 +365,10 @@ function generatePreviewMatchingScreenHTML(
       const buttonBg = overlay.textButton?.backgroundColor || project.data.globalStyle?.colors?.button?.background || 'white';
       const buttonText = overlay.textButton?.textColor || project.data.globalStyle?.colors?.button?.text || '#333';
       const buttonBorder = overlay.textButton?.borderColor || project.data.globalStyle?.colors?.button?.border || '#333';
-      
+
       // Build frame-specific styles
       let buttonStyle = `padding: 12px 24px; cursor: pointer; font-weight: bold; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;`;
-      
+
       if (frameStyle === 'solid' || frameStyle === 'dashed' || frameStyle === 'double' || frameStyle === 'shadow' || frameStyle === 'rectangle' || frameStyle === 'square') {
         buttonStyle += `background-color: ${buttonBg}; color: ${buttonText}; border: 2px solid ${buttonBorder}; border-radius: 8px;`;
       } else if (frameStyle === 'circle' || frameStyle === 'oval') {
@@ -376,29 +376,31 @@ function generatePreviewMatchingScreenHTML(
       } else if (frameStyle === 'gradient') {
         buttonStyle += `border: none; background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: ${buttonText}; border-radius: 8px;`;
       } else if (frameStyle === 'heart') {
-        buttonStyle += `border: none; background: ${buttonBg === 'white' ? '#ff6b6b' : buttonBg}; color: ${buttonText}; clip-path: polygon(50% 0%, 61% 0%, 68% 11%, 79% 11%, 86% 0%, 100% 0%, 100% 50%, 50% 100%, 0% 50%, 0% 0%, 14% 0%, 21% 11%, 32% 11%); width: 120px; height: 100px; font-size: 14px; border-radius: 0;`;
+        buttonStyle += `border: none; background: ${buttonBg === 'white' ? '#ff6b6b' : buttonBg}; color: ${buttonText}; clip-path: url(#heart-clip); width: 120px; height: 100px; font-size: 14px; border-radius: 0;`;
       } else if (frameStyle === 'star') {
         buttonStyle += `border: none; background: ${buttonBg === 'white' ? '#ffd93d' : buttonBg}; color: ${buttonText}; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); width: 100px; height: 100px; font-size: 12px; border-radius: 0;`;
       }
-      
+
       overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}" style="${buttonStyle}">${escapeHtmlForExport(text)}</button>`;
     }
-    
+
     // Build style attributes properly for main screen (only color, font-size handled by CSS class)
     const mainTitleStyleAttr = titleStyle ? titleStyle : '';
     const mainTextStyleAttr = textStyle ? textStyle : '';
-    
+
     return `
     <div class="screen hidden" id="screen-${screen.screenId}" style="${backgroundStyle}">
-      <div style="min-height: 0; flex-shrink: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; padding: clamp(1rem, 2vw, 2rem); gap: clamp(1rem, 1.5vw, 1.5rem);">
-        ${titleText ? `<h1 class="screen-title"${mainTitleStyleAttr ? ` style="${mainTitleStyleAttr}"` : ''}>${escapeHtmlForExport(titleText)}</h1>` : ''}
-        ${project.data.mainGreeting ? `<p class="screen-text"${mainTextStyleAttr ? ` style="${mainTextStyleAttr}"` : ''}>${escapeHtmlForExport(project.data.mainGreeting)}</p>` : ''}
+      <div class="screen-content-wrapper single-column">
+        <div class="screen-text-group">
+          ${titleText ? `<h1 class="screen-title"${mainTitleStyleAttr ? ` style="${mainTitleStyleAttr}"` : ''}>${escapeHtmlForExport(titleText)}</h1>` : ''}
+          ${project.data.mainGreeting ? `<p class="screen-text"${mainTextStyleAttr ? ` style="${mainTextStyleAttr}"` : ''}>${escapeHtmlForExport(project.data.mainGreeting)}</p>` : ''}
+        </div>
         ${overlayButtonHTML}
       </div>
     </div>
     `;
   }
-  
+
   // Always render title/text if they exist (regardless of placeholder config)
   // This matches user expectations - if they entered title/text, it should display
   const escapedTitle = titleText ? escapeHtmlForExport(titleText) : '';
@@ -408,15 +410,20 @@ function generatePreviewMatchingScreenHTML(
   const textStyleAttr = textStyle ? textStyle : '';
   const titleHTML = titleText ? `<h1 class="screen-title"${titleStyleAttr ? ` style="${titleStyleAttr}"` : ''}>${escapedTitle}</h1>` : '';
   const textHTML = bodyText ? `<p class="screen-text"${textStyleAttr ? ` style="${textStyleAttr}"` : ''}>${escapedText}</p>` : '';
-  
+
+  // Determine layout class based on content
+  const hasMediaContent = (!hasVideo && hasImages) || (hasVideo && !!screenData.videoId);
+  const layoutClass = hasMediaContent ? 'has-media' : 'single-column';
+
   return `
     <div class="screen hidden" id="screen-${screen.screenId}" style="${backgroundStyle}">
-      <div style="min-height: 0; flex-shrink: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; padding: clamp(1rem, 2vw, 2rem); gap: clamp(1rem, 1.5vw, 1.5rem);">
-        ${titleHTML}
-        ${textHTML}
-        ${!hasVideo && hasImages ? `<div style="width: 100%; max-width: 100%; flex-shrink: 1; min-width: 0;">${mediaContent}</div>` : ''}
-        ${hasVideo && screenData.videoId ? `<div style="width: 100%; max-width: 100%; flex-shrink: 1; min-width: 0;">${mediaContent}</div>` : ''}
-        ${!titleText && !bodyText && !hasImages && !screenData.videoId ? `
+      <div class="screen-content-wrapper ${layoutClass}">
+        <div class="screen-text-group">
+          ${titleHTML}
+          ${textHTML}
+        </div>
+        ${hasMediaContent ? `<div class="screen-media-group">${mediaContent}</div>` : ''}
+        ${!titleText && !bodyText && !hasMediaContent ? `
           <div style="color: #9ca3af; text-align: center;">
             <div style="font-size: 3.75rem; margin-bottom: 1rem;">📄</div>
             <div style="font-size: 1.125rem;">Screen content will appear here</div>
@@ -488,15 +495,17 @@ function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta
     const buttonBg = overlay.textButton?.backgroundColor || project.data.globalStyle?.colors?.button?.background || 'white';
     const buttonText = overlay.textButton?.textColor || project.data.globalStyle?.colors?.button?.text || '#333';
     const buttonBorder = overlay.textButton?.borderColor || project.data.globalStyle?.colors?.button?.border || '#333';
-    
+
     // Build inline style for button
     let buttonStyle = '';
     if (frameStyle === 'solid' || frameStyle === 'dashed' || frameStyle === 'double' || frameStyle === 'shadow' || frameStyle === 'rectangle' || frameStyle === 'square') {
       buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
     } else if (frameStyle === 'circle' || frameStyle === 'oval') {
       buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
+    } else if (frameStyle === 'heart') {
+      buttonStyle = `border: none; background: ${buttonBg === 'white' ? '#ff6b6b' : buttonBg}; color: ${buttonText}; clip-path: url(#heart-clip); width: 120px; height: 100px;`;
     }
-    
+
     overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}"${buttonStyle ? ` style="${buttonStyle}"` : ''}>${escapeHtmlForExport(text)}</button>`;
   }
 
@@ -645,7 +654,7 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
   // Replace screen-specific placeholders
   for (const screen of screens) {
     const screenData = data.screens[screen.screenId] || {};
-    
+
     // Replace title and text
     html = html.replace(new RegExp(`\\{\\{${screen.screenId}_title\\}\\}`, 'g'), screenData.title || '');
     html = html.replace(new RegExp(`\\{\\{${screen.screenId}_text\\}\\}`, 'g'), screenData.text || '');
@@ -664,7 +673,7 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
       if (screenImages.length > 0) {
         // Check galleryLayout, default to 'carousel' if not set or unknown
         const galleryLayout = screenData.galleryLayout || 'carousel';
-        
+
         let galleryHTML: string;
         switch (galleryLayout) {
           case 'gridWithZoom':
@@ -684,7 +693,7 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
             galleryHTML = generateImageCarouselHTML(screen.screenId, screenImages, mediaUrls.images);
             break;
         }
-        
+
         // Replace image carousel placeholder if it exists
         const carouselPlaceholder = `{{${screen.screenId}_images}}`;
         if (html.includes(carouselPlaceholder)) {
@@ -756,13 +765,13 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
 
 function generateImageCarouselHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const carouselId = `carousel-${screenId}`;
-  
+
   // Filter to only include images that have data URLs
   const imagesWithUrls = images.filter(img => {
     const dataUrl = imageDataUrlMap.get(img.id);
     return dataUrl && dataUrl.length > 0;
   });
-  
+
   // If no images have data URLs, return empty
   if (imagesWithUrls.length === 0) {
     return '';
@@ -785,15 +794,15 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[], imageD
       ${imagesWithUrls.length > 1 ? `
       <div class="carousel-thumbnails">
         ${imagesWithUrls.map((img, index) => {
-          const dataUrl = imageDataUrlMap.get(img.id)!;
-          return `
+    const dataUrl = imageDataUrlMap.get(img.id)!;
+    return `
           <img
             src="${dataUrl}"
             alt="${escapeHtmlForExport(img.filename)}"
             class="carousel-thumbnail ${index === 0 ? 'active' : ''}"
           />
         `;
-        }).join('')}
+  }).join('')}
       </div>
       ` : ''}
     </div>
@@ -814,13 +823,13 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[], imageD
 
 function generateGridWithZoomHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const galleryId = `gallery-grid-${screenId}`;
-  
+
   // Filter to only include images that have data URLs
   const imagesWithUrls = images.filter(img => {
     const dataUrl = imageDataUrlMap.get(img.id);
     return dataUrl && dataUrl.length > 0;
   });
-  
+
   // If no images have data URLs, return empty
   if (imagesWithUrls.length === 0) {
     return '';
@@ -830,8 +839,8 @@ function generateGridWithZoomHTML(screenId: string, images: ImageData[], imageDa
     <div class="gallery-grid-container" id="${galleryId}">
       <div class="gallery-grid">
         ${imagesWithUrls.map((img) => {
-          const dataUrl = imageDataUrlMap.get(img.id)!;
-          return `
+    const dataUrl = imageDataUrlMap.get(img.id)!;
+    return `
           <div class="gallery-grid-item">
             <img
               src="${dataUrl}"
@@ -840,7 +849,7 @@ function generateGridWithZoomHTML(screenId: string, images: ImageData[], imageDa
             />
           </div>
         `;
-        }).join('')}
+  }).join('')}
       </div>
     </div>
     <script>
@@ -859,13 +868,13 @@ function generateGridWithZoomHTML(screenId: string, images: ImageData[], imageDa
 
 function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const slideshowId = `slideshow-${screenId}`;
-  
+
   // Filter to only include images that have data URLs
   const imagesWithUrls = images.filter(img => {
     const dataUrl = imageDataUrlMap.get(img.id);
     return dataUrl && dataUrl.length > 0;
   });
-  
+
   // If no images have data URLs, return empty
   if (imagesWithUrls.length === 0) {
     return '';
@@ -875,8 +884,8 @@ function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[], 
     <div class="fullscreen-slideshow-container" id="${slideshowId}">
       <div class="slideshow-wrapper">
         ${imagesWithUrls.map((img, index) => {
-          const dataUrl = imageDataUrlMap.get(img.id)!;
-          return `
+    const dataUrl = imageDataUrlMap.get(img.id)!;
+    return `
           <div class="slideshow-slide ${index === 0 ? 'active' : ''}">
             <img
               src="${dataUrl}"
@@ -885,7 +894,7 @@ function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[], 
             />
           </div>
         `;
-        }).join('')}
+  }).join('')}
       </div>
       ${imagesWithUrls.length > 1 ? `
       <button class="slideshow-nav slideshow-prev" type="button">‹</button>
@@ -913,13 +922,13 @@ function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[], 
 
 function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const heroId = `hero-gallery-${screenId}`;
-  
+
   // Filter to only include images that have data URLs
   const imagesWithUrls = images.filter(img => {
     const dataUrl = imageDataUrlMap.get(img.id);
     return dataUrl && dataUrl.length > 0;
   });
-  
+
   // If no images have data URLs, return empty
   if (imagesWithUrls.length === 0) {
     return '';
@@ -937,15 +946,15 @@ function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[], i
       ${imagesWithUrls.length > 1 ? `
       <div class="hero-thumbnails">
         ${imagesWithUrls.map((img, index) => {
-          const dataUrl = imageDataUrlMap.get(img.id)!;
-          return `
+    const dataUrl = imageDataUrlMap.get(img.id)!;
+    return `
           <img
             src="${dataUrl}"
             alt="${escapeHtmlForExport(img.filename)}"
             class="hero-thumbnail ${index === 0 ? 'active' : ''}"
           />
         `;
-        }).join('')}
+  }).join('')}
       </div>
       ` : ''}
     </div>
@@ -966,13 +975,13 @@ function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[], i
 
 function generateTimelineHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
   const timelineId = `timeline-${screenId}`;
-  
+
   // Filter to only include images that have data URLs
   const imagesWithUrls = images.filter(img => {
     const dataUrl = imageDataUrlMap.get(img.id);
     return dataUrl && dataUrl.length > 0;
   });
-  
+
   // If no images have data URLs, return empty
   if (imagesWithUrls.length === 0) {
     return '';
@@ -981,8 +990,8 @@ function generateTimelineHTML(screenId: string, images: ImageData[], imageDataUr
   const timelineHTML = `
     <div class="timeline-container" id="${timelineId}">
       ${imagesWithUrls.map((img, index) => {
-        const dataUrl = imageDataUrlMap.get(img.id)!;
-        return `
+    const dataUrl = imageDataUrlMap.get(img.id)!;
+    return `
         <div class="timeline-card">
           <div class="timeline-image-wrapper">
             <img
@@ -996,7 +1005,7 @@ function generateTimelineHTML(screenId: string, images: ImageData[], imageDataUr
           </div>
         </div>
       `;
-      }).join('')}
+  }).join('')}
     </div>
     <script>
       // Initialize timeline data
@@ -1056,7 +1065,7 @@ function injectRepeatingStructures(html: string, project: Project, _templateMeta
             </div>
           `)
           .join('\n');
-        
+
         html = html.replace(blessingsPlaceholder, blessingsHTML);
       }
     }
@@ -1177,20 +1186,20 @@ function escapeHtmlForExport(text: string): string {
  */
 function transformTemplateScreensToPreviewStructure(html: string, project: Project, templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls): string {
   const screensToAdd: string[] = [];
-  
+
   for (const screen of screens) {
     const screenData = project.data.screens[screen.screenId] || {};
     const screenId = screen.screenId;
-    
+
     // Find the existing screen div - try multiple patterns
     // Pattern 1: id="${screenId}" (standard format)
     let screenRegex = new RegExp(
       `<div[^>]*\\s+id=["']${screenId}["'][^>]*>([\\s\\S]*?)<\\/div>`,
       'i'
     );
-    
+
     let match = html.match(screenRegex);
-    
+
     // Pattern 2: id="screen-${screenId}" (if already transformed)
     if (!match) {
       screenRegex = new RegExp(
@@ -1199,7 +1208,7 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
       );
       match = html.match(screenRegex);
     }
-    
+
     if (match) {
       // Generate new preview-matching structure with mediaUrls
       const newScreenHTML = generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls);
@@ -1210,7 +1219,7 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
       screensToAdd.push(screenId);
     }
   }
-  
+
   // Add any screens that don't exist in the template HTML
   if (screensToAdd.length > 0) {
     const screensHTML = screensToAdd.map((screenId) => {
@@ -1219,7 +1228,7 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
       const screenData = project.data.screens[screen.screenId] || {};
       return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls);
     }).filter(Boolean).join('\n');
-    
+
     // Insert screens before </body> or at the end of body content
     if (html.includes('</body>')) {
       html = html.replace('</body>', `${screensHTML}\n</body>`);
@@ -1234,7 +1243,7 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
       html = html + '\n' + screensHTML;
     }
   }
-  
+
   return html;
 }
 
@@ -1242,22 +1251,45 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
  * Replace the template's built-in overlay with one that mirrors the "main" screen
  * (order === 1) and uses the configured styled start button.
  */
-function transformOverlayToPreviewMainScreen(html: string, project: Project, templateMeta: TemplateMeta): string {
-  // Locate the overlay container in the template HTML
+// Transform overlay HTML to match project configuration
+// Transform overlay HTML to match project configuration
+function transformOverlayToPreviewMainScreen(
+  html: string,
+  project: Project,
+  _templateMeta: TemplateMeta,
+  screens: ScreenConfig[],
+  mode: 'preview' | 'export',
+  options: BuildHtmlOptions = {}
+): string {
   const overlayRegex = /(<div[^>]*id=["']overlay["'][^>]*>)[\s\S]*?(<\/div>)/i;
   const match = html.match(overlayRegex);
-  if (!match) {
+
+  if (!match) return html;
+
+  const [, openTag] = match;
+
+  // Find the Main (Overlay) Screen ID
+  const mainScreen = screens.find((s) => s.order === 1);
+  const mainScreenId = mainScreen?.screenId || null;
+  const { startScreenId, singleScreenOnly } = options;
+
+  // FOUC PREVENTION:
+  // If we are previewing a SPECIFIC screen (not Main), strictly hide the overlay
+  // by injecting inline style="display:none" directly into the HTML tag.
+  // This prevents the browser from rendering it for a split second before CSS loads.
+  let modifiedOpenTag = openTag;
+  if (mode === 'preview' && singleScreenOnly && startScreenId && startScreenId !== mainScreenId) {
+    if (modifiedOpenTag.includes('style="')) {
+      modifiedOpenTag = modifiedOpenTag.replace('style="', 'style="display: none !important; ');
+    } else {
+      modifiedOpenTag = modifiedOpenTag.replace('>', ' style="display: none !important;">');
+    }
+  }
+  if (!mainScreen) {
     return html;
   }
 
-  // Determine the main screen (order === 1)
-  const screens = getExportScreens(project, templateMeta);
-  const mainScreenConfig = screens.find((s) => s.order === 1);
-  if (!mainScreenConfig) {
-    return html;
-  }
-
-  const mainScreenData: any = project.data.screens[mainScreenConfig.screenId] || {};
+  const mainScreenData: any = project.data.screens[mainScreen.screenId] || {};
   const globalStyle = project.data.globalStyle;
   const screenStyle = mainScreenData.style;
 
@@ -1332,9 +1364,8 @@ function transformOverlayToPreviewMainScreen(html: string, project: Project, tem
         buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
       }
 
-      overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}"${
-        buttonStyle ? ` style="${buttonStyle}"` : ''
-      }>${escapeHtmlForExport(text)}</button>`;
+      overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}"${buttonStyle ? ` style="${buttonStyle}"` : ''
+        }>${escapeHtmlForExport(text)}</button>`;
     }
   }
 
@@ -1374,7 +1405,7 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
   for (const match of styleMatches) {
     existingStyles += match[1] + '\n';
   }
-  
+
   // Remove body background from existing styles (we'll override it)
   // This prevents template's gray background from showing through
   existingStyles = existingStyles.replace(/body\s*\{[^}]*background[^}]*\}/gi, '');
@@ -1382,13 +1413,13 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
     // Remove background property from body if it exists
     return match.replace(/background[^;]*;?/gi, '').replace(/;\s*;/g, ';');
   });
-  
+
   // Remove existing inline scripts that define functions (will be replaced by GiftApp)
   html = html.replace(/<script>[\s\S]*?var currentScreenIndex[\s\S]*?<\/script>/gi, '');
-  
+
   // Remove existing <style> tags (will be re-added in organized section)
   html = html.replace(/<style>[\s\S]*?<\/style>/gi, '');
-  
+
   // Build styles section with theme support
   // Add pulse animation for overlay buttons (hint for press when text is empty)
   const pulseAnimationStyles = `
@@ -1400,11 +1431,15 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
       animation: pulse 2s infinite;
     }
   `;
+  // Determine main screen ID for accurate preview logic
+  const mainScreen = screens.find(s => s.order === 1);
+  const mainScreenId = mainScreen?.screenId || null;
+
   // Put our overrides LAST to ensure they take precedence
-  const allStyles = `${existingStyles.trim()}\n${getPreviewLayoutStyles()}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}\n${generateColorStyles(project)}\n${generateButtonStyles(project)}\n${generateAnimationStyles(project)}`;
+  const allStyles = `${existingStyles.trim()}\n${getPreviewLayoutStyles(options.singleScreenOnly, options.startScreenId, mainScreenId)}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}\n${generateColorStyles(project)}\n${generateButtonStyles(project)}\n${generateAnimationStyles(project)}`;
   const themedStyles = applyThemeStyles(allStyles, project);
   const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
-  
+
   // Build runtime logic section (GiftApp with integrated AudioManager + animations)
   // Note: buildGiftAppNamespace returns a complete <script>...</script> block
   // generateAnimationScript returns raw JS, so we need to wrap it in script tags
@@ -1412,7 +1447,7 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
   const animationScript = generateAnimationScript(project);
   // Extract the closing </script> from giftAppScript and inject animation before it
   const scriptsSection = `<!-- ========== RUNTIME LOGIC SECTION (GiftApp engine) ========== -->\n${giftAppScript.replace('</script>', `${animationScript}\n</script>`)}`;
-  
+
   // Inject styles before </head> or before <body> if no </head>
   if (html.includes('</head>')) {
     html = html.replace('</head>', `${stylesSection}\n</head>`);
@@ -1421,25 +1456,67 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
   } else {
     html = stylesSection + '\n' + html;
   }
-  
+
   // Mark templates/content section (only if <body> exists and not already marked)
   if (html.includes('<body>') && !html.includes('TEMPLATES & CONTENT SECTION')) {
     html = html.replace('<body>', '<!-- ========== TEMPLATES & CONTENT SECTION (screens layout) ========== -->\n<body>');
   }
-  
+
   // Inject scripts before </body>
   if (html.includes('</body>')) {
     html = html.replace('</body>', `${scriptsSection}\n</body>`);
   } else {
     html = html + '\n' + scriptsSection;
   }
-  
+
+  // Inject shared SVG resources (clip paths)
+  const svgResources = `
+  <!-- ========== SHARED RESOURCES (SVG Shapes) ========== -->
+  <svg width="0" height="0" style="position: absolute; pointer-events: none; opacity: 0;">
+    <defs>
+      <clipPath id="heart-clip" clipPathUnits="objectBoundingBox">
+        <path d="M0.5,1 C0.5,1,0,0.7,0,0.3 A0.25,0.25,0,0,1,0.5,0.3 A0.25,0.25,0,0,1,1,0.3 C1,0.7,0.5,1,0.5,1 Z" />
+      </clipPath>
+    </defs>
+  </svg>
+  `;
+
+  if (html.includes('<body>')) {
+    html = html.replace('<body>', `<body>\n${svgResources}`);
+  } else {
+    html = `${svgResources}\n${html}`;
+  }
+
   return html;
 }
 
 function getOverlayButtonStyles(): string {
   return `
   /* ========== Overlay Button Styles ========== */
+  /* Overlay Layout Safety */
+  #overlay {
+    position: absolute !important; /* Absolute allows growing with content */
+    inset: 0 !important;
+    min-height: 100% !important; /* Minimum full height */
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    /* justify-content: center; REMOVED to allow margin: auto to handle it */
+    z-index: 9999 !important;
+  }
+  .overlay-inner {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+    max-width: 600px !important;
+    padding: 2rem !important;
+    margin: auto !important; /* Safe centering: centers if room, flows if tall */
+    flex-shrink: 0 !important;
+  }
+  
   .overlay button.emoji-button {
     background: none;
     border: none;
@@ -1537,7 +1614,7 @@ function getOverlayButtonStyles(): string {
     border: none;
     background: #ff6b6b;
     color: white;
-    clip-path: polygon(50% 0%, 61% 0%, 68% 11%, 79% 11%, 86% 0%, 100% 0%, 100% 50%, 50% 100%, 0% 50%, 0% 0%, 14% 0%, 21% 11%, 32% 11%);
+    clip-path: url(#heart-clip);
     width: 120px;
     height: 100px;
     display: flex;
@@ -1982,26 +2059,26 @@ function generateAnimationScript(project: Project): string {
       const globalAnimation = ${globalAnimation ? JSON.stringify(globalAnimation) : 'null'};
       
       ${screens.map((screen) => {
-        const screenData = project.data.screens[screen.screenId] || {};
-        const screenAnimation = screenData.style?.backgroundAnimation;
-        const animation = (screenAnimation && screenAnimation.type !== 'none') ? screenAnimation : globalAnimation;
-        
-        if (!animation || animation.type === 'none') return '';
-        
-        const animationType = animation.type as 'hearts' | 'sparkles' | 'bubbles' | 'confetti' | 'fireworks' | 'stars';
-        const initFunctionMap: Record<'hearts' | 'sparkles' | 'bubbles' | 'confetti' | 'fireworks' | 'stars', string> = {
-          hearts: 'initHeartsAnimation',
-          sparkles: 'initSparklesAnimation',
-          bubbles: 'initBubblesAnimation',
-          confetti: 'initConfettiAnimation',
-          fireworks: 'initFireworksAnimation',
-          stars: 'initStarsAnimation',
-        };
-        const initFunction = initFunctionMap[animationType];
-        
-        if (!initFunction) return '';
-        
-        return `
+    const screenData = project.data.screens[screen.screenId] || {};
+    const screenAnimation = screenData.style?.backgroundAnimation;
+    const animation = (screenAnimation && screenAnimation.type !== 'none') ? screenAnimation : globalAnimation;
+
+    if (!animation || animation.type === 'none') return '';
+
+    const animationType = animation.type as 'hearts' | 'sparkles' | 'bubbles' | 'confetti' | 'fireworks' | 'stars';
+    const initFunctionMap: Record<'hearts' | 'sparkles' | 'bubbles' | 'confetti' | 'fireworks' | 'stars', string> = {
+      hearts: 'initHeartsAnimation',
+      sparkles: 'initSparklesAnimation',
+      bubbles: 'initBubblesAnimation',
+      confetti: 'initConfettiAnimation',
+      fireworks: 'initFireworksAnimation',
+      stars: 'initStarsAnimation',
+    };
+    const initFunction = initFunctionMap[animationType];
+
+    if (!initFunction) return '';
+
+    return `
         (function() {
           const screen = document.getElementById('screen-${screen.screenId}');
           if (screen) {
@@ -2015,7 +2092,7 @@ function generateAnimationScript(project: Project): string {
           }
         })();
         `;
-      }).join('\n')}
+  }).join('\n')}
     }
 
     // Initialize animations when DOM is ready
@@ -2030,304 +2107,128 @@ function generateAnimationScript(project: Project): string {
   return script;
 }
 
-function getPreviewLayoutStyles(): string {
-  return `
-  /* ========== Preview-Matching Screen Layout ========== */
-  /* Override template body background to prevent gray showing through */
-  body {
-    background: transparent !important;
-  }
+
+
+// Generate CSS for preview layout helper classes & overrides
+// This controls the "Static Preview" state (forcing visibility via CSS)
+// so we don't need JS auto-start logic.
+function getPreviewLayoutStyles(singleScreenOnly?: boolean, startScreenId?: string, mainScreenId?: string | null): string {
+  let css = `
+  /* ========== Preview Layout Styles ========== */
   .screen {
-    position: relative;
-    width: 100%;
-    min-height: 100vh;
-    display: flex;
+    display: none; /* Default hidden */
     flex-direction: column;
-    /* Background is set via inline styles on each screen div */
-    overflow-y: auto;
-  }
-
-  /* Responsive title and text styles */
-  .screen-title {
-    font-size: 1.5rem;
-    font-weight: bold;
-  }
-
-  .screen-text {
-    font-size: 1rem;
-    max-width: 42rem;
-    line-height: 1.75;
-  }
-
-  @media (min-width: 768px) {
-    .screen-title {
-      font-size: 1.875rem;
-    }
-    .screen-text {
-      font-size: 1.125rem;
-    }
-  }
-
-  /* Fixed Top Bar */
-  .screen-top-bar {
-    flex: none;
-    height: 48px;
-    padding: 0 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #e5e7eb;
-    background-color: rgba(255, 255, 255, 0.9);
-  }
-
-  @media (min-width: 768px) {
-    .screen-top-bar {
-      height: 48px;
-      padding: 0 20px;
-    }
-  }
-
-  .screen-menu-btn {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    border: 1px solid #e5e7eb;
-    background: white;
-    color: #374151;
-    cursor: pointer;
-    font-size: 18px;
-    transition: background-color 0.2s;
-  }
-
-  .screen-menu-btn:hover {
-    background-color: #f9fafb;
-  }
-
-  .screen-top-nav {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .screen-prev-btn,
-  .screen-next-btn {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    background: white;
-    color: #374151;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s;
-  }
-
-  .screen-prev-btn:hover:not(:disabled),
-  .screen-next-btn:hover:not(:disabled) {
-    background-color: #f3f4f6;
-  }
-
-  .screen-prev-btn:disabled,
-  .screen-next-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* ========== Overlay Layout (matches preview main screen overlay) ========== */
-  .overlay {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    background: linear-gradient(to bottom right, rgb(236, 72, 153), rgb(239, 68, 68));
-    color: white;
-    z-index: 1000;
-    cursor: pointer;
-  }
-
-  .overlay-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
-    padding: 2rem;
-  }
-
-  /* Optional Title Section */
-  .screen-title-section {
-    flex: none;
-    padding: 12px 16px 8px;
-    border-bottom: 1px solid #f3f4f6;
-    background-color: rgba(255, 255, 255, 0.9);
-  }
-
-  @media (min-width: 768px) {
-    .screen-title-section {
-      padding: 12px 24px 8px;
-    }
-  }
-
-  .screen-title {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: #111827;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  @media (min-width: 768px) {
-    .screen-title {
-      font-size: 20px;
-    }
-  }
-
-  /* Content Area */
-  .screen-content-area {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  /* Desktop: Split Layout */
-  .screen-desktop-layout {
-    display: none;
-  }
-
-  @media (min-width: 768px) {
-    .screen-desktop-layout {
-      display: block;
-      height: 100%;
-      padding: 8px 24px 12px;
-    }
-  }
-
-  .screen-desktop-layout .screen-text-column {
-    display: inline-block;
-    width: 41.666667%; /* col-span-5 = 5/12 */
-    vertical-align: top;
-    padding-right: 16px;
     height: 100%;
+    width: 100%;
     overflow-y: auto;
+    position: relative; 
   }
 
-  .screen-desktop-layout .screen-media-column {
-    display: inline-block;
-    width: 58.333333%; /* col-span-7 = 7/12 */
-    vertical-align: top;
-    height: 100%;
-    overflow-y: auto;
-    padding-left: 16px;
-  }
-
-  .screen-text {
-    color: #374151;
-    line-height: 1.6;
-    font-size: 16px;
-    display: -webkit-box;
-    -webkit-line-clamp: 10;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Mobile: Stacked Layout */
-  .screen-mobile-layout {
-    display: block;
-    padding: 12px 16px;
-    min-height: 100%;
-  }
-
-  @media (min-width: 768px) {
-    .screen-mobile-layout {
-      display: none;
-    }
-  }
-
-  .screen-mobile-layout .screen-text {
-    -webkit-line-clamp: 4;
-    margin-bottom: 12px;
-  }
-
-  .screen-media-mobile {
-    flex: 1;
+  /* Responsive Screen Content Wrapper */
+  .screen-content-wrapper {
     min-height: 0;
+    flex-shrink: 1;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    overflow: hidden;
-  }
-
-  .screen-no-media {
-    color: #9ca3af;
-    font-size: 14px;
-    text-align: center;
-    padding: 40px 20px;
-  }
-
-  /* Fixed Bottom Bar */
-  .screen-bottom-bar {
-    flex: none;
-    height: 56px;
-    padding: 0 16px;
-    border-top: 1px solid #e5e7eb;
-    background-color: rgba(255, 255, 255, 0.9);
-    display: flex;
     align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    padding: clamp(1rem, 2vw, 2rem);
+    gap: clamp(1rem, 1.5vw, 1.5rem);
+    width: 100%;
+    margin: auto;
+  }
+
+  .screen-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    align-items: center;
+  }
+
+  .screen-media-group {
+    width: 100%;
+    display: flex;
     justify-content: center;
   }
 
+  /* Desktop Responsive Layout */
   @media (min-width: 768px) {
-    .screen-bottom-bar {
-      height: 56px;
-      padding: 0 24px;
+    /* Split Layout for Screens with Media */
+    .screen-content-wrapper.has-media {
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      text-align: left;
+      gap: 4rem;
+      max-width: 1200px;
+      min-height: 60vh; /* Ensure vertical breathing room */
     }
-  }
 
-  .screen-next-btn {
-    width: 100%;
-    max-width: 200px;
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: none;
-    background: #3b82f6;
-    color: white;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-
-  @media (min-width: 640px) {
-    .screen-next-btn {
-      width: auto;
+    .screen-content-wrapper.has-media .screen-text-group {
+      flex: 1;
+      align-items: flex-start;
+      text-align: left;
     }
-  }
 
-  .screen-next-btn:hover:not(:disabled) {
-    background: #2563eb;
-  }
+    .screen-content-wrapper.has-media .screen-media-group {
+      flex: 1;
+      max-width: 50%;
+    }
 
-  .screen-next-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* Hidden class for screen visibility */
-  .screen.hidden {
-    display: none !important;
+    /* Centered Layout for Single Column (Text Only or Media Only) */
+    .screen-content-wrapper.single-column {
+      max-width: 800px;
+      justify-content: center;
+    }
   }
   
-  .overlay.hidden {
+  /* Utilities */
+  .hidden {
     display: none !important;
   }
   `;
+
+  // Static Preview Visibility Logic
+  if (singleScreenOnly && startScreenId) {
+    if (startScreenId === mainScreenId) {
+      // PREVIEWING MAIN (OVERLAY):
+      // Force overlay to show. Force all screens to hide.
+      css += `
+      /* Static Preview: Main Screen (Overlay) */
+      #overlay {
+        display: flex !important;
+      }
+      .screen {
+        display: none !important;
+      }
+      `;
+    } else {
+      // PREVIEWING SPECIFIC SCREEN:
+      // Force overlay to hide. Force target screen to show.
+      css += `
+      /* Static Preview: Screen ${startScreenId} */
+      #overlay {
+        display: none !important;
+      }
+      /* Hide all screens by default */
+      .screen {
+        display: none !important;
+      }
+      /* Show ONLY the target screen */
+      #screen-${startScreenId} {
+        display: flex !important;
+      }
+      /* Fallback for old templates without prefix */
+      #${startScreenId} {
+        display: flex !important;
+      }
+      `;
+    }
+  }
+
+  return css;
 }
 
 function getGalleryStyles(): string {
@@ -2682,7 +2583,7 @@ function getGalleryStyles(): string {
   }`;
 }
 
-function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls, _mode: 'preview' | 'export', options: BuildHtmlOptions = {}): string {
+function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls, mode: 'preview' | 'export', options: BuildHtmlOptions = {}): string {
   const data = project.data;
   const { startScreenId, singleScreenOnly } = options;
 
@@ -2699,11 +2600,20 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
 
   if (singleScreenOnly && startScreenId) {
     const targetScreen = screens.find(s => s.screenId === startScreenId);
-    if (targetScreen && targetScreen.order !== 1) {
+    // Filter screens if singleScreenOnly is true
+    // BUT: If startScreenId is 'main', we want to show the overlay.
+    // The overlay is not in the screens array. So if we filter for 'main', we get empty array.
+    // Correct logic:
+    // - If singleScreenOnly AND startScreenId != mainScreenId: filter to just that screen
+    // - If singleScreenOnly AND startScreenId == mainScreenId: keep ALL non-main screens (so GiftApp can init),
+    //   but we will rely on auto-start logic (which we disabled for main) to keep overlay visible.
+    if (targetScreen && targetScreen.screenId !== mainScreenId) { // If target is a regular screen
       navigationScreens = [startScreenId];
-    } else if (targetScreen && targetScreen.order === 1) {
-      // Main screen - no navigation screens
-      navigationScreens = [];
+    } else if (targetScreen && targetScreen.screenId === mainScreenId) {
+      // If the start screen is the main screen, we don't want to clear navigationScreens.
+      // The main screen is handled as an overlay, and navigation should proceed to other screens.
+      // So, navigationScreens should remain as all non-main screens.
+      // No change needed to navigationScreens here.
     }
   }
 
@@ -2726,9 +2636,9 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
       }
     }
   }
-  
+
   const isSingleScreenOnly = singleScreenOnly || false;
-  
+
   return `
 <script>
 (function() {
@@ -3404,6 +3314,25 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
   
   // Attach to window
   window.GiftApp = GiftApp;
+
+  // Attach to window
+  window.GiftApp = GiftApp;
+
+  // Initialize for preview mode (silent start to hook up audio/events)
+  // We rely on CSS injection for the visual state (Static Preview), so we don't need to "navigate"
+  // But we might want to initialize audio context if not on main screen
+  ${mode === 'preview' && isSingleScreenOnly && options.startScreenId && options.startScreenId !== mainScreenId ? `
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        // Just init the engine, don't force navigation since CSS handles it
+        // We call startExperience to ensure audio context is ready if needed, 
+        // but the visual override is done via CSS styles injected below.
+        setTimeout(GiftApp.startExperience, 50);
+      });
+    } else {
+      setTimeout(GiftApp.startExperience, 50);
+    }
+  ` : ''}
 })();
 </script>`;
 }

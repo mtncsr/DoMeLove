@@ -1,0 +1,40 @@
+{
+  "templateId": "one-screen-emotional",
+  "templateName": "One Screen Emotional Hit",
+  "shortName": "One Screen",
+  "overlayType": "custom",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "defaultEmojis": ["💫", "✨", "🌟", "💕", "❤️", "🎯", "🎨", "🎭"],
+    "textPlaceholders": {
+      "title": "Special Message",
+      "text": "A moment to remember, a memory to cherish...",
+      "mainGreeting": "Hello there!"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "single",
+      "type": "single",
+      "placeholders": ["title", "text", "image1"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#667eea"
+    }
+  ]
+}

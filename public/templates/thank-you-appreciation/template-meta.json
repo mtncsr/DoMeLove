@@ -1,0 +1,49 @@
+{
+  "templateId": "thank-you-appreciation",
+  "templateName": "Thank You / Appreciation",
+  "shortName": "Thank You",
+  "overlayType": "custom",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)",
+    "defaultEmojis": ["🙏", "💝", "🌟", "❤️", "✨", "🎁", "💐", "🥰"],
+    "textPlaceholders": {
+      "title": "Thank You",
+      "text": "Your kindness means the world to me...",
+      "mainGreeting": "With Gratitude"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "gallery",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 2,
+      "galleryImageCount": 6,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#fbbf24"
+    }
+  ]
+}

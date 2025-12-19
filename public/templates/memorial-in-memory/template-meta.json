@@ -1,0 +1,57 @@
+{
+  "templateId": "memorial-in-memory",
+  "templateName": "Memorial / In Memory Of",
+  "shortName": "Memorial",
+  "overlayType": "custom",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a5b4fc 100%)",
+    "defaultEmojis": ["🕯️", "💙", "🌟", "🕊️", "💜", "✨", "🌙", "💫"],
+    "textPlaceholders": {
+      "title": "In Loving Memory",
+      "text": "A life well-lived, memories forever cherished...",
+      "mainGreeting": "Remembering"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "journey",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 2,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "gallery",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 3,
+      "galleryImageCount": 10,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#6366f1"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "templateId": "baby-birth-announcement",
+  "templateName": "Baby Birth Announcement",
+  "shortName": "Baby Announcement",
+  "overlayType": "custom",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #a7f3d0 100%)",
+    "defaultEmojis": ["👶", "🤱", "🍼", "❤️", "🌟", "🐻", "🧸", "🌈"],
+    "textPlaceholders": {
+      "title": "Welcome Baby!",
+      "text": "A new chapter begins with tiny hands and endless love...",
+      "mainGreeting": "Introducing our little one!"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "birthDetails",
+      "type": "birth-details",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 2,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "gallery",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 3,
+      "galleryImageCount": 6,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#10b981"
+    }
+  ]
+}

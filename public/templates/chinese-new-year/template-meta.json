@@ -1,0 +1,56 @@
+{
+  "templateId": "chinese-new-year",
+  "templateName": "Chinese New Year",
+  "shortName": "Chinese New Year",
+  "overlayType": "custom",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%)",
+    "defaultEmojis": ["🧧", "🐉", "🎊", "🎉", "💰", "🏮", "✨", "🌟"],
+    "textPlaceholders": {
+      "title": "新年快乐",
+      "text": "Wishing you prosperity and happiness...",
+      "mainGreeting": "Happy Chinese New Year!"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "zodiac",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 2,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "wishes",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 3,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#dc2626"
+    }
+  ]
+}

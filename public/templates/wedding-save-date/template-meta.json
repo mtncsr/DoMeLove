@@ -1,0 +1,65 @@
+{
+  "templateId": "wedding-save-date",
+  "templateName": "Wedding - Save the Date",
+  "shortName": "Save the Date",
+  "overlayType": "save_the_date",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 50%, #f9a8d4 100%)",
+    "defaultEmojis": ["👰‍♀️", "💍", "💐", "🎉", "💕", "🌟", "✨", "🥂"],
+    "textPlaceholders": {
+      "title": "Save the Date",
+      "text": "We can't wait to celebrate with you!",
+      "mainGreeting": "You're Invited!"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "details",
+      "type": "event-details",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 2,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "gallery",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 3,
+      "galleryImageCount": 6,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "rsvp",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 4,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#ec4899"
+    }
+  ]
+}

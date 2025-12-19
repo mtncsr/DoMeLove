@@ -1,4 +1,5 @@
 import type { ScreenConfig } from './template';
+import type { CanvasElement } from './canvas';
 
 // Project data structure
 export interface Project {
@@ -116,6 +117,9 @@ export interface ScreenData {
 
   // Screen-specific style overrides
   style?: ScreenStyleConfig;
+
+  // Canvas elements (optional - new editing model)
+  elements?: CanvasElement[];
 }
 
 export interface ImageData {

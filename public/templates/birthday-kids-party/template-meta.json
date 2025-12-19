@@ -1,0 +1,65 @@
+{
+  "templateId": "birthday-kids-party",
+  "templateName": "Birthday - Kids (Party Explosion)",
+  "shortName": "Kids Birthday Party",
+  "overlayType": "birthday",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #ff6b6b 0%, #ffd93d 50%, #6bcf7f 100%)",
+    "defaultEmojis": ["🎈", "🎂", "🎉", "🎊", "🎁", "🎀", "🎪", "🎨"],
+    "textPlaceholders": {
+      "title": "Happy Birthday!",
+      "text": "Let's celebrate with fun and games!",
+      "mainGreeting": "Party Time!"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "gallery",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 2,
+      "galleryImageCount": 6,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "game",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 3,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "wish",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 4,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#ff6b6b"
+    }
+  ]
+}

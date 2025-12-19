@@ -1,0 +1,40 @@
+{
+  "templateId": "blank-canvas-pro",
+  "templateName": "Blank Canvas – Pro Mode",
+  "shortName": "Blank Canvas",
+  "overlayType": "custom",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 50%, #d1d5db 100%)",
+    "defaultEmojis": ["🎨", "✨", "🌟", "💫", "🎯", "🎭", "🖼️", "🌈"],
+    "textPlaceholders": {
+      "title": "Your Title",
+      "text": "Your content here...",
+      "mainGreeting": "Start Creating!"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "canvas",
+      "type": "single",
+      "placeholders": ["title", "text", "image1"],
+      "required": [],
+      "order": 1,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#6366f1"
+    }
+  ]
+}

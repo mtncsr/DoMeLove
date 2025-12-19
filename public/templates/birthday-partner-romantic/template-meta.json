@@ -1,0 +1,73 @@
+{
+  "templateId": "birthday-partner-romantic",
+  "templateName": "Birthday - Partner (Romantic Glow)",
+  "shortName": "Romantic Birthday",
+  "overlayType": "heart",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)",
+    "defaultEmojis": ["💕", "🌹", "💑", "❤️", "🎂", "🌟", "😍", "🥰"],
+    "textPlaceholders": {
+      "title": "Happy Birthday, My Love",
+      "text": "Another year of beautiful memories together...",
+      "mainGreeting": "Happy Birthday!"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "timeline",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 2,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "letter",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 3,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "gallery",
+      "type": "gallery",
+      "placeholders": ["title"],
+      "required": ["title"],
+      "order": 4,
+      "galleryImageCount": 8,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "wish",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 5,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#ff9a9e"
+    }
+  ]
+}

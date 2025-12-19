@@ -5,6 +5,7 @@ import { MediaConfig } from '../config/mediaConfig';
 import { getVideoBlob } from '../services/videoBlobStore';
 import { getMediaDataUrl } from '../services/mediaService';
 import { getExportScreens } from './screenSource';
+import { renderScreenElementsExport, type CanvasSize } from './elementRenderer';
 
 // AudioManager is now integrated into GiftApp - no separate global needed
 
@@ -29,11 +30,20 @@ async function resolveMediaDataUrls(
 
   // Collect image IDs from ACTUAL USAGE only (screen assignments, not entire library)
   // Only from screens in exportScreens
+  // Also collect from canvas elements
   const imageIds = new Set<string>();
   for (const screen of exportScreens) {
     const screenData = project.data.screens[screen.screenId];
     if (screenData?.images) {
       screenData.images.forEach(id => imageIds.add(id));
+    }
+    // Collect from canvas elements
+    if (screenData?.elements) {
+      for (const element of screenData.elements) {
+        if (element.type === 'image' && element.mediaId) {
+          imageIds.add(element.mediaId);
+        }
+      }
     }
   }
 

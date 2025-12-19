@@ -1,0 +1,56 @@
+{
+  "templateId": "new-year-western",
+  "templateName": "New Year - Western",
+  "shortName": "New Year",
+  "overlayType": "custom",
+  "designConfig": {
+    "background": "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%)",
+    "defaultEmojis": ["🎊", "🎉", "🌟", "✨", "🎈", "🎆", "🎇", "🥳"],
+    "textPlaceholders": {
+      "title": "Happy New Year!",
+      "text": "A fresh start, new beginnings...",
+      "mainGreeting": "Welcome 2025!"
+    }
+  },
+  "screens": [
+    {
+      "screenId": "intro",
+      "type": "intro",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 1,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "review",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title", "text"],
+      "order": 2,
+      "supportsMusic": true
+    },
+    {
+      "screenId": "resolutions",
+      "type": "text",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 3,
+      "supportsMusic": true
+    }
+  ],
+  "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],
+  "designVariables": [
+    {
+      "key": "bgColor",
+      "name": "Background Color",
+      "type": "color",
+      "defaultValue": "#ffffff"
+    },
+    {
+      "key": "accentColor",
+      "name": "Accent Color",
+      "type": "color",
+      "defaultValue": "#3b82f6"
+    }
+  ]
+}

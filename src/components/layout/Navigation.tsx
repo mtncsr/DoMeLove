@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Languages } from 'lucide-react';
 import { LanguageSelector } from '../ui/LanguageSelector';
 import { useTranslation } from 'react-i18next';
 import { getTextDirection } from '../../i18n/config';
@@ -10,6 +11,8 @@ export function Navigation() {
   const dir = getTextDirection(i18n.language);
   const isRTL = dir === 'rtl';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const languageMenuRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
     { path: '/', label: t('marketing.nav.home') },
@@ -22,15 +25,31 @@ export function Navigation() {
   ];
   const orderedNavLinks = isRTL ? [...navLinks].reverse() : navLinks;
   const logoOrder = 'order-1';
-  const profileOrder = 'order-2';
-  const navOrder = 'order-3';
-  const startOrder = 'order-4';
-  const langOrder = 'order-5';
+  const navOrder = 'order-2';
+  const startOrder = 'order-3';
+  const actionsOrder = 'order-4';
+
+  // Close language menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target as Node)) {
+        setLanguageMenuOpen(false);
+      }
+    };
+
+    if (languageMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [languageMenuOpen]);
 
   return (
     <header dir={dir} className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-16 gap-4 flex-wrap">
+        <div className="flex items-center h-16 gap-4">
           {/* Logo */}
           <Link to="/" className={`flex items-center gap-2 sm:gap-3 shrink-0 ${isRTL ? 'flex-row-reverse text-right' : ''} ${logoOrder}`}>
             <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg text-lg sm:text-xl">
@@ -44,16 +63,8 @@ export function Navigation() {
             </div>
           </Link>
 
-          {/* Profile */}
-          <Link
-            to="/profile"
-            className={`hidden md:inline-flex items-center gap-2 rounded-full px-3 sm:px-4 py-2 text-sm font-semibold bg-white border border-slate-200 hover:border-fuchsia-300 shadow-sm transition-colors ${profileOrder}`}
-          >
-            <span>👤</span> <span className="hidden sm:inline">{t('marketing.nav.profile')}</span>
-          </Link>
-
           {/* Desktop Navigation - Show all tabs */}
-          <nav className={`hidden md:flex flex-1 items-center justify-center gap-3 lg:gap-4 xl:gap-5 ${isRTL ? 'flex-row-reverse' : ''} ${navOrder}`}>
+          <nav className={`hidden lg:flex flex-1 items-center justify-center gap-3 xl:gap-4 2xl:gap-5 ${isRTL ? 'flex-row-reverse' : ''} ${navOrder}`}>
             {orderedNavLinks.map((link) => (
               <Link
                 key={link.path}
@@ -78,16 +89,39 @@ export function Navigation() {
             <span>{t('marketing.nav.startCreating')}</span>
           </Link>
 
-          {/* Language selector */}
-          <div className={`hidden sm:flex items-center gap-2 ${langOrder}`}>
-            <span className="text-slate-600 text-base">🌐</span>
-            <LanguageSelector value={i18n.language} onChange={(lang) => i18n.changeLanguage(lang)} subtle />
+          {/* Profile and Language selector */}
+          <div className={`hidden lg:flex items-center gap-2 ${actionsOrder}`}>
+            <Link
+              to="/profile"
+              className="inline-flex items-center justify-center rounded-full p-2.5 bg-white border border-slate-200 hover:border-fuchsia-300 shadow-sm transition-colors"
+              title={t('marketing.nav.profile')}
+            >
+              <span className="text-slate-700 text-lg">👤</span>
+            </Link>
+            <div className="relative" ref={languageMenuRef}>
+              <button
+                onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
+                className="inline-flex items-center justify-center rounded-full p-2.5 bg-white border border-slate-200 hover:border-fuchsia-300 shadow-sm transition-colors"
+                title={t('marketing.nav.language') || 'Language'}
+                aria-label="Select language"
+              >
+                <Languages className="w-5 h-5 text-slate-600" />
+              </button>
+              {languageMenuOpen && (
+                <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-full mt-2 bg-white rounded-lg shadow-lg border border-slate-200 p-2 z-50 min-w-[120px]`}>
+                  <LanguageSelector value={i18n.language} onChange={(lang) => {
+                    i18n.changeLanguage(lang);
+                    setLanguageMenuOpen(false);
+                  }} subtle />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
             aria-label="Toggle menu"
           >
             <svg
@@ -111,7 +145,7 @@ export function Navigation() {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 py-4">
+        <div className="lg:hidden border-t border-slate-200 py-4">
           <nav className="flex flex-col gap-2">
             {orderedNavLinks.map((link) => (
               <Link
@@ -128,8 +162,11 @@ export function Navigation() {
               </Link>
             ))}
             <div className="px-4 py-2 flex items-center gap-2 sm:hidden">
-              <span className="text-slate-600 text-sm">🌐</span>
-              <LanguageSelector value={i18n.language} onChange={(lang) => i18n.changeLanguage(lang)} subtle />
+              <Languages className="w-4 h-4 text-slate-600" />
+              <LanguageSelector value={i18n.language} onChange={(lang) => {
+                i18n.changeLanguage(lang);
+                setMobileMenuOpen(false);
+              }} subtle />
             </div>
           </nav>
         </div>

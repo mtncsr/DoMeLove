@@ -133,7 +133,23 @@ export function ImagesStep({ templateMeta }: ImagesStepProps) {
     return usedIds;
   };
 
-  const usedImageIds = getUsedImageIds();
+  // PERFORMANCE INSTRUMENTATION: Track computation time
+  const usedImageIds = (() => {
+    if (import.meta.env.DEV) {
+      const start = performance.now();
+      const result = getUsedImageIds();
+      const duration = performance.now() - start;
+      if (duration > 1) {
+        console.warn(`[ImagesStep] getUsedImageIds took ${duration.toFixed(2)}ms`, {
+          imageCount: currentProject.data.images?.length || 0,
+          screenCount: templateMeta?.screens.length || 0,
+          usedCount: result.size,
+        });
+      }
+      return result;
+    }
+    return getUsedImageIds();
+  })();
 
   // Get which screens an image is assigned to (only if image exists AND screen exists in current template)
   const getScreensForImage = (imageId: string): string[] => {

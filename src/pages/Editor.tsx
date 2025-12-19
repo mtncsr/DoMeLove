@@ -16,6 +16,7 @@ import { ContentStep } from '../components/editor/ContentStep';
 import { PreviewExportStep } from '../components/editor/PreviewExportStep';
 import { TEMPLATE_CARDS } from '../data/templates';
 import { getTextDirection } from '../i18n/config';
+import { useRenderCount } from '../hooks/useRenderCount';
 
 function generateCustomTemplateMeta(project: Project): TemplateMeta {
   const customScreens = project.data.customTemplate?.customScreens || [];
@@ -50,6 +51,9 @@ function EditorContent() {
   const [tempName, setTempName] = useState('');
   const dir = getTextDirection(i18n.language);
   const isRTL = dir === 'rtl';
+
+  // DEV: Track render counts
+  useRenderCount('EditorContent');
 
   useEffect(() => {
     if (currentProject?.templateId) {

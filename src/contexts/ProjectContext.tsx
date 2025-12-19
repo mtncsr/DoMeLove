@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { perfMark, perfMeasure, logPerf } from '../utils/perf';
 import type { Project, ScreenData } from '../types/project';
 import { storageService } from '../services/storageService';
 import { validationService } from '../services/validationService';
@@ -24,8 +25,10 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProjectState] = useState<Project | null>(null);
+  const [dataRevision, setDataRevision] = useState(0);
   const currentProjectRef = useRef<Project | null>(null);
   const projectsRef = useRef<Project[]>([]);
+  const dataRevisionRef = useRef(0);
   const { autosaveEnabled } = useAppSettings();
 
   // Keep refs in sync with state
@@ -59,31 +62,58 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Auto-save current project (debounced) when autosave is enabled
+  // Auto-save current project (debounced, longer delay for typing) when autosave is enabled
+  // Based on currentProject.id + dataRevision to catch all changes including text edits
   useEffect(() => {
     if (currentProject && autosaveEnabled) {
+
+      // Longer debounce for typing (3000ms) vs immediate actions
+      const debounceTime = 3000;
       const timer = setTimeout(() => {
         const projectToSave = currentProjectRef.current;
-        const projectsToUpdate = projectsRef.current;
+        if (!projectToSave) return;
 
-        if (projectToSave) {
-          const updated = {
-            ...projectToSave,
-            updatedAt: new Date().toISOString(),
-          };
-
-          const updatedProjects = projectsToUpdate.map(p =>
-            p.id === updated.id ? updated : p
-          );
-
-          setProjects(updatedProjects);
-          projectsRef.current = updatedProjects;
-          storageService.saveProjects(updatedProjects);
+        // PERFORMANCE INSTRUMENTATION: Track autosave
+        if (import.meta.env.DEV) {
+          perfMark('autosave-start');
+          const projectSize = JSON.stringify(projectToSave).length;
+          logPerf('[ProjectContext] Autosave triggered', {
+            projectId: projectToSave.id,
+            projectSizeBytes: projectSize,
+            imageCount: projectToSave.data.images?.length || 0,
+          });
         }
-      }, 1000);
+
+        // Update projects array state (but don't save all projects)
+        const updatedProjects = projectsRef.current.map(p =>
+          p.id === projectToSave.id ? projectToSave : p
+        );
+        setProjects(updatedProjects);
+        projectsRef.current = updatedProjects;
+
+        // Save only the changed project (uses idle callback internally)
+        storageService.saveProject(projectToSave);
+
+        if (import.meta.env.DEV) {
+          perfMark('autosave-end');
+          perfMeasure('autosave', 'autosave-start', 'autosave-end');
+          logPerf('[ProjectContext] Autosave scheduled (idle callback)');
+        }
+      }, debounceTime);
       return () => clearTimeout(timer);
     }
-  }, [currentProject, autosaveEnabled]);
+  }, [currentProject?.id, dataRevision, autosaveEnabled]);
+
+  // Flush pending writes on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      storageService.flushPendingWrites();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   // Switch language when project changes
   useEffect(() => {
@@ -110,7 +140,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     );
     setProjects(updatedProjects);
     projectsRef.current = updatedProjects;
-    storageService.saveProjects(updatedProjects);
+    
+    // Flush immediately for manual save (don't use idle callback)
+    storageService.saveProject(updated);
+    storageService.flushPendingWrites();
   }, []);
 
   const createProject = useCallback((templateId: string, name: string): Project => {
@@ -138,31 +171,50 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
     const updatedProjects = [...projects, newProject];
     setProjects(updatedProjects);
-    storageService.saveProjects(updatedProjects);
+    projectsRef.current = updatedProjects;
+    // Save new project immediately (new project creation)
+    storageService.saveProject(newProject);
+    storageService.flushPendingWrites();
     setCurrentProjectState(newProject);
     return newProject;
   }, [projects]);
 
   const updateProject = useCallback((projectOrUpdater: Project | ((prev: Project) => Project), saveImmediately: boolean = false) => {
     // Get the updated project - either use the provided project or call the updater function
+    // Use ref to avoid dependency on currentProject (ref is always current via useEffect)
+    const current = currentProjectRef.current;
+    if (!current && typeof projectOrUpdater === 'function') {
+      console.warn('[ProjectContext] updateProject called with function but no current project');
+      return;
+    }
+
     const updated = typeof projectOrUpdater === 'function'
-      ? projectOrUpdater(currentProjectRef.current || currentProject!)
+      ? projectOrUpdater(current!)
       : projectOrUpdater;
 
-    console.log('[ProjectContext] Updating project:', {
-      id: updated.id,
-      name: updated.name,
-      saveImmediately,
-      currentName: currentProjectRef.current?.name
-    });
+    if (import.meta.env.DEV) {
+      console.log('[ProjectContext] Updating project:', {
+        id: updated.id,
+        name: updated.name,
+        saveImmediately,
+        currentName: current?.name
+      });
+    }
 
     const updatedWithTimestamp = {
       ...updated,
       updatedAt: new Date().toISOString(),
     };
 
+    // Increment data revision on every real project update (including text changes)
+    setDataRevision(prev => {
+      const next = prev + 1;
+      dataRevisionRef.current = next;
+      return next;
+    });
+
     // Remove flushSync - let React batch normally
-    if (currentProjectRef.current?.id === updatedWithTimestamp.id) {
+    if (current?.id === updatedWithTimestamp.id) {
       currentProjectRef.current = updatedWithTimestamp;
       setCurrentProjectState(updatedWithTimestamp);
     }
@@ -177,16 +229,21 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
       if (saveImmediately) {
         // Run side effect outside of render cycle
-        console.log('[ProjectContext] Force saving immediately');
+        if (import.meta.env.DEV) {
+          console.log('[ProjectContext] Force saving immediately');
+        }
         setTimeout(() => {
-          storageService.saveProjects(updatedProjects);
-          console.log('[ProjectContext] Save complete');
+          storageService.saveProject(updatedWithTimestamp);
+          storageService.flushPendingWrites();
+          if (import.meta.env.DEV) {
+            console.log('[ProjectContext] Save complete');
+          }
         }, 0);
       }
 
       return updatedProjects;
     });
-  }, [currentProject]);
+  }, []); // No dependencies - uses refs which are always current
 
   const deleteProject = useCallback(async (projectId: string) => {
     // Revoke all object URLs for this project
@@ -199,7 +256,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     // Remove from projects array
     const updatedProjects = projects.filter(p => p.id !== projectId);
     setProjects(updatedProjects);
-    storageService.saveProjects(updatedProjects);
+    projectsRef.current = updatedProjects;
+    // Delete project from storage (handles index update)
+    storageService.deleteProject(projectId);
 
     if (currentProject?.id === projectId) {
       setCurrentProjectState(null);
@@ -209,6 +268,12 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const setCurrentProject = useCallback((project: Project | null) => {
     const previousProjectId = currentProjectRef.current?.id;
     const newProjectId = project?.id;
+
+    // Reset data revision when switching projects
+    if (previousProjectId !== newProjectId) {
+      setDataRevision(0);
+      dataRevisionRef.current = 0;
+    }
 
     if (project) {
       // GUARD: Only revoke previous project URLs if switching to DIFFERENT project
@@ -300,7 +365,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
     const updatedProjects = [...projects, migrated];
     setProjects(updatedProjects);
-    storageService.saveProjects(updatedProjects);
+    projectsRef.current = updatedProjects;
+    // Save imported project
+    storageService.saveProject(migrated);
+    storageService.flushPendingWrites();
 
     return {
       success: true,
@@ -308,20 +376,35 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     };
   }, [projects]);
 
+  // Memoize context value to prevent cascade re-renders
+  // All callbacks are already wrapped in useCallback, so they're stable
+  const contextValue = useMemo(
+    () => ({
+      projects,
+      currentProject,
+      createProject,
+      updateProject,
+      deleteProject,
+      setCurrentProject,
+      exportProject,
+      importProject,
+      saveCurrentProject,
+    }),
+    [
+      projects,
+      currentProject,
+      createProject,
+      updateProject,
+      deleteProject,
+      setCurrentProject,
+      exportProject,
+      importProject,
+      saveCurrentProject,
+    ]
+  );
+
   return (
-    <ProjectContext.Provider
-      value={{
-        projects,
-        currentProject,
-        createProject,
-        updateProject,
-        deleteProject,
-        setCurrentProject,
-        exportProject,
-        importProject,
-        saveCurrentProject,
-      }}
-    >
+    <ProjectContext.Provider value={contextValue}>
       {children}
     </ProjectContext.Provider>
   );

@@ -4,47 +4,126 @@
   "shortName": "Kids Birthday Party",
   "overlayType": "birthday",
   "designConfig": {
-    "background": "linear-gradient(135deg, #ff6b6b 0%, #ffd93d 50%, #6bcf7f 100%)",
+    "background": "linear-gradient(135deg, #ffd93d 0%, #ff6b6b 50%, #6bcf7f 100%)",
     "defaultEmojis": ["🎈", "🎂", "🎉", "🎊", "🎁", "🎀", "🎪", "🎨"],
     "textPlaceholders": {
       "title": "Happy Birthday!",
-      "text": "Let's celebrate with fun and games!",
+      "text": "Let's celebrate your special day!",
       "mainGreeting": "Party Time!"
-    }
+    },
+    "palette": {
+      "background": "linear-gradient(135deg, #ffd93d 0%, #ff6b6b 50%, #6bcf7f 100%)",
+      "overlayBackground": "linear-gradient(135deg, #ffd93d 0%, #ff6b6b 50%, #6bcf7f 100%)",
+      "textColor": "#ffffff",
+      "accentColor": "#ff6b6b"
+    },
+    "typography": {
+      "headlinePreset": "bold",
+      "bodyPreset": "regular"
+    },
+    "backgroundAnimation": {
+      "preset": "confetti",
+      "intensity": "medium",
+      "speed": "normal"
+    },
+    "overlayButton": {
+      "emoji": "🎁",
+      "stylePreset": "circleBounce",
+      "animationPreset": "bounceLoop"
+    },
+    "floatingStickers": [
+      {
+        "emoji": "🎈",
+        "x": 8,
+        "y": 15,
+        "sizePercent": 6,
+        "rotation": 0,
+        "zIndex": 5,
+        "animationPreset": "floatSlow",
+        "speed": "slow"
+      },
+      {
+        "emoji": "🎉",
+        "x": 85,
+        "y": 18,
+        "sizePercent": 5,
+        "rotation": 0,
+        "zIndex": 5,
+        "animationPreset": "burstPop",
+        "speed": "normal"
+      },
+      {
+        "emoji": "⭐",
+        "x": 78,
+        "y": 75,
+        "sizePercent": 4,
+        "rotation": 0,
+        "zIndex": 5,
+        "animationPreset": "rotateSlow",
+        "speed": "slow"
+      }
+    ]
   },
   "screens": [
     {
       "screenId": "intro",
-      "type": "intro",
+      "type": "overlay",
       "placeholders": ["title", "text"],
       "required": ["title"],
       "order": 1,
-      "supportsMusic": true
+      "supportsMusic": true,
+      "defaultTitle": "Happy Birthday!",
+      "defaultText": "Let's celebrate your special day!",
+      "animationPresets": {
+        "title": "fadeIn",
+        "text": "slideUp"
+      }
+    },
+    {
+      "screenId": "hero",
+      "type": "single",
+      "placeholders": ["title", "text"],
+      "required": ["title"],
+      "order": 2,
+      "supportsMusic": true,
+      "defaultTitle": "[Name] turns [Age]!",
+      "defaultText": "A day full of fun, laughter, and surprises",
+      "animationPresets": {
+        "title": "fadeIn",
+        "text": "fadeIn"
+      }
     },
     {
       "screenId": "gallery",
       "type": "gallery",
-      "placeholders": ["title"],
-      "required": ["title"],
-      "order": 2,
-      "galleryImageCount": 6,
-      "supportsMusic": true
-    },
-    {
-      "screenId": "game",
-      "type": "text",
-      "placeholders": ["title", "text"],
+      "placeholders": ["title", "caption"],
       "required": ["title"],
       "order": 3,
-      "supportsMusic": true
+      "galleryImageCount": 6,
+      "supportsMusic": true,
+      "defaultTitle": "Memories",
+      "defaultCaption": "Some of our favorite moments together",
+      "defaultItems": [
+        "Happy Birthday! We love you!",
+        "Wishing you endless joy and fun!",
+        "So proud of you!"
+      ],
+      "animationPresets": {
+        "title": "fadeIn",
+        "cards": "popIn"
+      }
     },
     {
-      "screenId": "wish",
-      "type": "text",
-      "placeholders": ["title", "text"],
-      "required": ["title"],
+      "screenId": "video",
+      "type": "single",
+      "placeholders": ["title"],
+      "required": [],
       "order": 4,
-      "supportsMusic": true
+      "supportsMusic": false,
+      "defaultTitle": "A special message for you",
+      "animationPresets": {
+        "title": "fadeIn"
+      }
     }
   ],
   "globalPlaceholders": ["recipientName", "senderName", "mainGreeting"],

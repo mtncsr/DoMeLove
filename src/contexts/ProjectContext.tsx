@@ -87,9 +87,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         // Update projects array state (but don't save all projects)
         const updatedProjects = projectsRef.current.map(p =>
           p.id === projectToSave.id ? projectToSave : p
-        );
-        setProjects(updatedProjects);
-        projectsRef.current = updatedProjects;
+          );
+          setProjects(updatedProjects);
+          projectsRef.current = updatedProjects;
 
         // Save only the changed project (uses idle callback internally)
         storageService.saveProject(projectToSave);
@@ -193,12 +193,12 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       : projectOrUpdater;
 
     if (import.meta.env.DEV) {
-      console.log('[ProjectContext] Updating project:', {
-        id: updated.id,
-        name: updated.name,
-        saveImmediately,
+    console.log('[ProjectContext] Updating project:', {
+      id: updated.id,
+      name: updated.name,
+      saveImmediately,
         currentName: current?.name
-      });
+    });
     }
 
     const updatedWithTimestamp = {
@@ -230,13 +230,13 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       if (saveImmediately) {
         // Run side effect outside of render cycle
         if (import.meta.env.DEV) {
-          console.log('[ProjectContext] Force saving immediately');
+        console.log('[ProjectContext] Force saving immediately');
         }
         setTimeout(() => {
           storageService.saveProject(updatedWithTimestamp);
           storageService.flushPendingWrites();
           if (import.meta.env.DEV) {
-            console.log('[ProjectContext] Save complete');
+          console.log('[ProjectContext] Save complete');
           }
         }, 0);
       }
@@ -391,15 +391,15 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       saveCurrentProject,
     }),
     [
-      projects,
-      currentProject,
-      createProject,
-      updateProject,
-      deleteProject,
-      setCurrentProject,
-      exportProject,
-      importProject,
-      saveCurrentProject,
+        projects,
+        currentProject,
+        createProject,
+        updateProject,
+        deleteProject,
+        setCurrentProject,
+        exportProject,
+        importProject,
+        saveCurrentProject,
     ]
   );
 

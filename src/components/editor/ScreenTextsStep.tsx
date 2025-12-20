@@ -46,16 +46,16 @@ export function ScreenTextsStep({ templateMeta }: ScreenTextsStepProps) {
       const screenData = prev.data.screens[screenId] || {};
       return {
         ...prev,
-        data: {
+      data: {
           ...prev.data,
-          screens: {
+        screens: {
             ...prev.data.screens,
-            [screenId]: {
+          [screenId]: {
               ...screenData,
-              [field]: value,
-            },
+            [field]: value,
           },
         },
+      },
       };
     });
 

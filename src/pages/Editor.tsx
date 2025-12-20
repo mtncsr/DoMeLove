@@ -159,7 +159,7 @@ function EditorContent() {
           <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">
             {getViewTitle()}
           </h1>
-        </div>
+            </div>
 
         {/* Back Button */}
         {canGoBack ? (
@@ -167,7 +167,7 @@ function EditorContent() {
             onClick={goBack}
             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             aria-label="Go back"
-          >
+                >
             <ArrowLeft className="w-5 h-5 text-slate-700 dark:text-slate-300" />
           </button>
         ) : (
@@ -179,7 +179,7 @@ function EditorContent() {
             <ArrowLeft className="w-5 h-5 text-slate-700 dark:text-slate-300" />
           </button>
         )}
-      </div>
+        </div>
 
       {/* Main Layout */}
       <div className="flex flex-1 overflow-hidden">
@@ -200,7 +200,7 @@ function EditorContent() {
           />
         )}
 
-        {/* Main Content */}
+      {/* Main Content */}
         <div className={`flex-1 overflow-y-auto ${isRTL ? 'text-right' : 'text-left'}`} style={{ backgroundColor: 'var(--surface)' }} dir={dir}>
           <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
             {renderViewContent()}

@@ -156,7 +156,7 @@ export async function buildGiftHtmlFromTemplate(
   // Load template HTML or generate for custom templates
   let html: string;
   if (project.templateId === 'custom' && project.data.customTemplate?.isCustom) {
-    html = generateCustomTemplateHTML(project, templateMeta, mediaUrls);
+    html = generateCustomTemplateHTML(project, templateMeta, mediaUrls, mode);
   } else {
     html = await loadTemplateHTML(project.templateId);
   }
@@ -166,14 +166,14 @@ export async function buildGiftHtmlFromTemplate(
 
   // Transform existing template screens to preview-matching structure
   if (project.templateId !== 'custom' || !project.data.customTemplate?.isCustom) {
-    html = transformTemplateScreensToPreviewStructure(html, project, templateMeta, screens, mediaUrls);
+    html = transformTemplateScreensToPreviewStructure(html, project, templateMeta, screens, mediaUrls, mode);
   }
 
   // Ensure the overlay screen in the final HTML matches the "main" screen design
   html = transformOverlayToPreviewMainScreen(html, project, templateMeta, screens, mode, options);
 
   // Replace simple flat placeholders
-  html = replacePlaceholders(html, project, templateMeta, screens, mediaUrls);
+  html = replacePlaceholders(html, project, templateMeta, screens, mediaUrls, mode);
 
   // Handle repeating structures (galleries, blessings) based on template-meta
   html = injectRepeatingStructures(html, project, templateMeta, screens, mediaUrls);
@@ -255,7 +255,8 @@ function generatePreviewMatchingScreenHTML(
   screenData: ScreenData,
   project: Project,
   templateMeta: TemplateMeta,
-  mediaUrls: MediaUrls
+  mediaUrls: MediaUrls,
+  mode: 'preview' | 'export' = 'export'
 ): string {
   const titleText = (screenData.title || '').trim();
   const bodyText = (screenData.text || '').trim();
@@ -275,6 +276,9 @@ function generatePreviewMatchingScreenHTML(
     .filter((img: ImageData | undefined): img is ImageData => img !== undefined);
 
   const hasImages = screenImages.length > 0 && !hasVideo;
+  const isGalleryScreen = screen.type === 'gallery';
+  const isVideoScreen = screen.type === 'single' && screenData.mediaMode === 'video';
+  const isHeroScreen = screen.type === 'single' && !hasVideo && !isVideoScreen; // Hero image screen
 
   // Generate media content (images carousel or video)
   let mediaContent = '';
@@ -282,25 +286,40 @@ function generatePreviewMatchingScreenHTML(
     // Video will be injected later via injectVideos, use placeholder
     mediaContent = `{{${screen.screenId}_video}}`;
   } else if (hasImages) {
+    // Has images - show actual gallery
     const galleryLayout = screenData.galleryLayout || 'carousel';
     switch (galleryLayout) {
       case 'gridWithZoom':
-        mediaContent = generateGridWithZoomHTML(screen.screenId, screenImages, mediaUrls.images);
+        mediaContent = generateGridWithZoomHTML(screen.screenId, screenImages, mediaUrls.images, mode);
         break;
       case 'fullscreenSlideshow':
         mediaContent = generateFullscreenSlideshowHTML(screen.screenId, screenImages, mediaUrls.images);
         break;
       case 'heroWithThumbnails':
-        mediaContent = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaUrls.images);
+        mediaContent = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaUrls.images, mode);
         break;
       case 'timeline':
         mediaContent = generateTimelineHTML(screen.screenId, screenImages, mediaUrls.images);
         break;
       case 'carousel':
       default:
-        mediaContent = generateImageCarouselHTML(screen.screenId, screenImages, mediaUrls.images);
+        mediaContent = generateImageCarouselHTML(screen.screenId, screenImages, mediaUrls.images, mode);
         break;
     }
+  } else if (isHeroScreen && mode === 'preview') {
+    // Hero image screen with no image - show placeholder in preview mode
+    mediaContent = generateHeroImagePlaceholder(screen.screenId);
+  } else if (isGalleryScreen && mode === 'preview') {
+    // Gallery screen with no images - show placeholder in preview mode
+    const galleryLayout = screenData.galleryLayout || 'carousel';
+    if (galleryLayout === 'gridWithZoom') {
+      mediaContent = generateGridWithZoomHTML(screen.screenId, [], mediaUrls.images, mode);
+    } else {
+      mediaContent = generateImageCarouselHTML(screen.screenId, [], mediaUrls.images, mode);
+    }
+  } else if (isVideoScreen && mode === 'preview' && !screenData.videoId) {
+    // Video screen with no video - show placeholder in preview mode
+    mediaContent = generateVideoPlaceholder(screen.screenId);
   }
 
   // Get screen-specific and global styles (matching ScreenPreview logic)
@@ -420,9 +439,26 @@ function generatePreviewMatchingScreenHTML(
   const textStyleAttr = textStyle ? textStyle : '';
   const titleHTML = titleText ? `<h1 class="screen-title"${titleStyleAttr ? ` style="${titleStyleAttr}"` : ''}>${escapedTitle}</h1>` : '';
   const textHTML = bodyText ? `<p class="screen-text"${textStyleAttr ? ` style="${textStyleAttr}"` : ''}>${escapedText}</p>` : '';
+  
+  // For gallery screens, include caption after media content
+  // Get caption from screenData, or fallback to template meta defaultCaption
+  let captionText = '';
+  if (isGalleryScreen) {
+    captionText = screenData.caption || '';
+    // If no caption in screenData, try to get from template meta
+    if (!captionText && templateMeta) {
+      const screenConfig = templateMeta.screens.find(s => s.screenId === screen.screenId);
+      if (screenConfig && 'defaultCaption' in screenConfig) {
+        captionText = screenConfig.defaultCaption || '';
+      }
+    }
+  }
+  const escapedCaption = captionText ? escapeHtmlForExport(captionText) : '';
+  const captionHTML = isGalleryScreen && captionText ? `<p class="screen-caption" style="text-align: center; margin-top: 1.5rem; color: #6b7280; font-size: 0.875rem;">${escapedCaption}</p>` : '';
 
   // Determine layout class based on content
-  const hasMediaContent = (!hasVideo && hasImages) || (hasVideo && !!screenData.videoId);
+  // Include placeholders as media content in preview mode
+  const hasMediaContent = (!hasVideo && hasImages) || (hasVideo && !!screenData.videoId) || (mode === 'preview' && (isHeroScreen || isGalleryScreen || isVideoScreen));
   const layoutClass = hasMediaContent ? 'has-media' : 'single-column';
 
   return `
@@ -432,7 +468,7 @@ function generatePreviewMatchingScreenHTML(
           ${titleHTML}
           ${textHTML}
         </div>
-        ${hasMediaContent ? `<div class="screen-media-group">${mediaContent}</div>` : ''}
+        ${hasMediaContent ? `<div class="screen-media-group">${mediaContent}${captionHTML}</div>` : ''}
         ${!titleText && !bodyText && !hasMediaContent ? `
           <div style="color: #9ca3af; text-align: center;">
             <div style="font-size: 3.75rem; margin-bottom: 1rem;">📄</div>
@@ -444,11 +480,11 @@ function generatePreviewMatchingScreenHTML(
     `;
 }
 
-function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta, mediaUrls: MediaUrls): string {
+function generateCustomTemplateHTML(project: Project, templateMeta: TemplateMeta, mediaUrls: MediaUrls, mode: 'preview' | 'export' = 'export'): string {
   const screens = getExportScreens(project, templateMeta);
   const screensHTML = screens.map((screen) => {
     const screenData = project.data.screens[screen.screenId] || {};
-    return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls);
+    return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls, 'preview');
   }).join('\n');
 
   // Derive overlay title/text from the main screen configuration (order === 1),
@@ -668,6 +704,12 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
     // Replace title and text
     html = html.replace(new RegExp(`\\{\\{${screen.screenId}_title\\}\\}`, 'g'), screenData.title || '');
     html = html.replace(new RegExp(`\\{\\{${screen.screenId}_text\\}\\}`, 'g'), screenData.text || '');
+    
+    // Remove caption placeholder (captions are now rendered in generatePreviewMatchingScreenHTML)
+    html = html.replace(new RegExp(`\\{\\{${screen.screenId}_caption\\}\\}`, 'g'), '');
+    
+    // Remove gallery placeholder (galleries are now rendered in generatePreviewMatchingScreenHTML)
+    html = html.replace(new RegExp(`\\{\\{${screen.screenId}_gallery\\}\\}`, 'g'), '');
 
     // Replace image carousel placeholder if images are assigned to this screen
     if (screenData.images && screenData.images.length > 0) {
@@ -687,13 +729,13 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
         let galleryHTML: string;
         switch (galleryLayout) {
           case 'gridWithZoom':
-            galleryHTML = generateGridWithZoomHTML(screen.screenId, screenImages, mediaUrls.images);
+            galleryHTML = generateGridWithZoomHTML(screen.screenId, screenImages, mediaUrls.images, mode);
             break;
           case 'fullscreenSlideshow':
             galleryHTML = generateFullscreenSlideshowHTML(screen.screenId, screenImages, mediaUrls.images);
             break;
           case 'heroWithThumbnails':
-            galleryHTML = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaUrls.images);
+            galleryHTML = generateHeroWithThumbnailsHTML(screen.screenId, screenImages, mediaUrls.images, mode);
             break;
           case 'timeline':
             galleryHTML = generateTimelineHTML(screen.screenId, screenImages, mediaUrls.images);
@@ -737,9 +779,24 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
           html = html.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
         }
       } else {
-        // If no images, replace placeholder with empty string
-        const carouselPlaceholder = `{{${screen.screenId}_images}}`;
-        html = html.replace(new RegExp(carouselPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
+        // If no images, show placeholder in preview mode, otherwise remove
+        if (mode === 'preview' && screen.type === 'gallery') {
+          const galleryLayout = screenData.galleryLayout || 'carousel';
+          let placeholderHTML = '';
+          if (galleryLayout === 'gridWithZoom') {
+            placeholderHTML = generateGridWithZoomHTML(screen.screenId, [], mediaUrls.images, mode);
+          } else {
+            placeholderHTML = generateImageCarouselHTML(screen.screenId, [], mediaUrls.images, mode);
+          }
+          const carouselPlaceholder = `{{${screen.screenId}_images}}`;
+          if (html.includes(carouselPlaceholder)) {
+            html = html.replace(carouselPlaceholder, placeholderHTML);
+          }
+        } else {
+          // Remove placeholder in export mode or non-gallery screens
+          const carouselPlaceholder = `{{${screen.screenId}_images}}`;
+          html = html.replace(new RegExp(carouselPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
+        }
       }
     }
 
@@ -754,10 +811,11 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
   }
 
   // Replace overlay placeholders
-  html = html.replace(/\{\{overlayMainText\}\}/g, data.overlay.mainText || '');
-  html = html.replace(/\{\{overlaySubText\}\}/g, data.overlay.subText || '');
+  const overlay = data.overlay || { type: 'custom' as const };
+  html = html.replace(/\{\{overlayMainText\}\}/g, overlay.mainText || '');
+  html = html.replace(/\{\{overlaySubText\}\}/g, overlay.subText || '');
   // Allow empty button text - if empty, button will show with just animation
-  html = html.replace(/\{\{overlayButtonText\}\}/g, data.overlay.buttonText || '');
+  html = html.replace(/\{\{overlayButtonText\}\}/g, overlay.buttonText || '');
 
   // Replace design variables if present
   if (templateMeta.designVariables) {
@@ -773,7 +831,7 @@ function replacePlaceholders(html: string, project: Project, templateMeta: Templ
   return html;
 }
 
-function generateImageCarouselHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
+function generateImageCarouselHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>, mode: 'preview' | 'export' = 'export'): string {
   const carouselId = `carousel-${screenId}`;
 
   // Filter to only include images that have data URLs
@@ -782,8 +840,30 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[], imageD
     return dataUrl && dataUrl.length > 0;
   });
 
-  // If no images have data URLs, return empty
+  // If no images, show placeholder UI in preview mode
   if (imagesWithUrls.length === 0) {
+    if (mode === 'preview') {
+      // Show placeholder carousel with "assign images" text
+      return `
+        <div class="image-carousel-container image-carousel-placeholder" id="${carouselId}" data-screen-id="${screenId}" data-placeholder-type="gallery" style="cursor: pointer; transition: all 0.2s ease;">
+          <div class="image-carousel-main" style="position: relative; width: 100%; max-width: 800px; margin: 0 auto; background: #f9fafb; border: 2px dashed #d1d5db; border-radius: 12px; padding: 4rem 2rem; text-align: center; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div class="carousel-placeholder-content">
+              <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">📷</div>
+              <div style="font-size: 1.25rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem;">Assign Images</div>
+              <div style="font-size: 0.875rem; color: #9ca3af;">Click to add images to this gallery</div>
+            </div>
+            <button class="carousel-nav-btn carousel-nav-prev" type="button" disabled style="opacity: 0.3; pointer-events: none;">‹</button>
+            <button class="carousel-nav-btn carousel-nav-next" type="button" disabled style="opacity: 0.3; pointer-events: none;">›</button>
+            <div class="carousel-counter" style="opacity: 0.5;">0 / 0</div>
+          </div>
+          <div class="carousel-thumbnails" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; max-width: 800px; margin-left: auto; margin-right: auto;">
+            ${Array.from({ length: 6 }).map(() => `
+              <div class="carousel-thumbnail-placeholder" style="width: 100px; height: 100px; background: #f3f4f6; border: 2px dashed #d1d5db; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 1.5rem; opacity: 0.6;">📷</div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
     return '';
   }
 
@@ -831,7 +911,35 @@ function generateImageCarouselHTML(screenId: string, images: ImageData[], imageD
   return carouselHTML;
 }
 
-function generateGridWithZoomHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
+// Generate hero image placeholder
+function generateHeroImagePlaceholder(screenId: string): string {
+  return `
+    <div class="hero-image-placeholder" id="hero-${screenId}" data-screen-id="${screenId}" data-placeholder-type="hero" style="width: 100%; max-width: 800px; margin: 2rem auto; background: #f9fafb; border: 2px dashed #d1d5db; border-radius: 12px; padding: 6rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s ease; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div style="font-size: 5rem; margin-bottom: 1rem; opacity: 0.5;">📷</div>
+      <div style="font-size: 1.5rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem;">Assign Hero Image</div>
+      <div style="font-size: 0.875rem; color: #9ca3af;">Click to add a hero image to this screen</div>
+    </div>
+  `;
+}
+
+// Generate video placeholder with proper video container
+function generateVideoPlaceholder(screenId: string): string {
+  return `
+    <div class="video-block video-placeholder" id="video-${screenId}" data-screen-id="${screenId}" data-placeholder-type="video" style="width: 100%; max-width: 800px; margin: 2rem auto; background: #f9fafb; border: 2px dashed #d1d5db; border-radius: 12px; padding: 6rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s ease; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+      <div style="font-size: 5rem; margin-bottom: 1rem; opacity: 0.5;">🎥</div>
+      <div style="font-size: 1.5rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem;">Assign Video</div>
+      <div style="font-size: 0.875rem; color: #9ca3af;">Click to add a video to this screen</div>
+      <!-- Video controls placeholder -->
+      <div style="position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; opacity: 0.3;">
+        <div style="width: 40px; height: 40px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">⏮</div>
+        <div style="width: 40px; height: 40px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">▶</div>
+        <div style="width: 40px; height: 40px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">⏭</div>
+      </div>
+    </div>
+  `;
+}
+
+function generateGridWithZoomHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>, mode: 'preview' | 'export' = 'export'): string {
   const galleryId = `gallery-grid-${screenId}`;
 
   // Filter to only include images that have data URLs
@@ -840,8 +948,20 @@ function generateGridWithZoomHTML(screenId: string, images: ImageData[], imageDa
     return dataUrl && dataUrl.length > 0;
   });
 
-  // If no images have data URLs, return empty
+  // If no images, show placeholder UI in preview mode
   if (imagesWithUrls.length === 0) {
+    if (mode === 'preview') {
+      return `
+        <div class="gallery-grid-placeholder" id="${galleryId}" data-screen-id="${screenId}" data-placeholder-type="gallery" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 1200px; margin: 2rem 0;">
+          ${Array.from({ length: 6 }).map(() => `
+            <div class="gallery-item-placeholder" style="width: 100%; height: 200px; background: #f3f4f6; border: 2px dashed #d1d5db; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af; cursor: pointer;">
+              <div style="font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5;">📷</div>
+              <div style="font-size: 0.875rem;">Assign Image</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
     return '';
   }
 
@@ -930,7 +1050,7 @@ function generateFullscreenSlideshowHTML(screenId: string, images: ImageData[], 
   return slideshowHTML;
 }
 
-function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>): string {
+function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[], imageDataUrlMap: Map<string, string>, mode: 'preview' | 'export' = 'export'): string {
   const heroId = `hero-gallery-${screenId}`;
 
   // Filter to only include images that have data URLs
@@ -939,8 +1059,11 @@ function generateHeroWithThumbnailsHTML(screenId: string, images: ImageData[], i
     return dataUrl && dataUrl.length > 0;
   });
 
-  // If no images have data URLs, return empty
+  // If no images, show placeholder UI in preview mode
   if (imagesWithUrls.length === 0) {
+    if (mode === 'preview') {
+      return generateHeroImagePlaceholder(screenId);
+    }
     return '';
   }
 
@@ -1107,11 +1230,12 @@ async function injectVideos(html: string, project: Project, screens: ScreenConfi
       if (mode === 'export') {
         throw new Error(`Video blob is missing for "${videoMeta.filename}". Please re-upload.`);
       }
-      // Preview mode: show placeholder
+      // Preview mode: show placeholder with "assign video" text
       const placeholderHtml = `
-      <div class="video-block" id="video-${screen.screenId}" style="padding: 2rem; text-align: center; color: #666;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🎥</div>
-        <div>Video preview unavailable</div>
+      <div class="video-block video-placeholder" id="video-${screen.screenId}" data-screen-id="${screen.screenId}" data-placeholder-type="video" style="padding: 4rem 2rem; text-align: center; background: #f9fafb; border: 2px dashed #d1d5db; border-radius: 12px; margin: 2rem 0; cursor: pointer;">
+        <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">🎥</div>
+        <div style="font-size: 1.25rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem;">Assign Video</div>
+        <div style="font-size: 0.875rem; color: #9ca3af;">Click to add a video to this screen</div>
       </div>
     `;
       const placeholder = `{{${screen.screenId}_video}}`;
@@ -1194,7 +1318,7 @@ function escapeHtmlForExport(text: string): string {
 /**
  * Transform existing template screens to preview-matching structure
  */
-function transformTemplateScreensToPreviewStructure(html: string, project: Project, templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls): string {
+function transformTemplateScreensToPreviewStructure(html: string, project: Project, templateMeta: TemplateMeta, screens: ScreenConfig[], mediaUrls: MediaUrls, mode: 'preview' | 'export' = 'export'): string {
   const screensToAdd: string[] = [];
 
   for (const screen of screens) {
@@ -1221,13 +1345,23 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
 
     if (match) {
       // Generate new preview-matching structure with mediaUrls
-      const newScreenHTML = generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls);
+      const newScreenHTML = generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls, mode);
       // Replace the old screen with new structure
       html = html.replace(screenRegex, newScreenHTML.trim());
+      if (import.meta.env.DEV) {
+        console.log(`[transformTemplateScreensToPreviewStructure] Transformed screen ${screenId}, new HTML length:`, newScreenHTML.length);
+      }
     } else {
       // Screen doesn't exist in template - mark it for addition
       screensToAdd.push(screenId);
+      if (import.meta.env.DEV) {
+        console.warn(`[transformTemplateScreensToPreviewStructure] Screen ${screenId} not found in template HTML, will be added`);
+      }
     }
+  }
+  
+  if (import.meta.env.DEV && screensToAdd.length > 0) {
+    console.log(`[transformTemplateScreensToPreviewStructure] Adding ${screensToAdd.length} screens that weren't in template HTML`);
   }
 
   // Add any screens that don't exist in the template HTML
@@ -1236,7 +1370,7 @@ function transformTemplateScreensToPreviewStructure(html: string, project: Proje
       const screen = screens.find(s => s.screenId === screenId);
       if (!screen) return '';
       const screenData = project.data.screens[screen.screenId] || {};
-      return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls);
+      return generatePreviewMatchingScreenHTML(screen, screenData, project, templateMeta, mediaUrls, 'preview');
     }).filter(Boolean).join('\n');
 
     // Insert screens before </body> or at the end of body content
@@ -1334,7 +1468,7 @@ function transformOverlayToPreviewMainScreen(
   }
 
   // Generate overlay button based on button style (emoji / text-framed)
-  let overlayButtonHTML = '<button type="button">{{overlayButtonText}}</button>';
+  let overlayButtonHTML = '<button type="button" onclick="event.stopPropagation(); GiftApp.startExperience(); return false;">{{overlayButtonText}}</button>';
   const overlay = project.data.overlay;
 
   if (overlay) {
@@ -1342,7 +1476,7 @@ function transformOverlayToPreviewMainScreen(
       const emoji = overlay.emojiButton?.emoji || '🎉';
       const size = overlay.emojiButton?.size || 48;
       const animation = overlay.emojiButton?.animation || 'pulse';
-      overlayButtonHTML = `<button type="button" class="emoji-button emoji-${animation}" style="font-size: ${size}px; width: ${size + 20}px; height: ${size + 20}px;">${emoji}</button>`;
+      overlayButtonHTML = `<button type="button" class="emoji-button emoji-${animation}" style="font-size: ${size}px; width: ${size + 20}px; height: ${size + 20}px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 50%;" onclick="event.stopPropagation(); GiftApp.startExperience(); return false;">${emoji}</button>`;
     } else if (overlay.buttonStyle === 'text-framed') {
       const text = overlay.textButton?.text || 'Start Experience';
       const frameStyle = overlay.textButton?.frameStyle || 'solid';
@@ -1360,7 +1494,8 @@ function transformOverlayToPreviewMainScreen(
         '#333';
 
       // Build inline style for button
-      let buttonStyle = '';
+      let buttonStyle = `padding: 12px 24px; cursor: pointer; font-weight: bold; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;`;
+      
       if (
         frameStyle === 'solid' ||
         frameStyle === 'dashed' ||
@@ -1369,13 +1504,18 @@ function transformOverlayToPreviewMainScreen(
         frameStyle === 'rectangle' ||
         frameStyle === 'square'
       ) {
-        buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
+        buttonStyle += `background-color: ${buttonBg}; color: ${buttonText}; border: 2px solid ${buttonBorder}; border-radius: 8px;`;
       } else if (frameStyle === 'circle' || frameStyle === 'oval') {
-        buttonStyle = `background-color: ${buttonBg}; color: ${buttonText}; border-color: ${buttonBorder};`;
+        buttonStyle += `background-color: ${buttonBg}; color: ${buttonText}; border: 3px solid ${buttonBorder}; border-radius: 50%;`;
+      } else if (frameStyle === 'gradient') {
+        buttonStyle += `border: none; background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: ${buttonText}; border-radius: 8px;`;
+      } else if (frameStyle === 'heart') {
+        buttonStyle += `border: none; background: ${buttonBg === 'white' ? '#ff6b6b' : buttonBg}; color: ${buttonText}; clip-path: url(#heart-clip); width: 120px; height: 100px; font-size: 14px; border-radius: 0;`;
+      } else if (frameStyle === 'star') {
+        buttonStyle += `border: none; background: ${buttonBg === 'white' ? '#ffd93d' : buttonBg}; color: ${buttonText}; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); width: 100px; height: 100px; font-size: 12px; border-radius: 0;`;
       }
 
-      overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}"${buttonStyle ? ` style="${buttonStyle}"` : ''
-        }>${escapeHtmlForExport(text)}</button>`;
+      overlayButtonHTML = `<button type="button" class="text-button frame-${frameStyle}" style="${buttonStyle}" onclick="event.stopPropagation(); GiftApp.startExperience(); return false;">${escapeHtmlForExport(text)}</button>`;
     }
   }
 
@@ -1430,6 +1570,36 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
   // Remove existing <style> tags (will be re-added in organized section)
   html = html.replace(/<style>[\s\S]*?<\/style>/gi, '');
 
+  // Inject navigation buttons if they don't exist
+  if (!html.includes('id="navHamburger"') && !html.includes('id="navBack"') && !html.includes('id="navNext"')) {
+    const navButtonsHTML = `
+      <!-- Navigation Buttons -->
+      <button class="nav-hamburger hidden" id="navHamburger" onclick="GiftApp.toggleMenu()">☰</button>
+      <button class="nav-back hidden" id="navBack" onclick="GiftApp.previousScreen()">←</button>
+      <button class="nav-next hidden" id="navNext" onclick="GiftApp.nextScreen()">Next →</button>
+      <!-- Hamburger Menu Backdrop -->
+      <div class="nav-menu-backdrop hidden" onclick="GiftApp.toggleMenu()"></div>
+      <!-- Hamburger Menu Sidebar -->
+      <div class="nav-menu-sidebar hidden" id="navMenu">
+        <div class="nav-menu-content">
+          <div class="nav-menu-header">
+            <h3>Navigate</h3>
+            <button class="nav-menu-close" onclick="GiftApp.toggleMenu()">×</button>
+          </div>
+          <div class="nav-menu-screens">
+            <!-- Screen list will be injected by GiftApp -->
+          </div>
+        </div>
+      </div>
+    `;
+    // Insert before </body> or at the end
+    if (html.includes('</body>')) {
+      html = html.replace('</body>', `${navButtonsHTML}\n</body>`);
+    } else {
+      html = html + navButtonsHTML;
+    }
+  }
+
   // Build styles section with theme support
   // Add pulse animation for overlay buttons (hint for press when text is empty)
   const pulseAnimationStyles = `
@@ -1445,8 +1615,14 @@ async function buildOrganizedHTML(html: string, project: Project, templateMeta: 
   const mainScreen = screens.find(s => s.order === 1);
   const mainScreenId = mainScreen?.screenId || null;
 
+  // Generate template-specific styles from designConfig
+  const templateStyles = generateTemplateStyles(templateMeta);
+  
+  // Generate navigation button styles
+  const navigationStyles = generateNavigationStyles();
+  
   // Put our overrides LAST to ensure they take precedence
-  const allStyles = `${existingStyles.trim()}\n${getPreviewLayoutStyles(options.singleScreenOnly, options.startScreenId, mainScreenId)}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}\n${generateColorStyles(project)}\n${generateButtonStyles(project)}\n${generateAnimationStyles(project)}`;
+  const allStyles = `${existingStyles.trim()}\n${templateStyles}\n${navigationStyles}\n${getPreviewLayoutStyles(options.singleScreenOnly, options.startScreenId, mainScreenId)}\n${getGalleryStyles()}\n${pulseAnimationStyles}\n${getOverlayButtonStyles()}\n${generateColorStyles(project)}\n${generateButtonStyles(project)}\n${generateAnimationStyles(project)}`;
   const themedStyles = applyThemeStyles(allStyles, project);
   const stylesSection = `<!-- ========== STYLES SECTION (embedded CSS) ========== -->\n<style>\n${themedStyles}\n</style>`;
 
@@ -1719,6 +1895,293 @@ function generateColorStyles(project: Project): string {
   });
 
   return css;
+}
+
+// Generate template-specific styles from designConfig
+function generateTemplateStyles(templateMeta: TemplateMeta): string {
+  const designConfig = templateMeta?.designConfig;
+  if (!designConfig) return '';
+
+  let css = `
+  /* ========== Template Design Config Styles ========== */
+  `;
+
+  // Apply background to body
+  if (designConfig.background) {
+    css += `
+    body {
+      background: ${designConfig.background} !important;
+      min-height: 100vh;
+    }
+    `;
+  }
+
+  // Create a vibrant overlay background - use the template background or create a colorful gradient
+  // Extract a vibrant color from the background gradient for overlay
+  let overlayBackground = designConfig.background;
+  
+  // If background is a gradient, use it directly; otherwise create a complementary gradient
+  if (designConfig.background && !designConfig.background.includes('gradient')) {
+    // Simple color - create a gradient with it
+    overlayBackground = `linear-gradient(135deg, ${designConfig.background} 0%, ${designConfig.background}dd 100%)`;
+  }
+
+  css += `
+    .overlay {
+      background: ${overlayBackground || 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)'} !important;
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+    }
+    .overlay.hidden {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+    .overlay h1,
+    .overlay .overlay-title,
+    .overlay .screen-title {
+      color: white !important;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      font-weight: bold;
+    }
+    .overlay p,
+    .overlay .overlay-subtitle,
+    .overlay .screen-text {
+      color: white !important;
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    .overlay button,
+    .overlay .overlay-button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      background: white;
+      color: #333;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+    .overlay button:hover,
+    .overlay .overlay-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    }
+    .overlay .text-button {
+      padding: 12px 24px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .overlay .emoji-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+  `;
+
+  // Style screens with template background
+  if (designConfig.background) {
+    css += `
+    .screen {
+      background: ${designConfig.background} !important;
+      min-height: 100vh;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      height: 100vh;
+    }
+    .screen.hidden {
+      display: none !important;
+    }
+    .screen:not(.hidden) {
+      display: flex !important;
+    }
+    .screen h2,
+    .screen .screen-title {
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+    }
+    .screen p,
+    .screen .screen-text {
+      font-size: 1.2rem;
+      line-height: 1.8;
+      max-width: 800px;
+      margin-bottom: 2rem;
+    }
+    `;
+  }
+
+  return css;
+}
+
+// Generate CSS for navigation buttons (next, back, hamburger)
+function generateNavigationStyles(): string {
+  return `
+    /* ========== Navigation Buttons ========== */
+    .nav-hamburger,
+    .nav-back,
+    .nav-next {
+      position: fixed;
+      z-index: 1001;
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      color: #333;
+      font-weight: bold;
+    }
+    .nav-hamburger:hover,
+    .nav-back:hover,
+    .nav-next:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .nav-hamburger {
+      top: 20px;
+      left: 20px;
+    }
+    .nav-back {
+      top: 20px;
+      right: 20px;
+    }
+    .nav-next {
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .nav-next:hover {
+      transform: translateX(-50%) scale(1.1);
+    }
+    .nav-hamburger.hidden,
+    .nav-back.hidden,
+    .nav-next.hidden {
+      display: none !important;
+    }
+    
+    /* Hamburger Menu */
+    .nav-menu-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      transition: opacity 0.3s ease;
+    }
+    .nav-menu-backdrop.hidden {
+      display: none;
+    }
+    .nav-menu-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100%;
+      background: white;
+      z-index: 2001;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+    }
+    .nav-menu-sidebar:not(.hidden) {
+      transform: translateX(0);
+    }
+    .nav-menu-sidebar.hidden {
+      display: none;
+    }
+    .nav-menu-content {
+      padding: 20px;
+    }
+    .nav-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .nav-menu-header h3 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: #111827;
+    }
+    .nav-menu-close {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .nav-menu-close:hover {
+      background: #f3f4f6;
+    }
+    .nav-menu-screens {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .nav-menu-screen-item {
+      padding: 12px 16px;
+      background: #f9fafb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .nav-menu-screen-item:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
+    .nav-menu-screen-item.active {
+      background: #ec4899;
+      color: white;
+      border-color: #ec4899;
+    }
+  `;
 }
 
 // Generate CSS for navigation button styles
@@ -2739,6 +3202,25 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
     
     function updateButtonStates() {
       if (singleScreenOnly) return; // Don't update buttons in single screen mode
+      
+      // Update navigation buttons (back, next)
+      var navBack = document.getElementById('navBack');
+      var navNext = document.getElementById('navNext');
+      if (navBack) {
+        navBack.disabled = (currentScreenIndex === 0);
+        navBack.style.opacity = (currentScreenIndex === 0) ? '0.5' : '1';
+        navBack.style.cursor = (currentScreenIndex === 0) ? 'not-allowed' : 'pointer';
+      }
+      if (navNext) {
+        navNext.disabled = (currentScreenIndex >= screens.length - 1);
+        navNext.style.opacity = (currentScreenIndex >= screens.length - 1) ? '0.5' : '1';
+        navNext.style.cursor = (currentScreenIndex >= screens.length - 1) ? 'not-allowed' : 'pointer';
+      }
+      
+      // Update hamburger menu active state
+      updateHamburgerMenuActive();
+      
+      // Legacy: Update screen-specific buttons
       screens.forEach(function(screenId, i) {
         // Try new format first (screen- prefix)
         var screen = document.getElementById('screen-' + screenId);
@@ -2760,10 +3242,56 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
       });
     }
     
+    function updateHamburgerMenuActive() {
+      var menuScreens = document.querySelectorAll('.nav-menu-screen-item');
+      menuScreens.forEach(function(item, index) {
+        if (index === currentScreenIndex) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+    
+    function toggleMenu() {
+      var menu = document.getElementById('navMenu');
+      var backdrop = document.querySelector('.nav-menu-backdrop');
+      if (menu && backdrop) {
+        var isHidden = menu.classList.contains('hidden');
+        if (isHidden) {
+          menu.classList.remove('hidden');
+          backdrop.classList.remove('hidden');
+          initHamburgerMenu();
+        } else {
+          menu.classList.add('hidden');
+          backdrop.classList.add('hidden');
+        }
+      }
+    }
+    
+    function initHamburgerMenu() {
+      var menuScreens = document.querySelector('.nav-menu-screens');
+      if (!menuScreens) return;
+      
+      // Clear existing items
+      menuScreens.innerHTML = '';
+      
+      // Add screen items
+      screens.forEach(function(screenId, index) {
+        var item = document.createElement('div');
+        item.className = 'nav-menu-screen-item' + (index === currentScreenIndex ? ' active' : '');
+        item.textContent = 'Screen ' + (index + 1);
+        item.onclick = function() {
+          showScreen(index);
+          toggleMenu();
+        };
+        menuScreens.appendChild(item);
+      });
+    }
+    
     function showScreen(index) {
       if (index < 0 || index >= screens.length) {
-        console.warn('showScreen: Invalid index', index, 'screens.length:', screens.length);
-        return;
+        return; // Invalid index, silently return
       }
       
       // Always hide the main screen element if it exists (it's shown as overlay, not in navigation)
@@ -2784,6 +3312,7 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
       }
       
       var screenShown = false;
+      
       screens.forEach(function(screenId, i) {
         // Try new format first (screen- prefix)
         var screen = document.getElementById('screen-' + screenId);
@@ -2793,39 +3322,66 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
         }
         if (screen) {
           if (i === index) {
+            // Remove hidden class and show screen
             screen.classList.remove('hidden');
             // Explicitly set display to flex to ensure visibility (matches .screen CSS)
-            screen.style.display = 'flex';
+            screen.style.setProperty('display', 'flex', 'important');
+            screen.style.setProperty('visibility', 'visible', 'important');
+            screen.style.setProperty('opacity', '1', 'important');
+            screen.style.setProperty('z-index', '10', 'important'); // Ensure it's above overlay
             screenShown = true;
+            // Force a reflow to ensure the screen is visible
+            screen.offsetHeight;
           } else {
+            // Hide other screens
             screen.classList.add('hidden');
-            screen.style.display = 'none'; // Force hide with inline style
+            screen.style.setProperty('display', 'none', 'important');
           }
         } else {
-          console.warn('showScreen: Screen element not found for screenId:', screenId, 'tried both screen-' + screenId + ' and ' + screenId);
+          // Screen not found - silently continue (logs removed for production)
         }
       });
       
       if (!screenShown && screens.length > 0) {
-        console.error('showScreen: Failed to show screen at index', index, 'screenId:', screens[index]);
-        // Debug: Log all screen elements in the DOM
-        var allScreenElements = document.querySelectorAll('[id^="screen-"], [id="single"], [id="custom"]');
-        console.log('Available screen elements in DOM:', Array.from(allScreenElements).map(function(el) { return el.id; }));
-        console.log('Looking for screenId:', screens[index]);
+        // Failed to show screen - silently continue (debug logs removed for production)
       }
       
       currentScreenIndex = index;
       updateButtonStates();
     }
     
+    var isStarting = false;
     function startExperience() {
-      // First, hide the overlay immediately
+      if (isStarting) {
+        return; // Already starting, ignore duplicate call
+      }
+      isStarting = true;
+      // First, hide the overlay immediately - use multiple methods to ensure it's hidden
       var overlay = document.getElementById('overlay');
       if (overlay) {
         overlay.classList.add('hidden');
-        overlay.style.display = 'none'; // Force hide with inline style as backup
+        overlay.style.setProperty('display', 'none', 'important'); // Force hide with inline style as backup
+        overlay.style.setProperty('visibility', 'hidden', 'important'); // Additional hiding method
+        overlay.style.setProperty('opacity', '0', 'important'); // Fade out
+        overlay.style.setProperty('pointer-events', 'none', 'important'); // Disable interactions
+        overlay.style.setProperty('z-index', '-1', 'important'); // Move behind everything
       }
       
+      // Show navigation buttons (hamburger, back, next)
+      var navHamburger = document.getElementById('navHamburger');
+      var navBack = document.getElementById('navBack');
+      var navNext = document.getElementById('navNext');
+      if (navHamburger && !singleScreenOnly) {
+        navHamburger.classList.remove('hidden');
+      }
+      if (navBack && !singleScreenOnly) {
+        navBack.classList.remove('hidden');
+      }
+      if (navNext && !singleScreenOnly) {
+        navNext.classList.remove('hidden');
+      }
+      
+      // Also handle legacy navigation element if it exists
       var nav = document.getElementById('navigation');
       if (nav && !singleScreenOnly) {
         nav.classList.remove('hidden');
@@ -2841,13 +3397,15 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
         }
         if (mainScreenEl) {
           mainScreenEl.classList.add('hidden');
-          mainScreenEl.style.display = 'none'; // Force hide with inline style as backup
+          mainScreenEl.style.setProperty('display', 'none', 'important'); // Force hide with inline style as backup
         }
       }
       
-      // Show the first content screen (main is excluded from navigation screens)
-      // Only proceed if we have screens to show
-      if (singleScreenOnly && startScreenId) {
+      // Use requestAnimationFrame to ensure overlay is hidden before showing screen
+      requestAnimationFrame(function() {
+        // Show the first content screen (main is excluded from navigation screens)
+        // Only proceed if we have screens to show
+        if (singleScreenOnly && startScreenId) {
         // Single screen mode: show the target screen directly, hide all others
         screens.forEach(function(screenId) {
           var screen = document.getElementById('screen-' + screenId);
@@ -2877,13 +3435,15 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
         }
       } else if (screens.length > 0) {
         showScreen(0);
-      } else {
-        console.error('startExperience: No screens available to show!');
       }
+      // If no screens available, silently fail (logs removed for production)
+      });
       
       if (!singleScreenOnly) {
         updateButtonStates();
       }
+      
+      isStarting = false;
       
       // Start global audio if available, otherwise start first screen's audio if it exists
       if (globalAudioData) {
@@ -2914,7 +3474,9 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
           }
         }
         
-        showScreen(currentScreenIndex + 1);
+        // Show the next screen
+        var nextIndex = currentScreenIndex + 1;
+        showScreen(nextIndex);
         
         // Play next screen audio if available (only if no global audio)
         setTimeout(function() {
@@ -3236,8 +3798,95 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
         }
       }
       
+      // Handle placeholder clicks (gallery/video/hero placeholders in preview mode)
+      if (mode === 'preview') {
+        // Gallery placeholders
+        var galleryPlaceholders = document.querySelectorAll('[data-placeholder-type="gallery"]');
+        galleryPlaceholders.forEach(function(placeholder) {
+          placeholder.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var screenId = placeholder.getAttribute('data-screen-id');
+            if (screenId && window.parent) {
+              // Send message to parent window to open image selection
+              window.parent.postMessage({
+                type: 'openImageSelector',
+                screenId: screenId,
+                placeholderType: 'gallery'
+              }, '*');
+            }
+          });
+          // Add hover effect
+          placeholder.style.transition = 'all 0.2s ease';
+          placeholder.addEventListener('mouseenter', function() {
+            this.style.borderColor = '#ec4899';
+            this.style.backgroundColor = '#fdf2f8';
+          });
+          placeholder.addEventListener('mouseleave', function() {
+            this.style.borderColor = '#d1d5db';
+            this.style.backgroundColor = '#f9fafb';
+          });
+        });
+        
+        // Hero image placeholders
+        var heroPlaceholders = document.querySelectorAll('[data-placeholder-type="hero"]');
+        heroPlaceholders.forEach(function(placeholder) {
+          placeholder.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var screenId = placeholder.getAttribute('data-screen-id');
+            if (screenId && window.parent) {
+              // Send message to parent window to open image selection
+              window.parent.postMessage({
+                type: 'openImageSelector',
+                screenId: screenId,
+                placeholderType: 'hero'
+              }, '*');
+            }
+          });
+          // Add hover effect
+          placeholder.style.transition = 'all 0.2s ease';
+          placeholder.addEventListener('mouseenter', function() {
+            this.style.borderColor = '#ec4899';
+            this.style.backgroundColor = '#fdf2f8';
+          });
+          placeholder.addEventListener('mouseleave', function() {
+            this.style.borderColor = '#d1d5db';
+            this.style.backgroundColor = '#f9fafb';
+          });
+        });
+        
+        // Video placeholders
+        var videoPlaceholders = document.querySelectorAll('[data-placeholder-type="video"]');
+        videoPlaceholders.forEach(function(placeholder) {
+          placeholder.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var screenId = placeholder.getAttribute('data-screen-id');
+            if (screenId && window.parent) {
+              // Send message to parent window to open video selection or navigate to contents
+              window.parent.postMessage({
+                type: 'openVideoSelector',
+                screenId: screenId,
+                placeholderType: 'video'
+              }, '*');
+            }
+          });
+          // Add hover effect
+          placeholder.style.transition = 'all 0.2s ease';
+          placeholder.addEventListener('mouseenter', function() {
+            this.style.borderColor = '#ec4899';
+            this.style.backgroundColor = '#fdf2f8';
+          });
+          placeholder.addEventListener('mouseleave', function() {
+            this.style.borderColor = '#d1d5db';
+            this.style.backgroundColor = '#f9fafb';
+          });
+        });
+      }
+      
       // Carousel controls - attach to all carousels
-      var carousels = document.querySelectorAll('.image-carousel-container');
+      var carousels = document.querySelectorAll('.image-carousel-container:not(.image-carousel-placeholder)');
       carousels.forEach(function(container) {
         var carouselId = container.id;
         var prevBtn = container.querySelector('.carousel-nav-prev');
@@ -3305,6 +3954,7 @@ function buildGiftAppNamespace(project: Project, _templateMeta: TemplateMeta, sc
       startExperience: startExperience,
       nextScreen: nextScreen,
       previousScreen: previousScreen,
+      toggleMenu: toggleMenu,
       carouselPrev: carouselPrev,
       carouselNext: carouselNext,
       carouselGoTo: carouselGoTo,

@@ -34,11 +34,44 @@ export function TemplateDetailsView({ templateId }: { templateId: string }) {
       });
   }, [templateId]);
 
+  // Listen for postMessage from iframe (placeholder clicks)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Only accept messages from our iframe (same origin)
+      if (event.data?.type === 'openImageSelector' || event.data?.type === 'openVideoSelector') {
+        const { screenId, placeholderType } = event.data;
+        
+        if (event.data.type === 'openImageSelector') {
+          // Navigate to contents tab with images subtab, or open image selector
+          // For now, navigate to contents tab
+          navigate({ type: 'contents', subtab: 'images' });
+        } else if (event.data.type === 'openVideoSelector') {
+          // Navigate to contents tab with videos subtab
+          navigate({ type: 'contents', subtab: 'videos' });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate]);
+
   const generatePreview = async (meta: TemplateMeta) => {
     try {
+      setIsLoading(true);
       // Create a temporary project with default data for preview
       const tempProject = createProject(templateId, `Preview: ${meta.templateName}`);
       
+      // Find the main screen (order === 1) for overlay
+      const mainScreen = meta.screens.find(s => s.order === 1);
+      const mainScreenTitle = mainScreen 
+        ? (meta.designConfig?.textPlaceholders?.title || 'Welcome')
+        : (meta.designConfig?.textPlaceholders?.mainGreeting || 'Hello!');
+      const mainScreenText = mainScreen
+        ? (meta.designConfig?.textPlaceholders?.text || 'Let\'s begin...')
+        : '';
+      const mainGreeting = meta.designConfig?.textPlaceholders?.mainGreeting || 'Hello!';
+
       // Fill with placeholder data
       const projectWithDefaults: typeof tempProject = {
         ...tempProject,
@@ -46,24 +79,72 @@ export function TemplateDetailsView({ templateId }: { templateId: string }) {
           ...tempProject.data,
           recipientName: 'Recipient Name',
           senderName: 'Sender Name',
-          mainGreeting: meta.designConfig?.textPlaceholders?.mainGreeting || 'Hello!',
+          mainGreeting: mainGreeting,
+          overlay: {
+            type: (meta.overlayType || 'custom') as 'heart' | 'birthday' | 'save_the_date' | 'custom',
+            mainText: mainScreenTitle,
+            subText: mainScreenText,
+            buttonText: 'Start',
+            buttonStyle: 'text-framed' as const,
+            textButton: {
+              text: 'Start',
+              frameStyle: 'solid' as const,
+              backgroundColor: 'white',
+              textColor: '#333',
+              borderColor: '#333',
+            },
+          },
           screens: meta.screens.reduce((acc, screen) => {
-            acc[screen.screenId] = {
-              title: meta.designConfig?.textPlaceholders?.title || 'Title',
-              text: meta.designConfig?.textPlaceholders?.text || 'Text content...',
-            };
+            // For main screen (order === 1), set title and text that will be used in overlay
+            if (screen.order === 1) {
+              acc[screen.screenId] = {
+                title: mainScreenTitle,
+                text: mainScreenText,
+              };
+            } else {
+              // Use defaultTitle, defaultText, defaultCaption, defaultItems from screen config if available
+              const screenData: any = {
+                title: (screen as any).defaultTitle || meta.designConfig?.textPlaceholders?.title || 'Title',
+                text: (screen as any).defaultText || meta.designConfig?.textPlaceholders?.text || 'Text content...',
+              };
+              
+              // Add caption for gallery screens
+              if (screen.type === 'gallery' && (screen as any).defaultCaption) {
+                screenData.caption = (screen as any).defaultCaption;
+              }
+              
+              // Add wishes items for wishes screens
+              if (screen.type === 'wishes' && (screen as any).defaultItems) {
+                screenData.wishesItems = (screen as any).defaultItems;
+              }
+              
+              acc[screen.screenId] = screenData;
+            }
             return acc;
           }, {} as Record<string, any>),
         },
       };
 
+      console.log('Generating preview for template:', templateId, 'with project:', projectWithDefaults);
+      // Don't use singleScreenOnly or startScreenId - show full navigatable preview
       const html = await buildGiftHtml(projectWithDefaults, meta, {
         mode: 'preview',
-        startScreenId: meta.screens[0]?.screenId,
+        // Let it show overlay first, then allow navigation through all screens
       });
-      setPreviewHtml(html);
+      
+      console.log('Preview HTML generated, length:', html?.length || 0);
+      if (html && html.length > 0) {
+        setPreviewHtml(html);
+      } else {
+        console.error('Generated HTML is empty');
+        setPreviewHtml('');
+      }
     } catch (error) {
       console.error('Error generating preview:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
+      }
+      setPreviewHtml(''); // Clear preview on error
     } finally {
       setIsLoading(false);
     }
@@ -185,12 +266,28 @@ export function TemplateDetailsView({ templateId }: { templateId: string }) {
               ref={iframeRef}
               srcDoc={previewHtml}
               className="w-full h-full border-0"
-              style={{ pointerEvents: 'none' }}
+              style={{ pointerEvents: 'auto' }}
               title="Template Preview"
+              onLoad={() => {
+                console.log('Iframe loaded successfully');
+                if (iframeRef.current) {
+                  try {
+                    const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+                    if (iframeDoc) {
+                      console.log('Iframe document body:', iframeDoc.body?.innerHTML?.substring(0, 200) || 'empty');
+                    }
+                  } catch (e) {
+                    console.warn('Cannot access iframe content (cross-origin):', e);
+                  }
+                }
+              }}
+              onError={(e) => {
+                console.error('Iframe error:', e);
+              }}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-400">
-              Preview not available
+              {isLoading ? 'Loading preview...' : 'Preview not available'}
             </div>
           )}
         </div>

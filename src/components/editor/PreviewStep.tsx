@@ -151,17 +151,17 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
           genId,
         });
 
-        setIsLoading(true);
-        setError(null);
+    setIsLoading(true);
+    setError(null);
 
         const startTime = perfNow();
         // Always use currentProject (not deferred) to ensure cache key matches generated HTML
-        buildGiftHtml(currentProject, templateMeta, {
-          mode: 'preview',
-          startScreenId: firstScreenId,
+    buildGiftHtml(currentProject, templateMeta, {
+      mode: 'preview',
+      startScreenId: firstScreenId,
           hideEmptyScreens: false,
-        })
-          .then((html) => {
+    })
+      .then((html) => {
             // Generation ID guard: ignore if this is not the latest generation
             if (genId !== genRef.current) {
               if (import.meta.env.DEV) {
@@ -182,10 +182,10 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             // Only update cache key on success
             cacheKeyRef.current = newCacheKey;
             pendingKeyRef.current = '';
-            setPreviewHtml(html);
-            setIsLoading(false);
-          })
-          .catch((err) => {
+        setPreviewHtml(html);
+        setIsLoading(false);
+      })
+      .catch((err) => {
             // Generation ID guard: ignore if this is not the latest generation
             if (genId !== genRef.current) {
               if (import.meta.env.DEV) {
@@ -198,11 +198,11 @@ export function PreviewStep({ templateMeta }: PreviewStepProps) {
             if (import.meta.env.DEV) {
               console.error('[PreviewStep] Failed to generate preview HTML:', err);
             }
-            setError(err instanceof Error ? err.message : 'Failed to generate preview');
+        setError(err instanceof Error ? err.message : 'Failed to generate preview');
             // Don't update cacheKeyRef on failure - allows retry on next change
             pendingKeyRef.current = '';
-            setIsLoading(false);
-          });
+        setIsLoading(false);
+      });
       });
     }, 250); // 250ms debounce
 

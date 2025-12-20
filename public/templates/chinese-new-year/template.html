@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chinese New Year</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; }
+    .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+    .screen { min-height: 100vh; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .screen.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlay">
+    <h1>{{overlayMainText}}</h1>
+    <p>{{overlaySubText}}</p>
+    <button onclick="GiftApp.startExperience()">{{overlayButtonText}}</button>
+  </div>
+  <div class="screen hidden" id="intro"><h2>{{intro_title}}</h2><p>{{intro_text}}</p></div>
+  <div class="screen hidden" id="zodiac"><h2>{{zodiac_title}}</h2><p>{{zodiac_text}}</p></div>
+  <div class="screen hidden" id="wishes"><h2>{{wishes_title}}</h2><p>{{wishes_text}}</p></div>
+</body>
+</html>
